@@ -1,4 +1,19 @@
 import { createServer } from 'node:http';
+import { execFile } from 'node:child_process';
+import { X509Certificate } from 'node:crypto';
+
+async function inspectCertificate() {
+  const output = await new Promise((resolve) => {
+    const child = execFile('openssl', ['s_client', '-connect', 'ilga.gov:443', '-servername', 'ilga.gov', '-showcerts', '-verify_return_error'],
+      { timeout: 10000, maxBuffer: 100000 }, (error, stdout, stderr) => resolve({ stdout, stderr, error: error?.code }));
+    child.stdin.end();
+  });
+  const certificates = [...output.stdout.matchAll(/-----BEGIN CERTIFICATE-----[\s\S]*?-----END CERTIFICATE-----/g)].map(([pem]) => {
+    const cert = new X509Certificate(pem);
+    return { subject: cert.subject, issuer: cert.issuer, infoAccess: cert.infoAccess, fingerprint: cert.fingerprint256, validTo: cert.validTo };
+  });
+  return { certificates, verification: output.stderr.slice(-2000) };
+}
 
 // Connection diagnostic only. No proxy, external reader, or TLS override.
 const rangeUrl = 'https://ilga.gov/Legislation/RegularSession/SB?DocTypeID=SB&GaId=18&SessionId=114&num1=0501&num2=0600';
@@ -131,6 +146,7 @@ async function probe() {
       : 'failed';
 
   report.finishedAt = new Date().toISOString();
+  if (report.state === 'failed') report.certificateDiagnostic = await inspectCertificate();
   console.log(JSON.stringify(report));
 }
 
