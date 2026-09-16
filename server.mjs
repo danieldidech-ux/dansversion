@@ -1,6 +1,19 @@
 import { createServer } from 'node:http';
 import { execFile } from 'node:child_process';
 import { X509Certificate } from 'node:crypto';
+import { readFileSync } from 'node:fs';
+import { rootCertificates, setDefaultCACertificates } from 'node:tls';
+
+// ILGA omits this public intermediate from its TLS handshake. Verify it
+// against Node's existing trusted roots before supplying the missing chain.
+const issuerPem = readFileSync(new URL('./sectigo-ovr40.pem', import.meta.url), 'utf8');
+const issuer = new X509Certificate(issuerPem);
+const trustedIssuer = rootCertificates.map((pem) => new X509Certificate(pem))
+  .some((root) => root.subject === issuer.issuer && issuer.verify(root.publicKey));
+if (!issuer.ca || !trustedIssuer || Date.now() < Date.parse(issuer.validFrom) || Date.now() > Date.parse(issuer.validTo)) {
+  throw new Error('ILGA intermediate does not chain to an existing trusted root');
+}
+setDefaultCACertificates([...rootCertificates, issuerPem]);
 
 async function inspectCertificate() {
   const output = await new Promise((resolve) => {
