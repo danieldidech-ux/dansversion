@@ -110,7 +110,9 @@ async function measure(url, inspect) {
 }
 
 async function probe() {
-  const html = await measure(rangeUrl, (body) => {
+  for (const type of ['SB', 'HB']) {
+  const currentRange = rangeUrl.replaceAll('SB', type);
+  const html = await measure(currentRange, (body) => {
     const numbers = new Set(
       [...body.matchAll(/DocNum=(\d+)/g)]
         .map((match) => Number(match[1]))
@@ -120,7 +122,7 @@ async function probe() {
       numbers.size !== 100 ||
       [...numbers].some((n) => n < 501 || n > 600)
     ) {
-      throw new Error('Expected exactly SB0501–SB0600');
+      throw new Error(`Expected exactly ${type}0501–${type}0600`);
     }
 
     return { billCount: numbers.size };
@@ -133,34 +135,37 @@ async function probe() {
       )].map((match) =>
         new URL(
           match[1].replaceAll('&amp;', '&'),
-          rangeUrl
+          currentRange
         ).href
       )
     )];
 
-    for (const link of links.slice(0, 3)) {
+    for (const link of links) {
       await measure(link, (body) => {
-        if (
-          !/id=["']sponsorDiv["']/i.test(body) ||
-          !/Senate Sponsors/i.test(body)
-        ) {
-          throw new Error('Sponsor section not found');
-        }
-
-        return { sponsorSectionPresent: true };
+        const clean = (value) => String(value || '').replace(/<[^>]*>/g, '').replace(/&#(\d+);/g, (_, n) => String.fromCodePoint(Number(n))).replace(/&amp;/g, '&').replace(/&nbsp;/g, ' ').trim();
+        const tab = body.slice(body.indexOf('class="tab-content'));
+        const title = clean(tab.match(/<h2\b[^>]*>([\s\S]*?)<\/h2>/i)?.[1]);
+        const sponsorBlock = body.match(/id=["']sponsorDiv["'][^>]*>([\s\S]*?)<\/div>/i)?.[1];
+        if (!sponsorBlock || !title) throw new Error('Title or sponsor section not found');
+        const sponsor = (chamber) => clean(sponsorBlock.match(new RegExp(`<a\\b[^>]*href=["'][^"']*\\/${chamber}\\/Members\\/Details\\/[^"']+["'][^>]*>([\\s\\S]*?)<\\/a>`, 'i'))?.[1]);
+        const senateSponsor = sponsor('Senate');
+        const houseSponsor = sponsor('House');
+        if (!(type === 'SB' ? senateSponsor : houseSponsor)) throw new Error('Originating sponsor not found');
+        return { title, senateSponsor, houseSponsor, retrievedAt: new Date().toISOString() };
       });
     }
   }
+  }
 
   report.state =
-    report.results.length === 4 &&
+    report.results.length === 202 &&
     report.results.every((result) => result.ok)
       ? 'passed'
       : 'failed';
 
   report.finishedAt = new Date().toISOString();
   if (report.state === 'failed') report.certificateDiagnostic = await inspectCertificate();
-  console.log(JSON.stringify(report));
+  console.log(JSON.stringify({ state: report.state, startedAt: report.startedAt, finishedAt: report.finishedAt, checked: report.results.length, failures: report.results.filter((result) => !result.ok) }));
 }
 
 const server = createServer((req, res) => {
