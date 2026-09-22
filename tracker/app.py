@@ -239,12 +239,26 @@ def create_app(directory=None, poll=True):
     app = Flask(__name__)
     app.config['STORE'] = store
     worker = None
-    if poll:
-        lock = open(Path(directory)/'collector.lock', 'a')
-        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        app.config['COLLECTOR_LOCK'] = lock
-        worker = threading.Thread(target=polling_loop, args=(store,), daemon=True)
-        worker.start()
+    startup_lock = threading.Lock()
+
+    @app.before_request
+    def start_collector_in_serving_process():
+        # Gunicorn may load the app in its parent process. Threads do not survive
+        # fork. Render's first health request starts polling in the serving worker.
+        nonlocal worker
+        if not poll or worker is not None:
+            return
+        with startup_lock:
+            if worker is None:
+                lock = open(Path(directory)/'collector.lock', 'a')
+                try:
+                    fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+                except Exception:
+                    lock.close()
+                    raise
+                app.config['COLLECTOR_LOCK'] = lock
+                worker = threading.Thread(target=polling_loop, args=(store,), daemon=True)
+                worker.start()
 
     @app.after_request
     def security(response):
