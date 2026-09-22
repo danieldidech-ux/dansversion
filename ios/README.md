@@ -9,7 +9,9 @@ Working title; final name is undecided. Native SwiftUI, iPhone, iOS 17+. No thir
 3. Choose the **IllinoisTracker** scheme and an iPhone simulator, then press Run (triangle button). The app connects to the deployed filing service immediately.
 4. For a physical iPhone, select the app target → Signing & Capabilities → your development team. Replace the provisional bundle identifier if necessary. A paid Apple Developer team is needed for the Push Notifications capability. To test browsing using a free personal team, temporarily remove the Push Notifications capability from your local target; do not enable alerts.
 
-The project has not been compiled or run in an iOS simulator in the Linux build environment. Xcode compilation, accessibility checks and device testing are required before TestFlight. There is no installable IPA or App Store release yet.
+The project passed an unsigned iPhone simulator build on a GitHub macOS runner using Xcode 15.4. Physical-device, accessibility and end-to-end notification testing are still required before TestFlight. There is no signed installable IPA or App Store release yet.
+
+Build evidence: https://github.com/danieldidech-ux/dansversion/actions/runs/35684962320
 
 ## Included
 
