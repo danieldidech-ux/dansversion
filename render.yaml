@@ -1,0 +1,23 @@
+services:
+  - type: web
+    name: illinois-filing-tracker
+    runtime: python
+    region: ohio
+    plan: starter
+    branch: illinois-filing-tracker
+    rootDir: tracker
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --workers 1 --threads 4 --bind 0.0.0.0:$PORT --timeout 60 'app:create_app()'
+    healthCheckPath: /healthz
+    autoDeployTrigger: "off"
+    disk:
+      name: filing-history
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: DATA_DIR
+        value: /var/data
+      - key: REQUIRE_PERSISTENT_DISK
+        value: "1"
+      - key: PYTHON_VERSION
+        value: 3.12.10
