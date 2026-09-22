@@ -1,6 +1,7 @@
 import copy
 import tempfile
 import unittest
+from unittest.mock import patch
 from contextlib import closing
 from app import create_app, committee_key
 from directory import sync_directory
@@ -18,6 +19,19 @@ class DirectoryTests(unittest.TestCase):
 
     def tearDown(self):
         self.tmp.cleanup()
+
+    def test_directory_with_production_collector_startup(self):
+        with tempfile.TemporaryDirectory() as path, patch('app.threading.Thread') as thread:
+            thread.return_value.is_alive.return_value = True
+            app = create_app(path, poll=True)
+            try:
+                client = app.test_client()
+                self.assertEqual(client.get('/healthz').status_code, 200)
+                self.assertEqual(client.get('/v1/directory').status_code, 200)
+                self.assertEqual(thread.return_value.start.call_count, 2)
+            finally:
+                if app.config.get('COLLECTOR_LOCK'):
+                    app.config['COLLECTOR_LOCK'].close()
 
     def test_approved_replacements_and_missing_entry(self):
         groups = {g['id']: g for g in self.client.get('/v1/directory').json['groups']}

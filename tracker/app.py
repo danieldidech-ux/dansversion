@@ -287,7 +287,7 @@ def create_app(directory=None, poll=True):
         return response
 
     @app.get('/v1/directory')
-    def directory():
+    def caucus_directory():
         return jsonify(store.directory_data)
 
     @app.get('/downloads/IllinoisTracker-v5.zip')
