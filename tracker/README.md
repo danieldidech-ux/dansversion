@@ -1,6 +1,6 @@
 # Illinois Filing Tracker: live monitor
 
-This first backend milestone retrieves official RSS every five minutes and preserves filings across restarts. It is not yet the full iPhone app or a push-notification service.
+This first backend milestone retrieves official RSS every minute and preserves filings across restarts. It is not yet the full iPhone app or a push-notification service.
 
 ## Deployment
 
@@ -33,7 +33,7 @@ To run locally, set DATA_DIR to a local directory and leave REQUIRE_PERSISTENT_D
 
 ## Remaining app work
 
-1. Observe at least a day of real polling, including new filings and restarts; measure source publication lag. Five-minute polling is not a five-minute phone-delivery guarantee.
+1. Observe at least a day of real polling, including new filings and restarts; measure source publication lag. One-minute polling is not a one-minute phone-delivery guarantee.
 2. Import the official committee directory; verify House/Senate incumbent, current-cycle candidate, and caucus classifications. Handle renames/aliases with official IDs.
 3. Add device-specific watchlists and an atomic notification outbox, APNs retry handling, deduplication, and opt-out/deletion controls.
 4. Build and test the SwiftUI client on a Mac; add push entitlement, Apple Developer enrollment, APNs credentials, TestFlight, privacy disclosures, and App Store submission. No iOS binary has been built in this Linux environment.
