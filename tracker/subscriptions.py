@@ -8,6 +8,7 @@ import uuid
 from contextlib import closing
 from functools import wraps
 from flask import Blueprint, jsonify, request, g
+from reports import ReportReader
 
 CATEGORIES = [
     ('house-democrats', 'House Democrats'), ('house-republicans', 'House Republicans'),
@@ -66,6 +67,7 @@ def enqueue(db, seq, committee_key, now):
 
 def routes(store):
     api = Blueprint('subscriptions', __name__)
+    report_reader = ReportReader(store)
 
     def credential():
         value = request.headers.get('Authorization', '')
@@ -205,6 +207,17 @@ def routes(store):
         with closing(store.connect()) as db:
             row=db.execute('SELECT * FROM filings WHERE seq=?',(seq,)).fetchone()
         return (jsonify(dict(row)),200) if row else (jsonify(error='Not found'),404)
+
+    @api.get('/v1/filings/<int:seq>/contents')
+    @authenticated
+    def report_contents(seq):
+        if seq > 2**63-1:
+            return jsonify(error='Not found'), 404
+        with closing(store.connect()) as db:
+            row = db.execute('SELECT * FROM filings WHERE seq=?', (seq,)).fetchone()
+        if row is None:
+            return jsonify(error='Not found'), 404
+        return jsonify(report_reader.read(dict(row)))
 
     return api
 

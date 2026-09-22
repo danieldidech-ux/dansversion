@@ -18,7 +18,7 @@ Build evidence: https://github.com/danieldidech-ux/dansversion/actions/runs/3568
 - Recent filings with pagination, pull-to-refresh and all/following filter.
 - Searchable committee directory drawn from the live feed; follow/unfollow committees.
 - Persistent installation-specific watchlist stored on the backend, protected by a random credential in Keychain.
-- Filing detail displays the official HTML or PDF report inside the app, with scroll/zoom, loading state, and retry. Follow and Open official report actions are below the report. Notification taps open the relevant filing.
+- A-1 filing details use native contribution cards: amount, contributor, monetary/in-kind type as reported, date, description, vendor and expandable addresses. Multiple entries each have a card and an exact decimal total. Follow and Open official report actions are below the contents. Notification taps open the relevant filing.
 - Notification permission handling, registration, pause and data deletion.
 - Category selection support. Categories are visibly under review and cannot be followed until verified on the server. No committee is classified from its name alone.
 - Dynamic Type, native VoiceOver labels, light/dark system appearance. No ads, tracking SDK, email or password.
@@ -55,5 +55,4 @@ Then check: search → follow → Following feed → quit/relaunch → unfollow;
 
 Close the older project in Xcode. Unzip the updated source download into a new folder, open its `IllinoisTracker.xcodeproj`, select your iPhone simulator and press Run. Xcode will replace the simulator app using the same bundle identifier; its existing Keychain credential and server watchlist remain available. If you customized signing for a physical phone, reselect your team in Signing & Capabilities.
 
-Report contents load directly from the official state website. A temporary state-site failure shows a retry option and preserves the external report link.
-
+A-1 contents are read by the existing backend from the filing-specific official report and cached for one hour. The app shows native cards, without embedding the state website. Other formats, including PDFs and quarterly reports, currently show an explicit unavailable message and the official link. Unrecognized or paginated A-1 tables fail closed instead of displaying incomplete totals. State-site failures retain a retry option and the official link.

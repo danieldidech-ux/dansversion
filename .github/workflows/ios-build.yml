@@ -23,7 +23,7 @@ jobs:
           xcrun simctl boot "$DEVICE"
           xcrun simctl bootstatus "$DEVICE" -b
           xcrun simctl install "$DEVICE" build/Build/Products/Debug-iphonesimulator/IllinoisTracker.app
-          SEQ=$(python3 -c 'import json,urllib.request; base="https://illinois-filing-tracker.onrender.com"; committees=json.load(urllib.request.urlopen(base+"/v1/committees?q=Soybean", timeout=30))["committees"]; path="/v1/filings?limit=1"+("&committee="+committees[0]["id"] if committees else ""); print(json.load(urllib.request.urlopen(base+path, timeout=30))["filings"][0]["seq"])')
+          SEQ=726000
           xcrun simctl launch "$DEVICE" com.danieldidech.illinoisfilings --preview-filing "$SEQ"
           sleep 50
           xcrun simctl io "$DEVICE" screenshot IllinoisTracker-live.png

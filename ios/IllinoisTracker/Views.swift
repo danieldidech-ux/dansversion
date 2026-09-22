@@ -1,5 +1,4 @@
 import SwiftUI
-import WebKit
 
 private let accent = Color(red: 0.12, green: 0.46, blue: 0.62)
 struct RootView: View {
@@ -71,168 +70,130 @@ struct FilingDetail: View {
     let filing: Filing
     var committee: Committee { Committee(id: filing.committeeKey, name: filing.committeeName) }
     var body: some View {
-        GeometryReader { geometry in
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
-                    FilingRow(filing: filing)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(18)
-                        .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+        ScrollView {
+            VStack(alignment: .leading, spacing: 20) {
+                FilingRow(filing: filing)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(18)
+                    .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
 
+                NativeReportContents(filing: filing).id(filing.seq)
+
+                VStack(spacing: 0) {
+                    Button { Task { await model.toggle(committee) } } label: {
+                        Label(model.follows(committee) ? "Unfollow committee" : "Follow committee",
+                              systemImage: model.follows(committee) ? "star.fill" : "star")
+                            .frame(maxWidth: .infinity, alignment: .leading).padding(18)
+                    }.disabled(model.saving || model.loading)
                     if let url = filing.reportURL {
-                        VStack(alignment: .leading, spacing: 10) {
-                            Text("Report contents").font(.headline)
-                            InlineReport(url: url, committeeName: filing.committeeName)
-                                .frame(height: max(420, geometry.size.height * 0.72))
-                                .background(Color(uiColor: .secondarySystemGroupedBackground))
-                                .clipShape(RoundedRectangle(cornerRadius: 12))
-                            Text("Scroll within the report to read more. Pinch to zoom.")
-                                .font(.caption).foregroundStyle(.secondary)
-                        }
-                    } else {
-                        ContentUnavailableView("Report unavailable", systemImage: "doc.text",
-                            description: Text("The state did not supply a report link for this filing."))
-                    }
-
-                    VStack(spacing: 0) {
-                        Button { Task { await model.toggle(committee) } } label: {
-                            Label(model.follows(committee) ? "Unfollow committee" : "Follow committee",
-                                  systemImage: model.follows(committee) ? "star.fill" : "star")
+                        Divider().padding(.leading, 18)
+                        Link(destination: url) {
+                            Label("Open official report", systemImage: "arrow.up.right.square")
                                 .frame(maxWidth: .infinity, alignment: .leading).padding(18)
-                        }.disabled(model.saving || model.loading)
-                        if let url = filing.reportURL {
-                            Divider().padding(.leading, 18)
-                            Link(destination: url) {
-                                Label("Open official report", systemImage: "arrow.up.right.square")
-                                    .frame(maxWidth: .infinity, alignment: .leading).padding(18)
-                            }
                         }
-                    }.background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
-                    Text("Following applies to all report types filed by this committee. Alerts begin with newly discovered filings after you follow and enable notifications.")
-                        .font(.footnote).foregroundStyle(.secondary)
-                }.padding(16)
-            }.background(Color(uiColor: .systemGroupedBackground))
-        }.navigationTitle("Filing").navigationBarTitleDisplayMode(.inline)
+                    }
+                }.background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+                Text("Following applies to all report types filed by this committee. Alerts begin with newly discovered filings after you follow and enable notifications.")
+                    .font(.footnote).foregroundStyle(.secondary)
+            }.padding(16)
+        }.background(Color(uiColor: .systemGroupedBackground))
+            .navigationTitle("Filing").navigationBarTitleDisplayMode(.inline)
     }
 }
 
-private struct InlineReport: View {
-    let url: URL
-    let committeeName: String
-    @State private var loading = true
+private struct NativeReportContents: View {
+    @EnvironmentObject var model: AppModel
+    let filing: Filing
+    @State private var report: ReportContents?
     @State private var failure: String?
+    @State private var loading = true
     @State private var attempt = 0
+
     var body: some View {
-        ZStack {
-            ReportWebView(url: url, committeeName: committeeName, loading: $loading, failure: $failure)
-                .id(attempt)
-                .opacity(failure == nil ? 1 : 0)
-            if loading && failure == nil {
-                ProgressView("Loading report…")
-                    .padding(20).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Report contents").font(.headline)
+            if loading {
+                ProgressView("Loading contributions…")
+                    .frame(maxWidth: .infinity).padding(24)
+            } else if let report, report.status == "ready", let contributions = report.contributions, !contributions.isEmpty {
+                if contributions.count > 1 {
+                    HStack(alignment: .firstTextBaseline) {
+                        Text("\(contributions.count) contributions").font(.subheadline)
+                        Spacer()
+                        if let total = report.total { Text(ReportContribution.currency(total)).font(.headline) }
+                    }
+                    Text("Total reported value, including any in-kind contributions")
+                        .font(.caption).foregroundStyle(.secondary)
+                }
+                ForEach(contributions) { contribution in
+                    ContributionCard(contribution: contribution)
+                }
+                Text("Source: Illinois State Board of Elections")
+                    .font(.caption).foregroundStyle(.secondary)
+            } else {
+                VStack(alignment: .leading, spacing: 12) {
+                    Label("Report details unavailable", systemImage: "doc.text.magnifyingglass").font(.headline)
+                    Text(failure ?? report?.message ?? "Open the official report below to read this filing.")
+                        .font(.subheadline).foregroundStyle(.secondary)
+                    if report?.status != "unsupported" {
+                        Button("Try again") { attempt += 1 }.buttonStyle(.bordered)
+                    }
+                }.frame(maxWidth: .infinity, alignment: .leading).padding(18)
+                    .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
             }
-            if let failure {
-                VStack(spacing: 14) {
-                    Image(systemName: "doc.text.magnifyingglass").font(.largeTitle).foregroundStyle(.secondary)
-                    Text("Couldn't load the report").font(.headline)
-                    Text(failure).font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
-                    Button("Try again") { self.failure = nil; loading = true; attempt += 1 }
-                        .buttonStyle(.bordered)
-                    Text("You can also use Open official report below.")
-                        .font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center)
-                }.padding(24)
-            }
+        }.task(id: attempt) { await load() }
+    }
+
+    @MainActor private func load() async {
+        loading = true; failure = nil; report = nil
+        do {
+            try await model.setup()
+            let result: ReportContents = try await model.connection().call("/v1/filings/\(filing.seq)/contents")
+            try Task.checkCancellation()
+            report = result
+        } catch is CancellationError { return }
+        catch {
+            guard !Task.isCancelled else { return }
+            failure = error.localizedDescription
         }
+        loading = false
     }
 }
 
-/// WKWebView displays the state's HTML reports and PDF documents without leaving the filing.
-private struct ReportWebView: UIViewRepresentable {
-    let url: URL
-    let committeeName: String
-    @Binding var loading: Bool
-    @Binding var failure: String?
-
-    func makeCoordinator() -> Coordinator { Coordinator(self) }
-    func makeUIView(context: Context) -> WKWebView {
-        let configuration = WKWebViewConfiguration()
-        configuration.websiteDataStore = .default()
-        let webView = WKWebView(frame: .zero, configuration: configuration)
-        webView.navigationDelegate = context.coordinator
-        webView.uiDelegate = context.coordinator
-        webView.allowsBackForwardNavigationGestures = true
-        webView.isOpaque = false
-        webView.backgroundColor = .secondarySystemGroupedBackground
-        webView.scrollView.contentInsetAdjustmentBehavior = .never
-        webView.load(URLRequest(url: url, timeoutInterval: 45))
-        return webView
-    }
-    func updateUIView(_ webView: WKWebView, context: Context) { context.coordinator.parent = self }
-    static func dismantleUIView(_ webView: WKWebView, coordinator: Coordinator) {
-        webView.stopLoading(); webView.navigationDelegate = nil; webView.uiDelegate = nil
-    }
-
-    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
-        var parent: ReportWebView
-        private var positionedAtReport = false
-        init(_ parent: ReportWebView) { self.parent = parent }
-        func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
-            parent.loading = true; parent.failure = nil
-        }
-        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
-            parent.loading = false
-            guard !positionedAtReport,
-                  let data = try? JSONSerialization.data(withJSONObject: [parent.committeeName]),
-                  let names = String(data: data, encoding: .utf8) else { return }
-            // Start at the report heading rather than the state's large navigation banner.
-            // Keep the original document intact and accessible by scrolling upward.
-            let script = """
-            (() => {
-                const target = \(names)[0].replace(/\\s+/g, ' ').trim().toLowerCase();
-                const heading = Array.from(document.querySelectorAll('h1,h2,h3,h4,span,div,td,th,p,a'))
-                    .find(el => el.children.length === 0 && el.getClientRects().length > 0 &&
-                        (el.textContent || '').replace(/\\s+/g, ' ').trim().toLowerCase() === target);
-                if (!heading) return false;
-                heading.scrollIntoView({block: 'start', inline: 'nearest'});
-                return true;
-            })();
-            """
-            webView.evaluateJavaScript(script) { [weak self] result, _ in
-                if result as? Bool == true { self?.positionedAtReport = true }
+private struct ContributionCard: View {
+    let contribution: ReportContribution
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            VStack(alignment: .leading, spacing: 6) {
+                Text(ReportContribution.currency(contribution.amount))
+                    .font(.largeTitle.weight(.bold)).foregroundStyle(accent)
+                    .accessibilityLabel("Contribution value \(ReportContribution.currency(contribution.amount))")
+                Text("from").font(.subheadline).foregroundStyle(.secondary)
+                Text(contribution.contributor).font(.title3.weight(.semibold)).textSelection(.enabled)
             }
-        }
-        func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) { failed(error) }
-        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) { failed(error) }
-        func failed(_ error: Error) {
-            guard (error as NSError).code != NSURLErrorCancelled else { return }
-            parent.loading = false
-            parent.failure = "The connection to the state's website failed. Please try again."
-        }
-        func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
-            parent.loading = false; parent.failure = "The report viewer stopped. Please try again."
-        }
-        func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse,
-                     decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
-            if navigationResponse.isForMainFrame,
-               let response = navigationResponse.response as? HTTPURLResponse, response.statusCode >= 400 {
-                parent.loading = false
-                parent.failure = "The state's website could not display this report right now."
-                decisionHandler(.cancel)
-            } else { decisionHandler(.allow) }
-        }
-        func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction,
-                     decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
-            guard let url = navigationAction.request.url else { decisionHandler(.cancel); return }
-            if ["https", "http", "about", "blob"].contains(url.scheme ?? "") {
-                decisionHandler(.allow)
-            } else { decisionHandler(.cancel) }
-        }
-        func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,
-                     for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
-            // Keep document links that open a new window inside this report reader.
-            if navigationAction.targetFrame == nil, let url = navigationAction.request.url,
-               ["https", "http"].contains(url.scheme ?? "") { webView.load(navigationAction.request) }
-            return nil
+            Text(contribution.contributionType)
+                .font(.subheadline.weight(.semibold)).foregroundStyle(accent)
+                .padding(.horizontal, 10).padding(.vertical, 6)
+                .background(accent.opacity(0.09), in: RoundedRectangle(cornerRadius: 8))
+            Divider()
+            detail("Received", contribution.displayDate)
+            if !contribution.description.isEmpty { detail("Description", contribution.description) }
+            if !contribution.vendor.isEmpty { detail("Vendor", contribution.vendor) }
+            if !contribution.address.isEmpty || !contribution.vendorAddress.isEmpty {
+                DisclosureGroup("Addresses") {
+                    VStack(alignment: .leading, spacing: 12) {
+                        if !contribution.address.isEmpty { detail("Contributor address", contribution.address) }
+                        if !contribution.vendorAddress.isEmpty { detail("Vendor address", contribution.vendorAddress) }
+                    }.frame(maxWidth: .infinity, alignment: .leading).padding(.top, 8)
+                }.font(.subheadline)
+            }
+        }.padding(18).frame(maxWidth: .infinity, alignment: .leading)
+            .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+    }
+    private func detail(_ label: String, _ value: String) -> some View {
+        VStack(alignment: .leading, spacing: 3) {
+            Text(label).font(.caption).foregroundStyle(.secondary)
+            Text(value).font(.subheadline).textSelection(.enabled)
         }
     }
 }

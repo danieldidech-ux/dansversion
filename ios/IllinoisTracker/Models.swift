@@ -74,3 +74,40 @@ struct API {
     }
     func encoded<T: Encodable>(_ value: T) throws -> Data { try JSONEncoder().encode(value) }
 }
+
+struct ReportContents: Decodable {
+    let status: String
+    let message: String?
+    let contributions: [ReportContribution]?
+    let total: String?
+    let period: String?
+}
+struct ReportContribution: Decodable, Identifiable {
+    let id: Int
+    let contributor: String
+    let amount: String
+    let receivedDate: String
+    let contributionType: String
+    let description: String
+    let vendor: String
+    let address: String
+    let vendorAddress: String
+
+    static func currency(_ value: String) -> String {
+        guard let amount = Decimal(string: value, locale: Locale(identifier: "en_US_POSIX")) else { return value }
+        let formatter = NumberFormatter()
+        formatter.numberStyle = .currency
+        formatter.locale = Locale(identifier: "en_US")
+        formatter.currencyCode = "USD"
+        return formatter.string(from: NSDecimalNumber(decimal: amount)) ?? value
+    }
+    var displayDate: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd"
+        guard let date = formatter.date(from: receivedDate) else { return receivedDate }
+        formatter.dateFormat = "MMMM d, yyyy"
+        return formatter.string(from: date)
+    }
+}
