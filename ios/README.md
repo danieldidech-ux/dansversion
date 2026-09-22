@@ -9,9 +9,9 @@ Working title; final name is undecided. Native SwiftUI, iPhone, iOS 17+. No thir
 3. Choose the **IllinoisTracker** scheme and an iPhone simulator, then press Run (triangle button). The app connects to the deployed filing service immediately.
 4. For a physical iPhone, select the app target → Signing & Capabilities → your development team. Replace the provisional bundle identifier if necessary. A paid Apple Developer team is needed for the Push Notifications capability. To test browsing using a free personal team, temporarily remove the Push Notifications capability from your local target; do not enable alerts.
 
-The project passed an unsigned iPhone simulator build on a GitHub macOS runner using Xcode 15.4. Physical-device, accessibility and end-to-end notification testing are still required before TestFlight. There is no signed installable IPA or App Store release yet.
+The project passed an Xcode 15.4 simulator build and launched successfully with ad-hoc signing on a GitHub macOS runner. The simulator displayed real filings from the deployed backend. Physical-device, accessibility and end-to-end notification testing are still required before TestFlight. There is no signed installable IPA or App Store release yet.
 
-Build evidence: https://github.com/danieldidech-ux/dansversion/actions/runs/35684962320
+Build evidence: https://github.com/danieldidech-ux/dansversion/actions/runs/35685387330
 
 ## Included
 
@@ -28,7 +28,7 @@ Build evidence: https://github.com/danieldidech-ux/dansversion/actions/runs/3568
 1. Enroll at https://developer.apple.com/programs/enroll/ under your chosen publisher identity.
 2. Register the app's Bundle ID and enable Push Notifications. Set the same ID in Xcode and the server's `APNS_TOPIC`.
 3. Create APNs signing keys in Certificates, Identifiers & Profiles. New keys may be scoped to sandbox or production; configure credentials for each environment you will use. Never commit private `.p8` keys or paste them into source code.
-4. In Render's environment settings, configure the credentials described in `tracker/README.md`, then deploy. Do not share private keys in public issue threads.
+4. In Render's environment settings, configure the credentials described in [the backend setup guide](https://github.com/danieldidech-ux/dansversion/blob/illinois-filing-tracker/tracker/README.md), then deploy. Do not share private keys in public issue threads.
 5. Run a signed Debug build on your iPhone, follow a committee, and enable alerts in Settings. Debug uses APNs sandbox. TestFlight/Release uses production.
 6. Verify one real new filing produces one alert showing committee name and report type, tapping opens that report, unfollow/pause stops subsequent alerts, and notifications work with the app closed.
 
@@ -47,6 +47,6 @@ Provider setup: https://developer.apple.com/documentation/usernotifications/esta
 
 Build:
 
-    xcodebuild -project IllinoisTracker.xcodeproj -scheme IllinoisTracker -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=NO build
+    xcodebuild -project IllinoisTracker.xcodeproj -scheme IllinoisTracker -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- build
 
 Then check: search → follow → Following feed → quit/relaunch → unfollow; pagination; search with spaces and ampersands; offline error/retry; large text; light/dark appearance; delete data; notification denied/allowed; cold-start notification tap. Reading and following are usable before APNs configuration. The Enable Alerts button stays disabled until server credentials are configured.
