@@ -55,11 +55,60 @@ struct FeedView: View {
         }
     }
 }
+// Shared by feed rows and filing detail headers, including amended reports.
+private enum FilingReportKind {
+    case a1, d1, quarterly, finalReport, other
+
+    init(_ reportType: String) {
+        let value = reportType.uppercased()
+            .replacingOccurrences(of: "[‐‑–—−]", with: "-", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        func matches(_ code: String) -> Bool {
+            value.range(of: "^" + code + "\\b", options: .regularExpression) != nil
+        }
+        if matches("A-1") { self = .a1 }
+        else if matches("D-1") { self = .d1 }
+        else if matches("D-2") && value.contains("FINAL") { self = .finalReport }
+        else if matches("D-2") && value.contains("QUARTERLY") { self = .quarterly }
+        else { self = .other }
+    }
+
+    func color(dark: Bool) -> Color {
+        let rgb: (Double, Double, Double)
+        switch self {
+        case .a1: rgb = dark ? (140, 200, 255) : (21, 87, 160)
+        case .d1: rgb = dark ? (212, 172, 255) : (113, 61, 163)
+        case .quarterly: rgb = dark ? (124, 225, 192) : (8, 107, 84)
+        case .finalReport: rgb = dark ? (255, 189, 128) : (154, 75, 0)
+        case .other: return .secondary
+        }
+        return Color(red: rgb.0 / 255, green: rgb.1 / 255, blue: rgb.2 / 255)
+    }
+}
+
+private struct ReportTypeBadge: View {
+    @Environment(\.colorScheme) private var colorScheme
+    let reportType: String
+    private var color: Color { FilingReportKind(reportType).color(dark: colorScheme == .dark) }
+
+    var body: some View {
+        Text(reportType.uppercased())
+            .font(.caption.weight(.bold))
+            .foregroundStyle(color)
+            .multilineTextAlignment(.leading)
+            .fixedSize(horizontal: false, vertical: true)
+            .padding(.horizontal, 9).padding(.vertical, 5)
+            .background(color.opacity(colorScheme == .dark ? 0.18 : 0.10),
+                        in: RoundedRectangle(cornerRadius: 7))
+            .accessibilityLabel("Report type: \(reportType)")
+    }
+}
+
 struct FilingRow: View {
     let filing: Filing
     var body: some View {
         VStack(alignment: .leading, spacing: 7) {
-            Text(filing.reportType.uppercased()).font(.caption.weight(.bold)).foregroundStyle(accent)
+            ReportTypeBadge(reportType: filing.reportType)
             Text(filing.committeeName).font(.headline).foregroundStyle(.primary)
             if let date = filing.publishedRaw { Text(date).font(.caption).foregroundStyle(.secondary) }
         }.padding(.vertical, 6)

@@ -58,3 +58,7 @@ Then check: search → follow → Following feed → quit/relaunch → unfollow;
 Close the older project in Xcode. Unzip the updated source download into a new folder, open its `IllinoisTracker.xcodeproj`, select your iPhone simulator and press Run. Xcode will replace the simulator app using the same bundle identifier; its existing Keychain credential and server watchlist remain available. If you customized signing for a physical phone, reselect your team in Signing & Capabilities.
 
 A-1 contents are read by the existing backend from the filing-specific official report and cached for one hour. The app shows native cards, without embedding the state website. Other formats, including PDFs and quarterly reports, currently show an explicit unavailable message and the official link. Unrecognized or paginated A-1 tables fail closed instead of displaying incomplete totals. State-site failures retain a retry option and the official link.
+
+## Report type colors (v4)
+
+Report labels use consistent tinted badges in both the feed and detail header: A-1 blue, D-1 purple, D-2 Quarterly green, and D-2 Final orange. Amendments keep their report category color. Other filing types are neutral. Text labels remain visible and colors adapt to light and dark appearances.

@@ -283,6 +283,12 @@ def create_app(directory=None, poll=True):
         response.headers['Content-Security-Policy'] = "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'; base-uri 'none'"
         return response
 
+    @app.get('/downloads/IllinoisTracker-v4.zip')
+    def download_color_coded_iphone_project():
+        archive = Path(__file__).resolve().parent.parent / 'releases' / 'IllinoisTracker-iPhone-Source-v4.zip'
+        return send_file(archive, mimetype='application/zip', as_attachment=True,
+                         download_name='IllinoisTracker-iPhone-Source-v4.zip', conditional=True)
+
     @app.get('/downloads/IllinoisTracker-v3.zip')
     def download_iphone_project():
         archive = Path(__file__).resolve().parent.parent / 'releases' / 'IllinoisTracker-iPhone-Source-v3.zip'
