@@ -25,7 +25,7 @@ from defusedxml import ElementTree as ET
 from flask import Flask, jsonify, request, render_template
 
 SOURCE = 'https://www.elections.il.gov/rss/LatestReportsFiled.aspx'
-PERIOD = 300
+PERIOD = 60
 LOG = logging.getLogger('gunicorn.error')
 
 
@@ -221,7 +221,7 @@ def polling_loop(store):
     while True:
         last = store.meta('last_attempt', 0)
         failures = store.meta('failure_count', 0)
-        delay = min(1800, PERIOD*(2**min(failures, 3)))
+        delay = PERIOD if failures == 0 else min(1800, 300*(2**min(failures, 3)))
         wait = max(0, min(delay, last+delay-time.time()))
         time.sleep(wait)
         try:
