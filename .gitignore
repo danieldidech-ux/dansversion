@@ -1,0 +1,8 @@
+__pycache__/
+*.pyc
+.DS_Store
+xcuserdata/
+DerivedData/
+data/
+*.p8
+.env

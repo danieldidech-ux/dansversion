@@ -1,7 +1,4 @@
-"""Public read-only filing API and durable single-process RSS collector.
-
-Notification delivery and category classification are separate future components.
-"""
+"""Durable filing collector, installation watchlists, and APNs dispatch."""
 import fcntl
 import hashlib
 import html
@@ -23,6 +20,7 @@ from pathlib import Path
 
 from defusedxml import ElementTree as ET
 from flask import Flask, jsonify, request, render_template
+from subscriptions import migrate, enqueue, routes, configured, dispatch, ApplePush
 
 SOURCE = 'https://www.elections.il.gov/rss/LatestReportsFiled.aspx'
 PERIOD = 60
@@ -99,6 +97,8 @@ class Store:
                     reason TEXT NOT NULL, resolved INTEGER NOT NULL DEFAULT 0);
             ''')
 
+            migrate(db)
+
     def connect(self):
         db = sqlite3.connect(self.path, timeout=20)
         db.row_factory = sqlite3.Row
@@ -136,6 +136,8 @@ class Store:
                     ON CONFLICT(guid) DO NOTHING''',
                     dict(row, first_seen=now, baseline=int(initial)))
                 inserted += cur.rowcount
+                if cur.rowcount and not initial:
+                    enqueue(db, cur.lastrowid, row['committee_key'], now)
                 # Metadata corrections must not create a second filing event.
                 db.execute('UPDATE filings SET report_type=?,url=?,source=? WHERE guid=?',
                            (row['report_type'], row['url'], row['source'], row['guid']))
@@ -173,7 +175,7 @@ class Store:
                     'stored_filings': db.execute('SELECT count(*) FROM filings').fetchone()[0],
                     'observed_committees': db.execute('SELECT count(*) FROM committees').fetchone()[0],
                     'disk_free_bytes': disk.free, 'low_disk_space': disk.free < 100*1024*1024,
-                    'recent_checks': checks, 'push_notifications_enabled': False}
+                    'recent_checks': checks, 'push_notifications_enabled': configured()}
 
     def backup(self):
         # SQLite's backup API gives a consistent database copy, unlike copying a WAL file.
@@ -222,13 +224,22 @@ def polling_loop(store):
         last = store.meta('last_attempt', 0)
         failures = store.meta('failure_count', 0)
         delay = PERIOD if failures == 0 else min(1800, 300*(2**min(failures, 3)))
-        wait = max(0, min(delay, last+delay-time.time()))
-        time.sleep(wait)
+        time.sleep(max(0, min(delay, last+delay-time.time())))
         try:
             collect(store)
         except Exception:
             LOG.exception('Collector failed; retrying after delay')
             time.sleep(PERIOD)
+
+
+def notification_loop(store):
+    sender = ApplePush()
+    while True:
+        try:
+            dispatch(store, sender)
+        except Exception:
+            LOG.exception('Notification dispatch failed')
+        time.sleep(5)
 
 
 def create_app(directory=None, poll=True):
@@ -238,6 +249,8 @@ def create_app(directory=None, poll=True):
     store = Store(directory)
     app = Flask(__name__)
     app.config['STORE'] = store
+    app.config['MAX_CONTENT_LENGTH'] = 64*1024
+    app.register_blueprint(routes(store))
     worker = None
     startup_lock = threading.Lock()
 
@@ -259,6 +272,9 @@ def create_app(directory=None, poll=True):
                 app.config['COLLECTOR_LOCK'] = lock
                 worker = threading.Thread(target=polling_loop, args=(store,), daemon=True)
                 worker.start()
+                notifications = threading.Thread(target=notification_loop, args=(store,), daemon=True)
+                app.config['NOTIFICATION_WORKER'] = notifications
+                notifications.start()
 
     @app.after_request
     def security(response):
@@ -269,7 +285,8 @@ def create_app(directory=None, poll=True):
 
     @app.get('/healthz')
     def health():
-        healthy = worker is None or worker.is_alive()
+        notifier = app.config.get('NOTIFICATION_WORKER')
+        healthy = (worker is None or worker.is_alive()) and (notifier is None or notifier.is_alive())
         with closing(store.connect()) as db:
             db.execute('SELECT 1')
         return jsonify({'ok': healthy}), 200 if healthy else 503
