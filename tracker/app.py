@@ -19,7 +19,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from defusedxml import ElementTree as ET
-from flask import Flask, jsonify, request, render_template
+from flask import Flask, jsonify, request, render_template, send_file
 from subscriptions import migrate, enqueue, routes, configured, dispatch, ApplePush
 
 SOURCE = 'https://www.elections.il.gov/rss/LatestReportsFiled.aspx'
@@ -282,6 +282,12 @@ def create_app(directory=None, poll=True):
         response.headers['Cache-Control'] = 'no-store'
         response.headers['Content-Security-Policy'] = "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'; base-uri 'none'"
         return response
+
+    @app.get('/downloads/IllinoisTracker-v3.zip')
+    def download_iphone_project():
+        archive = Path(__file__).resolve().parent.parent / 'releases' / 'IllinoisTracker-iPhone-Source-v3.zip'
+        return send_file(archive, mimetype='application/zip', as_attachment=True,
+                         download_name='IllinoisTracker-iPhone-Source-v3.zip', conditional=True)
 
     @app.get('/healthz')
     def health():
