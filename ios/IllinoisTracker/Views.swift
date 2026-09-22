@@ -82,7 +82,7 @@ struct FilingDetail: View {
                     if let url = filing.reportURL {
                         VStack(alignment: .leading, spacing: 10) {
                             Text("Report contents").font(.headline)
-                            InlineReport(url: url)
+                            InlineReport(url: url, committeeName: filing.committeeName)
                                 .frame(height: max(420, geometry.size.height * 0.72))
                                 .background(Color(uiColor: .secondarySystemGroupedBackground))
                                 .clipShape(RoundedRectangle(cornerRadius: 12))
@@ -118,12 +118,13 @@ struct FilingDetail: View {
 
 private struct InlineReport: View {
     let url: URL
+    let committeeName: String
     @State private var loading = true
     @State private var failure: String?
     @State private var attempt = 0
     var body: some View {
         ZStack {
-            ReportWebView(url: url, loading: $loading, failure: $failure)
+            ReportWebView(url: url, committeeName: committeeName, loading: $loading, failure: $failure)
                 .id(attempt)
                 .opacity(failure == nil ? 1 : 0)
             if loading && failure == nil {
@@ -148,6 +149,7 @@ private struct InlineReport: View {
 /// WKWebView displays the state's HTML reports and PDF documents without leaving the filing.
 private struct ReportWebView: UIViewRepresentable {
     let url: URL
+    let committeeName: String
     @Binding var loading: Bool
     @Binding var failure: String?
 
@@ -172,11 +174,33 @@ private struct ReportWebView: UIViewRepresentable {
 
     final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
         var parent: ReportWebView
+        private var positionedAtReport = false
         init(_ parent: ReportWebView) { self.parent = parent }
         func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
             parent.loading = true; parent.failure = nil
         }
-        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) { parent.loading = false }
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) {
+            parent.loading = false
+            guard !positionedAtReport,
+                  let data = try? JSONSerialization.data(withJSONObject: [parent.committeeName]),
+                  let names = String(data: data, encoding: .utf8) else { return }
+            // Start at the report heading rather than the state's large navigation banner.
+            // Keep the original document intact and accessible by scrolling upward.
+            let script = """
+            (() => {
+                const target = \(names)[0].replace(/\\s+/g, ' ').trim().toLowerCase();
+                const heading = Array.from(document.querySelectorAll('h1,h2,h3,h4,span,div,td,th,p,a'))
+                    .find(el => el.children.length === 0 && el.getClientRects().length > 0 &&
+                        (el.textContent || '').replace(/\\s+/g, ' ').trim().toLowerCase() === target);
+                if (!heading) return false;
+                heading.scrollIntoView({block: 'start', inline: 'nearest'});
+                return true;
+            })();
+            """
+            webView.evaluateJavaScript(script) { [weak self] result, _ in
+                if result as? Bool == true { self?.positionedAtReport = true }
+            }
+        }
         func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) { failed(error) }
         func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) { failed(error) }
         func failed(_ error: Error) {
