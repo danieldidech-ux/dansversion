@@ -11,7 +11,9 @@ Working title; final name is undecided. Native SwiftUI, iPhone, iOS 17+. No thir
 
 The project passed an Xcode 15.4 simulator build and launched successfully with ad-hoc signing on a GitHub macOS runner. The simulator displayed real filings from the deployed backend. Physical-device, accessibility and end-to-end notification testing are still required before TestFlight. There is no signed installable IPA or App Store release yet.
 
-Build evidence: https://github.com/danieldidech-ux/dansversion/actions/runs/35685387330
+Native report build evidence: https://github.com/danieldidech-ux/dansversion/actions/runs/35755061709
+
+The live backend returned the verified Rezin filing as $39,223.24 from Illinois Republican Party, in-kind contribution, received September 20, 2026, description Direct mail, vendor Linc Strategy LLC. All 28 backend tests pass, including the real report fixture and incomplete/mismatched-report safeguards.
 
 ## Included
 

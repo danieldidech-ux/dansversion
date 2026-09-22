@@ -49,3 +49,26 @@ Five categories exist as disabled review entries: House Democrats, House Republi
 Source checks and completed delivery metadata are retained for 30 days. Daily SQLite-native backups retain three dates on the same disk; deleted personal data can remain there until rotation. Off-host backups, restoring deleted-data tombstones during disaster recovery, operator alerting, load testing, public privacy/support pages, and App Store verification remain release work. Long-term public launch readiness and an end-to-end Apple notification have not yet been established.
 
 Native iPhone source and Xcode project: `../ios/`. No Apple private keys are included.
+
+## Native A-1 report contents
+
+`GET /v1/filings/<seq>/contents` requires the existing installation bearer credential.
+The reader retrieves the exact stored A1List URL with its FiledDocID, validates the
+committee and report type plus the printable document's matching FiledDocID, and
+converts every row into structured contribution data. Values use decimal arithmetic;
+monetary versus in-kind labels come directly from the report. The native app displays
+amount, contributor, received date, description, vendor and expandable addresses.
+
+Successful responses cache on the existing SQLite disk for one hour; failures cache
+for 30 seconds. Two concurrent report downloads are allowed, with a 12-second socket
+timeout and 2 MB body limit. This does not alter the 60-second RSS collector. Existing
+per-installation request limits apply. No additional hosted service is required.
+
+This first parser supports the verified, unpaginated seven-column A-1 table. PDFs,
+quarterly reports and other formats return `unsupported`; changed, mismatched,
+paginated, empty or malformed tables return `unavailable` without fabricated or
+partial totals. The app keeps the official report link below its native contents.
+The real public fixture in `tests/fixtures/rezin-a1.html` is filing 1020512, retrieved
+September 22, 2026, with navigation and ASP.NET state removed.
+
+Run verification with `PYTHONPATH=tracker python -m unittest discover -s tracker/tests -v`.
