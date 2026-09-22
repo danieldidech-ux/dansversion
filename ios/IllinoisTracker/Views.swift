@@ -1,4 +1,5 @@
 import SwiftUI
+import WebKit
 
 private let accent = Color(red: 0.12, green: 0.46, blue: 0.62)
 struct RootView: View {
@@ -70,18 +71,148 @@ struct FilingDetail: View {
     let filing: Filing
     var committee: Committee { Committee(id: filing.committeeKey, name: filing.committeeName) }
     var body: some View {
-        List {
-            Section { FilingRow(filing: filing) }
-            Section {
-                Button { Task { await model.toggle(committee) } } label: {
-                    Label(model.follows(committee) ? "Unfollow committee" : "Follow committee", systemImage: model.follows(committee) ? "star.fill" : "star")
-                }.disabled(model.saving || model.loading)
-                if let url = filing.reportURL { Link(destination: url) { Label("Open official report", systemImage: "arrow.up.right.square") } }
-                else { Text("The state did not supply a report link.").foregroundStyle(.secondary) }
-            } footer: { Text("Following applies to all report types filed by this committee. Alerts begin with newly discovered filings after you follow and enable notifications.") }
+        GeometryReader { geometry in
+            ScrollView {
+                VStack(alignment: .leading, spacing: 20) {
+                    FilingRow(filing: filing)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(18)
+                        .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+
+                    if let url = filing.reportURL {
+                        VStack(alignment: .leading, spacing: 10) {
+                            Text("Report contents").font(.headline)
+                            InlineReport(url: url)
+                                .frame(height: max(420, geometry.size.height * 0.72))
+                                .background(Color(uiColor: .secondarySystemGroupedBackground))
+                                .clipShape(RoundedRectangle(cornerRadius: 12))
+                            Text("Scroll within the report to read more. Pinch to zoom.")
+                                .font(.caption).foregroundStyle(.secondary)
+                        }
+                    } else {
+                        ContentUnavailableView("Report unavailable", systemImage: "doc.text",
+                            description: Text("The state did not supply a report link for this filing."))
+                    }
+
+                    VStack(spacing: 0) {
+                        Button { Task { await model.toggle(committee) } } label: {
+                            Label(model.follows(committee) ? "Unfollow committee" : "Follow committee",
+                                  systemImage: model.follows(committee) ? "star.fill" : "star")
+                                .frame(maxWidth: .infinity, alignment: .leading).padding(18)
+                        }.disabled(model.saving || model.loading)
+                        if let url = filing.reportURL {
+                            Divider().padding(.leading, 18)
+                            Link(destination: url) {
+                                Label("Open official report", systemImage: "arrow.up.right.square")
+                                    .frame(maxWidth: .infinity, alignment: .leading).padding(18)
+                            }
+                        }
+                    }.background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+                    Text("Following applies to all report types filed by this committee. Alerts begin with newly discovered filings after you follow and enable notifications.")
+                        .font(.footnote).foregroundStyle(.secondary)
+                }.padding(16)
+            }.background(Color(uiColor: .systemGroupedBackground))
         }.navigationTitle("Filing").navigationBarTitleDisplayMode(.inline)
     }
 }
+
+private struct InlineReport: View {
+    let url: URL
+    @State private var loading = true
+    @State private var failure: String?
+    @State private var attempt = 0
+    var body: some View {
+        ZStack {
+            ReportWebView(url: url, loading: $loading, failure: $failure)
+                .id(attempt)
+                .opacity(failure == nil ? 1 : 0)
+            if loading && failure == nil {
+                ProgressView("Loading report…")
+                    .padding(20).background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12))
+            }
+            if let failure {
+                VStack(spacing: 14) {
+                    Image(systemName: "doc.text.magnifyingglass").font(.largeTitle).foregroundStyle(.secondary)
+                    Text("Couldn't load the report").font(.headline)
+                    Text(failure).font(.subheadline).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                    Button("Try again") { self.failure = nil; loading = true; attempt += 1 }
+                        .buttonStyle(.bordered)
+                    Text("You can also use Open official report below.")
+                        .font(.caption).foregroundStyle(.secondary).multilineTextAlignment(.center)
+                }.padding(24)
+            }
+        }
+    }
+}
+
+/// WKWebView displays the state's HTML reports and PDF documents without leaving the filing.
+private struct ReportWebView: UIViewRepresentable {
+    let url: URL
+    @Binding var loading: Bool
+    @Binding var failure: String?
+
+    func makeCoordinator() -> Coordinator { Coordinator(self) }
+    func makeUIView(context: Context) -> WKWebView {
+        let configuration = WKWebViewConfiguration()
+        configuration.websiteDataStore = .default()
+        let webView = WKWebView(frame: .zero, configuration: configuration)
+        webView.navigationDelegate = context.coordinator
+        webView.uiDelegate = context.coordinator
+        webView.allowsBackForwardNavigationGestures = true
+        webView.isOpaque = false
+        webView.backgroundColor = .secondarySystemGroupedBackground
+        webView.scrollView.contentInsetAdjustmentBehavior = .never
+        webView.load(URLRequest(url: url, timeoutInterval: 45))
+        return webView
+    }
+    func updateUIView(_ webView: WKWebView, context: Context) { context.coordinator.parent = self }
+    static func dismantleUIView(_ webView: WKWebView, coordinator: Coordinator) {
+        webView.stopLoading(); webView.navigationDelegate = nil; webView.uiDelegate = nil
+    }
+
+    final class Coordinator: NSObject, WKNavigationDelegate, WKUIDelegate {
+        var parent: ReportWebView
+        init(_ parent: ReportWebView) { self.parent = parent }
+        func webView(_ webView: WKWebView, didStartProvisionalNavigation navigation: WKNavigation!) {
+            parent.loading = true; parent.failure = nil
+        }
+        func webView(_ webView: WKWebView, didFinish navigation: WKNavigation!) { parent.loading = false }
+        func webView(_ webView: WKWebView, didFailProvisionalNavigation navigation: WKNavigation!, withError error: Error) { failed(error) }
+        func webView(_ webView: WKWebView, didFail navigation: WKNavigation!, withError error: Error) { failed(error) }
+        func failed(_ error: Error) {
+            guard (error as NSError).code != NSURLErrorCancelled else { return }
+            parent.loading = false
+            parent.failure = "The connection to the state's website failed. Please try again."
+        }
+        func webViewWebContentProcessDidTerminate(_ webView: WKWebView) {
+            parent.loading = false; parent.failure = "The report viewer stopped. Please try again."
+        }
+        func webView(_ webView: WKWebView, decidePolicyFor navigationResponse: WKNavigationResponse,
+                     decisionHandler: @escaping (WKNavigationResponsePolicy) -> Void) {
+            if navigationResponse.isForMainFrame,
+               let response = navigationResponse.response as? HTTPURLResponse, response.statusCode >= 400 {
+                parent.loading = false
+                parent.failure = "The state's website could not display this report right now."
+                decisionHandler(.cancel)
+            } else { decisionHandler(.allow) }
+        }
+        func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction,
+                     decisionHandler: @escaping (WKNavigationActionPolicy) -> Void) {
+            guard let url = navigationAction.request.url else { decisionHandler(.cancel); return }
+            if ["https", "http", "about", "blob"].contains(url.scheme ?? "") {
+                decisionHandler(.allow)
+            } else { decisionHandler(.cancel) }
+        }
+        func webView(_ webView: WKWebView, createWebViewWith configuration: WKWebViewConfiguration,
+                     for navigationAction: WKNavigationAction, windowFeatures: WKWindowFeatures) -> WKWebView? {
+            // Keep document links that open a new window inside this report reader.
+            if navigationAction.targetFrame == nil, let url = navigationAction.request.url,
+               ["https", "http"].contains(url.scheme ?? "") { webView.load(navigationAction.request) }
+            return nil
+        }
+    }
+}
+
 struct DiscoverView: View {
     @EnvironmentObject var model: AppModel
     @State private var query = ""

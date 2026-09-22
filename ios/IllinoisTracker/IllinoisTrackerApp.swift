@@ -41,7 +41,14 @@ import UserNotifications
     var body: some Scene {
         WindowGroup {
             RootView().environmentObject(model)
-                .task { delegate.attach(model); await model.refresh() }
+                .task {
+                    delegate.attach(model); await model.refresh()
+                    #if DEBUG
+                    let arguments = ProcessInfo.processInfo.arguments
+                    if let index = arguments.firstIndex(of: "--preview-filing"), arguments.indices.contains(index + 1),
+                       let sequence = Int(arguments[index + 1]) { await model.openNotification(sequence) }
+                    #endif
+                }
                 .onChange(of: scenePhase) { _, phase in
                     if phase == .active { Task { await model.refreshIfNeeded(); await model.refreshPermission() } }
                 }
