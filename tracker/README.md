@@ -42,7 +42,9 @@ A separate dispatcher checks the outbox every five seconds, sends via HTTP/2 and
 
 ## Category accuracy
 
-Five categories exist as disabled review entries: House Democrats, House Republicans, Senate Democrats, Senate Republicans, Caucus committees. `category_members` supports many-to-many membership and `categories` stores review date/source. Legislative membership must include current sitting legislators and all relevant current-cycle candidates, including when not present in recent RSS. Do not set `verified=1` until full mapping/coverage has been reviewed. Current committee IDs are normalized-name hashes, not official IDs: full directory ingestion and official-ID alias mapping are still required before activating these groups. Individual follows currently cover names observed in the monitored feed only.
+The publisher approved the initial directory for use on September 22, 2026, with subsequent candidate and committee corrections. `directory.json` is the authoritative editable list. On startup it seeds followable committees and replaces membership for the four legislative groups plus Caucus committees. The existing `verified` flag now marks publisher approval, not an independently verified complete statewide roster. `/v1/directory` serves the same list to iPhone clients. Historical names and unresolved matches are documented per entry; Sally Turner has no followable committee yet. Internal IDs remain normalized-name hashes. Renames/aliases and official-ID mapping require further work. Do not infer committees from surnames or automatically merge similar names.
+
+To revise: edit `tracker/directory.json`, retaining stable group IDs and existing committee IDs when names are unchanged; update revision, run tests, commit and redeploy. `committee.id` must equal `app.committee_key(name)`. Existing individual follows and collected filings are preserved; group membership follows the new list. Do not add back Democratic Majority.
 
 ## Retention and remaining release gates
 

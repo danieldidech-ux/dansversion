@@ -3,12 +3,19 @@ import SwiftUI
 private let accent = Color(red: 0.12, green: 0.46, blue: 0.62)
 struct RootView: View {
     @EnvironmentObject var model: AppModel
+    @State private var selectedTab = 0
     var body: some View {
-        TabView {
-            FeedView().tabItem { Label("Filings", systemImage: "doc.text") }
-            DiscoverView().tabItem { Label("Discover", systemImage: "magnifyingglass") }
-            WatchlistView().tabItem { Label("Watchlist", systemImage: "star") }
-            SettingsView().tabItem { Label("Settings", systemImage: "gearshape") }
+        TabView(selection: $selectedTab) {
+            FeedView().tabItem { Label("Filings", systemImage: "doc.text") }.tag(0)
+            CaucusesView().tabItem { Label("Caucuses", systemImage: "person.3") }.tag(1)
+            DiscoverView().tabItem { Label("Discover", systemImage: "magnifyingglass") }.tag(2)
+            WatchlistView().tabItem { Label("Watchlist", systemImage: "star") }.tag(3)
+            SettingsView().tabItem { Label("Settings", systemImage: "gearshape") }.tag(4)
+        }
+        .onAppear {
+            #if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("--preview-caucuses") { selectedTab = 1 }
+            #endif
         }
         .tint(accent)
         .alert("Couldn't finish that", isPresented: Binding(get: { model.error != nil }, set: { if !$0 { model.error = nil } })) {
@@ -268,7 +275,7 @@ struct DiscoverView: View {
                                 } else { Image(systemName: "clock").foregroundStyle(.secondary) }
                             }
                         }
-                    } header: { Text("Follow a group") } footer: { Text("Legislative groups will include sitting members and current-cycle candidates. Caucus committees will also be available. Groups open for following once their membership is verified.") }
+                    } header: { Text("Follow a group") } footer: { Text("Groups follow the current curated committee lists. Browse their members and candidates in Caucuses. Lists may be revised over time.") }
                 }
                 Section {
                     ForEach(model.committees) { committee in
@@ -282,7 +289,7 @@ struct DiscoverView: View {
                     }
                     if model.committees.isEmpty { Text("No matching committees. Try another name.").foregroundStyle(.secondary) }
                     if model.committeesHaveMore { Button("Load more committees") { Task { await model.search(query, more: true) } } }
-                } header: { Text("Committees") } footer: { Text("Currently includes committees observed in the monitored feed. The complete statewide directory is still being added.") }
+                } header: { Text("Committees") } footer: { Text("Includes the legislative directory and committees observed in the monitored feed. This is not the complete statewide directory.") }
             }
             .navigationTitle("Discover")
             .searchable(text: $query, prompt: "Find a committee")
@@ -352,6 +359,177 @@ struct SettingsView: View {
             .confirmationDialog("Delete your saved watchlist and disable alerts?", isPresented: $confirmDelete, titleVisibility: .visible) {
                 Button("Delete my data", role: .destructive) { Task { await model.deleteData() } }
             }
+        }
+    }
+}
+
+struct CaucusesView: View {
+    @EnvironmentObject var model: AppModel
+    @State private var directory: CaucusDirectory?
+    @State private var chamber = "house"
+    @State private var party = "democrats"
+    @AppStorage("caucusSortByDistrict") private var byDistrict = false
+    @State private var loading = false
+    @State private var failure: String?
+    private var groupID: String { "\(chamber)-\(party)" }
+    private var group: CaucusGroup? { directory?.groups.first { $0.id == groupID } }
+    private var members: [DirectoryEntry] {
+        guard let group else { return [] }
+        let pinned = Set(group.pinned.compactMap { $0.committee?.id })
+        return group.members.filter { row in
+            guard let committee = row.committee else { return true }
+            return !pinned.contains(committee.id)
+        }.sorted {
+            if byDistrict, $0.district != $1.district { return ($0.district ?? 999) < ($1.district ?? 999) }
+            let comparison = $0.lastName.localizedStandardCompare($1.lastName)
+            if comparison != .orderedSame { return comparison == .orderedAscending }
+            return $0.member.localizedStandardCompare($1.member) == .orderedAscending
+        }
+    }
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    Picker("Chamber", selection: $chamber) {
+                        Text("House").tag("house"); Text("Senate").tag("senate")
+                    }.pickerStyle(.segmented)
+                    Picker("Party", selection: $party) {
+                        Text("Democrats").tag("democrats"); Text("Republicans").tag("republicans")
+                    }.pickerStyle(.segmented)
+                    Picker("Sort by", selection: $byDistrict) {
+                        Text("Last name").tag(false); Text("District number").tag(true)
+                    }
+                }
+                if let failure {
+                    Section {
+                        Text(failure).foregroundStyle(.secondary)
+                        Button("Try again") { Task { await load() } }
+                    }
+                }
+                if let group {
+                    Section {
+                        Button {
+                            Task { await model.toggleCategory(group.id) }
+                        } label: {
+                            Label(model.followedCategories.contains(group.id) ? "Following \(group.name)" : "Follow \(group.name)", systemImage: model.followedCategories.contains(group.id) ? "star.fill" : "star")
+                        }.disabled(model.saving || model.loading)
+                    } footer: { Text("Follow all listed committees, including the leader and caucus funds. Membership updates apply automatically.") }
+                    Section("Leader & caucus committees") {
+                        ForEach(group.pinned) { entry in directoryRow(entry) }
+                    }
+                    Section {
+                        ForEach(members) { entry in directoryRow(entry) }
+                    } header: { Text("Members & candidates") }
+                    footer: { Text("The directory includes selected current-cycle candidates as well as sitting members. Committee lists may be revised.") }
+                } else if loading { ProgressView("Loading committees…") }
+            }
+            .navigationTitle(group?.name ?? "Caucuses")
+            .navigationBarTitleDisplayMode(.inline)
+            .task { if directory == nil { await load() } }
+            .refreshable { await load() }
+        }
+    }
+    @ViewBuilder private func directoryRow(_ entry: DirectoryEntry) -> some View {
+        if let committee = entry.committee {
+            NavigationLink {
+                CommitteeFilingsView(committee: committee, member: entry.member, officialURL: entry.officialURL)
+            } label: {
+                VStack(alignment: .leading, spacing: 5) {
+                    if !entry.member.isEmpty {
+                        Text(entry.member).font(.headline)
+                    }
+                    Text(committee.name).font(entry.member.isEmpty ? .headline : .subheadline)
+                    if let district = entry.district {
+                        Text("District \(district)").font(.caption).foregroundStyle(.secondary)
+                    } else if entry.role == "Leader" {
+                        Text("Chamber leader").font(.caption).foregroundStyle(.secondary)
+                    }
+                }.padding(.vertical, 3)
+            }
+        } else {
+            VStack(alignment: .leading, spacing: 5) {
+                Text(entry.member).font(.headline)
+                if let district = entry.district { Text("District \(district)").font(.caption) }
+                Text("Committee to be added").font(.subheadline).foregroundStyle(.secondary)
+            }
+        }
+    }
+    @MainActor private func load() async {
+        guard !loading else { return }
+        loading = true; failure = nil
+        defer { loading = false }
+        do {
+            let result: CaucusDirectory = try await model.connection().call("/v1/directory")
+            try Task.checkCancellation()
+            directory = result
+        } catch {
+            if !Task.isCancelled { failure = error.localizedDescription }
+        }
+    }
+}
+
+struct CommitteeFilingsView: View {
+    @EnvironmentObject var model: AppModel
+    let committee: Committee
+    let member: String
+    let officialURL: URL?
+    @State private var filings: [Filing] = []
+    @State private var cursor: Int?
+    @State private var hasMore = false
+    @State private var loading = false
+    @State private var loaded = false
+    @State private var failure: String?
+    var body: some View {
+        List {
+            Section {
+                if !member.isEmpty { Text(member).font(.headline) }
+                Text(committee.name).font(.title3.bold())
+                Button {
+                    Task { await model.toggle(committee) }
+                } label: {
+                    Label(model.follows(committee) ? "Following committee" : "Follow committee", systemImage: model.follows(committee) ? "star.fill" : "star")
+                }.disabled(model.saving || model.loading)
+            }
+            Section("Reports") {
+                if let failure {
+                    Text(failure).foregroundStyle(.secondary)
+                    Button("Try again") { Task { await load(more: false) } }
+                }
+                ForEach(filings) { filing in
+                    NavigationLink { FilingDetail(filing: filing) } label: { FilingRow(filing: filing) }
+                }
+                if loading { ProgressView("Loading reports…") }
+                else if loaded && filings.isEmpty && failure == nil {
+                    Text("No reports from this committee have been collected yet. Follow it to track new filings.").foregroundStyle(.secondary)
+                }
+                if hasMore {
+                    Button("Load earlier filings") { Task { await load(more: true) } }.disabled(loading)
+                }
+            }
+            if let officialURL {
+                Section { Link("Open official committee page", destination: officialURL) }
+            }
+        }
+        .navigationTitle("Committee")
+        .navigationBarTitleDisplayMode(.inline)
+        .task { if !loaded { await load(more: false) } }
+        .refreshable { await load(more: false) }
+    }
+    @MainActor private func load(more: Bool) async {
+        guard !loading else { return }
+        loading = true; failure = nil
+        defer { loading = false }
+        var parts = URLComponents(); parts.path = "/v1/filings"
+        parts.queryItems = [URLQueryItem(name: "committee", value: committee.id)]
+        if more, let cursor { parts.queryItems?.append(URLQueryItem(name: "before", value: String(cursor))) }
+        do {
+            let page: FilingPage = try await model.connection().call(parts.string ?? "/v1/filings")
+            try Task.checkCancellation()
+            if more { filings += page.filings.filter { next in !filings.contains { $0.id == next.id } } }
+            else { filings = page.filings }
+            cursor = page.nextCursor; hasMore = page.hasMore; loaded = true
+        } catch {
+            if !Task.isCancelled { failure = error.localizedDescription }
         }
     }
 }

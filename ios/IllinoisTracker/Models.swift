@@ -16,6 +16,27 @@ struct Filing: Codable, Identifiable, Hashable {
     }
 }
 struct Committee: Codable, Identifiable, Hashable { let id: String; let name: String }
+struct CaucusDirectory: Decodable { let revision: String; let groups: [CaucusGroup] }
+struct CaucusGroup: Decodable, Identifiable {
+    let id: String
+    let name: String
+    let pinned: [DirectoryEntry]
+    let members: [DirectoryEntry]
+}
+struct DirectoryEntry: Decodable, Identifiable {
+    let id: String
+    let member: String
+    let lastName: String
+    let district: Int?
+    let committee: Committee?
+    let officialUrl: String?
+    let role: String
+    var officialURL: URL? {
+        guard let officialUrl, let url = URL(string: officialUrl), url.scheme == "https",
+              ["elections.il.gov", "www.elections.il.gov"].contains(url.host ?? "") else { return nil }
+        return url
+    }
+}
 struct Category: Decodable, Identifiable {
     let id: String; let name: String; let verified: Int; let memberCount: Int
 }

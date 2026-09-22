@@ -1,0 +1,2708 @@
+{
+  "revision": "2026-09-22-approved-1",
+  "groups": [
+    {
+      "id": "house-democrats",
+      "name": "House Democrats",
+      "pinned": [
+        {
+          "id": "d170b4db593f2d5b1b2259577100d4f5",
+          "member": "Emanuel Chris Welch",
+          "last_name": "",
+          "district": null,
+          "committee": {
+            "id": "640a4cff2e070e13cffc45f26a258316",
+            "name": "People for Emanuel Chris Welch"
+          },
+          "official_url": null,
+          "role": "Leader",
+          "evidence": "Approved list",
+          "review_note": "Name observed; confirm committee ID and group association."
+        },
+        {
+          "id": "b4ff4f34ede7919d917f5824aac53fde",
+          "member": "",
+          "last_name": "",
+          "district": null,
+          "committee": {
+            "id": "efeeaf33762d64a141cd4949deff2059",
+            "name": "Democrats for the Illinois House"
+          },
+          "official_url": null,
+          "role": "Caucus",
+          "evidence": "Approved list",
+          "review_note": "Sunshine committee purpose explicitly supports Illinois House Democrats."
+        }
+      ],
+      "members": [
+        {
+          "id": "0e370d08096b722eaae50c6497abc952",
+          "member": "Aaron Ortiz",
+          "last_name": "Ortiz",
+          "district": 1,
+          "committee": {
+            "id": "75e560cdaef0c0107d3694446319e8b7",
+            "name": "Friends of Aaron Ortiz"
+          },
+          "official_url": "https://www.elections.il.gov/campaigndisclosure/CommitteeDetail.aspx?ID=IRAVSmuY%2bMwgogVOk1GxEw%3d%3d",
+          "role": "",
+          "evidence": "Confirmed by user",
+          "review_note": "Committee name, member association and official URL supplied by Daniel Didech. Not independently verified against the live registry."
+        },
+        {
+          "id": "667117e3fb79a6d8fa628b1d204e7850",
+          "member": "Elizabeth Hernandez",
+          "last_name": "Hernandez",
+          "district": 2,
+          "committee": {
+            "id": "36c715cc4052cab686ebe433ca858451",
+            "name": "Citizens for Elizabeth Hernandez"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Historical only \u2014 recheck",
+          "review_note": "2017 registry: To support the candidacy of Elizabeth Hernandez for State Representative, 24th District Current name, status and association must be rechecked; old district numbers may differ."
+        },
+        {
+          "id": "b406ec53972e8fa5630a33c18d9aaf0f",
+          "member": "Eva-Dina Delgado",
+          "last_name": "Delgado",
+          "district": 3,
+          "committee": {
+            "id": "eb158d40054f043e58dcb446a0e6d27c",
+            "name": "Friends for Eva Dina Delgado"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "626905872bc2324b5c8bb97196dc8299",
+          "member": "Lilian Jim\u00e9nez",
+          "last_name": "Jim\u00e9nez",
+          "district": 4,
+          "committee": {
+            "id": "fabb7be23bb9c9dbf9828f1f564590e5",
+            "name": "All in With Lilian"
+          },
+          "official_url": "https://www.elections.il.gov/campaigndisclosure/CommitteeDetail.aspx?ID=0nEV3A0dDqosFC2sgaI9zg%3d%3d",
+          "role": "",
+          "evidence": "Confirmed by user",
+          "review_note": "Committee name, member association and official URL supplied by Daniel Didech. Not independently verified against the live registry."
+        },
+        {
+          "id": "24e714f5ff002866b4d8cf5e7ba9ea09",
+          "member": "Kimberly du Buclet",
+          "last_name": "du Buclet",
+          "district": 5,
+          "committee": {
+            "id": "7dc3ac5d4e9f432406d1f1b67867d519",
+            "name": "Friends of Kim DuBuclet"
+          },
+          "official_url": "https://www.elections.il.gov/campaigndisclosure/CommitteeDetail.aspx?ID=o33NTlhiFhaQFgSFWTMEDQ%3d%3d",
+          "role": "",
+          "evidence": "Confirmed by user",
+          "review_note": "Committee name, member association and official URL supplied by Daniel Didech. Not independently verified against the live registry."
+        },
+        {
+          "id": "7a6c8f14540da22d7720548ec5918647",
+          "member": "Sonya Harper",
+          "last_name": "Harper",
+          "district": 6,
+          "committee": {
+            "id": "a51b1f6e906fe91d5be32479d7ec2a76",
+            "name": "Friends of Sonya Marie Harper"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "ff2d31897b174aefb2b346bc6b8edb82",
+          "member": "Emanuel Chris Welch",
+          "last_name": "Welch",
+          "district": 7,
+          "committee": {
+            "id": "640a4cff2e070e13cffc45f26a258316",
+            "name": "People for Emanuel Chris Welch"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "7cb4d30d569c9068d28e1cc284c41d76",
+          "member": "Shantel",
+          "last_name": "Shantel",
+          "district": 8,
+          "committee": {
+            "id": "b6ce183fe865be322455205cc0a8555c",
+            "name": "Shantel for State Rep"
+          },
+          "official_url": "https://www.elections.il.gov/campaigndisclosure/CommitteeDetail.aspx?ID=5ZpxBL2ua%2fFzqKVzx5Ygwg%3d%3d",
+          "role": "",
+          "evidence": "Confirmed by user",
+          "review_note": "Committee name, association and official URL supplied by Daniel Didech. Not independently verified against the live registry. User requested Shantel in place of LaShawn Ford. Candidate entry, not a claim of current officeholding. Full name/sort surname still needed."
+        },
+        {
+          "id": "fff64bdc03ae53f3b5dcd735067dee30",
+          "member": "Yolonda Morris",
+          "last_name": "Morris",
+          "district": 9,
+          "committee": {
+            "id": "49d214b4ccc0247690d1bf993174a5ca",
+            "name": "People for Yolonda Morris"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "4b35298b64eac51c9fa865e6dd56ea25",
+          "member": "Jawaharial Williams",
+          "last_name": "Williams",
+          "district": 10,
+          "committee": {
+            "id": "909f3b037fd904354afdedcfeef1d59c",
+            "name": "Friends of Jawaharial Omarr Williams"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "654cb15ca3c1f2dc70eea65b4fde7ab7",
+          "member": "Ann Williams",
+          "last_name": "Williams",
+          "district": 11,
+          "committee": {
+            "id": "b06855edcff96df42b32dbf27e762e0c",
+            "name": "Friends of Ann M Williams"
+          },
+          "official_url": "https://www.elections.il.gov/campaigndisclosure/CommitteeDetail.aspx?ID=gU0XrFNDeXN1J1FzBzoSJw%3d%3d",
+          "role": "",
+          "evidence": "Confirmed by user",
+          "review_note": "Committee name, association and official URL supplied by Daniel Didech. Not independently verified against the live registry."
+        },
+        {
+          "id": "bfc9b000db8433c5086e6931da6da49e",
+          "member": "Margaret Croke",
+          "last_name": "Croke",
+          "district": 12,
+          "committee": {
+            "id": "9525c51e40a4712ba1454efa674f7eb0",
+            "name": "Croke For Illinois"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "889f5d3b04d1c5cce2c81ce0e68de6cb",
+          "member": "Demi",
+          "last_name": "Demi",
+          "district": 13,
+          "committee": {
+            "id": "43374dcadc30ba4ce6f937a3add78a74",
+            "name": "Demi for Illinois"
+          },
+          "official_url": "https://www.elections.il.gov/campaigndisclosure/CommitteeDetail.aspx?ID=EZnCNqRZriIYDL7Ksktn6g%3d%3d",
+          "role": "",
+          "evidence": "Confirmed by user",
+          "review_note": "Committee name, member association and official URL supplied by Daniel Didech. Not independently verified against the live registry. User requested Demi in place of retiring Hoan Huynh. Candidate entry, not a claim of current officeholding. Full name/sort surname still needed."
+        },
+        {
+          "id": "cd75bd09c784c92004bf1a8da909073a",
+          "member": "Kelly Cassidy",
+          "last_name": "Cassidy",
+          "district": 14,
+          "committee": {
+            "id": "f039b7b47ae2fc5f38b76748b44dfbe3",
+            "name": "Citizens for Cassidy"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "b062399c82a9993b704b344057df6cc5",
+          "member": "Michael Kelly",
+          "last_name": "Kelly",
+          "district": 15,
+          "committee": {
+            "id": "00eed9226b2f72930e6de8ec897f1abd",
+            "name": "Friends of Mike Kelly"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "61cf09748c1e1207c9744f3ab3dc471b",
+          "member": "Kevin Olickal",
+          "last_name": "Olickal",
+          "district": 16,
+          "committee": {
+            "id": "8001f5e15a341ebdaf3d4b67b1ba8b83",
+            "name": "Friends of Kevin Olickal"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "a57cdce86ca719a0e305b51d94cb76bd",
+          "member": "Jennifer Gong-Gershowitz",
+          "last_name": "Gong-Gershowitz",
+          "district": 17,
+          "committee": {
+            "id": "7a166c074e5ef96f2fa832044b13ddc0",
+            "name": "Friends for Jennifer"
+          },
+          "official_url": "https://www.elections.il.gov/campaigndisclosure/CommitteeDetail.aspx?ID=EzCHNq56kTAGbWMt0aUmYA%3d%3d",
+          "role": "",
+          "evidence": "Confirmed by user",
+          "review_note": "Committee name, member association and official URL supplied by Daniel Didech. Not independently verified against the live registry."
+        },
+        {
+          "id": "e2a042687f17aa090716ef7d81a88aa1",
+          "member": "Robyn Gabel",
+          "last_name": "Gabel",
+          "district": 18,
+          "committee": {
+            "id": "9349b568d96b9c4a19343e518db5c6ed",
+            "name": "Friends of Robyn Gabel"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "e2a1a35fb7da52997f416adf5b7e085f",
+          "member": "Lindsey LaPointe",
+          "last_name": "LaPointe",
+          "district": 19,
+          "committee": {
+            "id": "d58afc5b99596e587a9b2a9a240b0ded",
+            "name": "Friends of LaPointe"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "ad5035d2f14bf17114721d62804499dc",
+          "member": "Abdelnasser Rashid",
+          "last_name": "Rashid",
+          "district": 21,
+          "committee": {
+            "id": "c205d1e0f5165a9be37169ffcac1c38e",
+            "name": "Rashid for Illinois"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "8f5418729724f5338ac167cd8d4a875e",
+          "member": "Angelica Guerrero-Cuellar",
+          "last_name": "Guerrero-Cuellar",
+          "district": 22,
+          "committee": {
+            "id": "a427df331f44aed9186c7c3dba1b47f3",
+            "name": "Friends of Angie Guerrero-Cuellar"
+          },
+          "official_url": "https://www.elections.il.gov/campaigndisclosure/CommitteeDetail.aspx?ID=gi7oM52LvGatN3gU5QF4Eg%3d%3d",
+          "role": "",
+          "evidence": "Confirmed by user",
+          "review_note": "Committee name, member association and official URL supplied by Daniel Didech. Not independently verified against the live registry."
+        },
+        {
+          "id": "5d0b6e5f2445b1a7811014803b55b1e8",
+          "member": "Edgar Gonz\u00e1lez Jr.",
+          "last_name": "Gonz\u00e1lez",
+          "district": 23,
+          "committee": {
+            "id": "074b5bbac6b363e9a5fb43c4a376ae2d",
+            "name": "Friends of Edgar Gonzalez Jr"
+          },
+          "official_url": "https://www.elections.il.gov/campaigndisclosure/CommitteeDetail.aspx?ID=eILPYVrihD0NhtfzKUyFzw%3d%3d",
+          "role": "",
+          "evidence": "Confirmed by user",
+          "review_note": "Committee name, member association and official URL supplied by Daniel Didech. Not independently verified against the live registry."
+        },
+        {
+          "id": "5736f56aef12523f63e483a7e99d4004",
+          "member": "Theresa Mah",
+          "last_name": "Mah",
+          "district": 24,
+          "committee": {
+            "id": "98f47f9d9d14ac1ccedc4bab283d0c15",
+            "name": "Friends of Theresa Mah"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "5089c8187357411ca7c7ddfe9c3d019a",
+          "member": "Curtis Tarver",
+          "last_name": "Tarver",
+          "district": 25,
+          "committee": {
+            "id": "ed9cca37be59b1a5de37b68714eb7873",
+            "name": "Friends of Curtis Tarver ll"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "9b0f276b0d17b68eafd8b111b6e8b0a6",
+          "member": "Kam Buckner",
+          "last_name": "Buckner",
+          "district": 26,
+          "committee": {
+            "id": "97d3e6c7f358f986006eddf27fef0e66",
+            "name": "Friends of Kam Buckner"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "606ab12bf18625efae898f08c599a7d9",
+          "member": "Justin Slaughter",
+          "last_name": "Slaughter",
+          "district": 27,
+          "committee": {
+            "id": "dc54e12371f36466050cfaf66313eed9",
+            "name": "Friends of Justin Slaughter"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "f76fa8377cb07242daaaa17f091dca17",
+          "member": "Robert Rita",
+          "last_name": "Rita",
+          "district": 28,
+          "committee": {
+            "id": "aa86a1d54da029fb3ff7c08405acd968",
+            "name": "Friends of Robert \"Bob\" Rita"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "73b0905aac31f204dc432a34ce7c7956",
+          "member": "Thaddeus Jones",
+          "last_name": "Jones",
+          "district": 29,
+          "committee": {
+            "id": "5de0d2a90fee66021e6937e89cc46496",
+            "name": "Jones for State Representative"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Historical only \u2014 recheck",
+          "review_note": "2017 registry: To elect Thaddeus Jones as State Representative of the 29th Dist. Current name, status and association must be rechecked; old district numbers may differ."
+        },
+        {
+          "id": "56b540f8da585c0cf9af7c441e280b3c",
+          "member": "Will Davis",
+          "last_name": "Davis",
+          "district": 30,
+          "committee": {
+            "id": "2ac0748b5400a8d2897875eef72d9109",
+            "name": "William Davis for State Representative"
+          },
+          "official_url": "https://www.elections.il.gov/campaigndisclosure/CommitteeDetail.aspx?ID=aEehyNtR7xwpPxrrft9aVQ%3d%3d",
+          "role": "",
+          "evidence": "Confirmed by user",
+          "review_note": "Committee name, member association and official URL supplied by Daniel Didech. Not independently verified against the live registry."
+        },
+        {
+          "id": "4b014a3c6dbef88043764d331198adc6",
+          "member": "Michael Crawford",
+          "last_name": "Crawford",
+          "district": 31,
+          "committee": {
+            "id": "ecf81e59ff5aa254db53392ef91d6a26",
+            "name": "Friends of Michael Crawford"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "02f5737f327a0837172de52d45ff49ac",
+          "member": "Lisa Davis",
+          "last_name": "Davis",
+          "district": 32,
+          "committee": {
+            "id": "aa584735512e9df737b70e5ddbec3bd1",
+            "name": "Friends of Lisa J Davis"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "d14d1c30d782220a8770580655072b94",
+          "member": "Marcus C. Evans Jr.",
+          "last_name": "Evans",
+          "district": 33,
+          "committee": {
+            "id": "709fc0c664dcbf840b1d2ee20795c937",
+            "name": "Citizens for Marcus C Evans Jr"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Historical only \u2014 recheck",
+          "review_note": "2017 registry: To support the candidacy of Marcus C Evans Jr Current name, status and association must be rechecked; old district numbers may differ."
+        },
+        {
+          "id": "3db3846ea897d74b36f187c7df836826",
+          "member": "Cleopatra Cowley",
+          "last_name": "Cowley",
+          "district": 34,
+          "committee": {
+            "id": "e6889951cc2803e43aed38597a029afd",
+            "name": "Friends of Cleopatra Cowley"
+          },
+          "official_url": "https://www.elections.il.gov/campaigndisclosure/CommitteeDetail.aspx?ID=lM8KBzIijBX3g1wk07mmoA%3d%3d",
+          "role": "",
+          "evidence": "Confirmed by user",
+          "review_note": "Committee name, member association and official URL supplied by Daniel Didech. Not independently verified against the live registry. User requested Cleopatra Cowley in place of retiring Nicholas Smith. Candidate entry, not a claim of current officeholding."
+        },
+        {
+          "id": "5e59151a668ace44576fb83b10d874ad",
+          "member": "Mary Gill",
+          "last_name": "Gill",
+          "district": 35,
+          "committee": {
+            "id": "1518fed0760ac291b35053633df8bdb7",
+            "name": "Friends of Mary Gill"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "d49e3c272c802b683c11643133e5f117",
+          "member": "Rick Ryan",
+          "last_name": "Ryan",
+          "district": 36,
+          "committee": {
+            "id": "43ae5f06a0d6c7d9c7ba5c245560f3fc",
+            "name": "Friends of Rick Ryan"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "ed6992e92c1bf07d18c9124d6eefe106",
+          "member": "Debbie Meyers-Martin",
+          "last_name": "Meyers-Martin",
+          "district": 38,
+          "committee": {
+            "id": "8979cfd71a9f782f87feb1be5c7ebefe",
+            "name": "Citizens for Debbie Meyers Martin"
+          },
+          "official_url": "https://www.elections.il.gov/campaigndisclosure/CommitteeDetail.aspx?ID=xP7nGt8yDxo13O9vAGtkjA%3d%3d",
+          "role": "",
+          "evidence": "Confirmed by user",
+          "review_note": "Committee name, member association and official URL supplied by Daniel Didech. Not independently verified against the live registry."
+        },
+        {
+          "id": "1a495f568a4de8931889a2754748f043",
+          "member": "Will Guzzardi",
+          "last_name": "Guzzardi",
+          "district": 39,
+          "committee": {
+            "id": "f1e1afcf9cd5fc81c9eec5c0b7968f15",
+            "name": "Committee to Elect Will Guzzardi"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "da1d58f4dcf140eb7b4f59b1c0156831",
+          "member": "Jaime Andrade Jr.",
+          "last_name": "Andrade",
+          "district": 40,
+          "committee": {
+            "id": "7d11c6af0a0cb784ebcbcebba4233aa8",
+            "name": "Friends of Jaime M Andrade Jr"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Historical only \u2014 recheck",
+          "review_note": "2017 registry: To support and elect Jaime M. Andrade, Jr. to the office of IL State Representative. Current name, status and association must be rechecked; old district numbers may differ."
+        },
+        {
+          "id": "6e5d8fb7faeeade408cc959903e4acdf",
+          "member": "Janet Yang Rohr",
+          "last_name": "Yang Rohr",
+          "district": 41,
+          "committee": {
+            "id": "d68c3f78e56f047b8a04ba4f06b74f75",
+            "name": "Friends of Janet Yang Rohr"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "af794d8a1d9e951d97bda364454adb64",
+          "member": "Margaret DeLaRosa",
+          "last_name": "DeLaRosa",
+          "district": 42,
+          "committee": {
+            "id": "20bf97536f3dfb921200e278cff4d2a6",
+            "name": "Committee to Elect Margaret DeLaRosa"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "5fa769303618a4b2afd618bb73d57d39",
+          "member": "Anna Moeller",
+          "last_name": "Moeller",
+          "district": 43,
+          "committee": {
+            "id": "a1b1581b2c328f8e9d2ab65e039897de",
+            "name": "Friends for Anna Moeller"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Historical only \u2014 recheck",
+          "review_note": "2017 registry: To support the election of Anna Moeller to the 43rd State Representative District Current name, status and association must be rechecked; old district numbers may differ."
+        },
+        {
+          "id": "ace723cea9bdf3de33d37c8daeb6d2ea",
+          "member": "Fred Crespo",
+          "last_name": "Crespo",
+          "district": 44,
+          "committee": {
+            "id": "db842c5eecf7bb55ba21cb393a32ec9b",
+            "name": "Citizens for Fred Crespo"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Historical only \u2014 recheck",
+          "review_note": "2017 registry: To support the candidacy of Fre Crespo Current name, status and association must be rechecked; old district numbers may differ. Also confirm present caucus membership."
+        },
+        {
+          "id": "77b93ba27068661586311e2564e22e25",
+          "member": "Martha Deuter",
+          "last_name": "Deuter",
+          "district": 45,
+          "committee": {
+            "id": "4b0a45d09f3e267b77549427090f6e1a",
+            "name": "Friends of Marti Deuter"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "1eb3555b63a7edb4d9667bfe267b79a4",
+          "member": "Diane Blair-Sherlock",
+          "last_name": "Blair-Sherlock",
+          "district": 46,
+          "committee": {
+            "id": "66936a6e51c2902cc20b021b5544b2da",
+            "name": "Friends for Diane Blair-Sherlock"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "1fed0553e57eef05023cb528f3e851db",
+          "member": "Maura Hirschauer",
+          "last_name": "Hirschauer",
+          "district": 49,
+          "committee": {
+            "id": "a5ef13a66caf45b46e93ae12649b1dda",
+            "name": "Friends of Maura Hirschauer"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "65edaec0b60941b840b7b54695287b64",
+          "member": "Barbara Hernandez",
+          "last_name": "Hernandez",
+          "district": 50,
+          "committee": {
+            "id": "8f09d082fd8c4cb66e4961c87711d451",
+            "name": "Friends of Barbara Hernandez"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "a624e9ec3214d268f91a24470aaeb329",
+          "member": "Jenny Levin",
+          "last_name": "Levin",
+          "district": 51,
+          "committee": {
+            "id": "852e1ac74d44248662a09557d8dca692",
+            "name": "Supporters of Jenny Levin"
+          },
+          "official_url": "https://www.elections.il.gov/campaigndisclosure/CommitteeDetail.aspx?ID=5UkJ6hiXIOmlXIZLQvh08Q%3d%3d",
+          "role": "",
+          "evidence": "Confirmed by user",
+          "review_note": "Jenny Levin and committee supplied by Daniel Didech for House District 51, replacing Nabeela Syed. Candidate entry, not a claim of current officeholding. Official URL supplied by user."
+        },
+        {
+          "id": "4968e01300b78e06bf71832b4e489e85",
+          "member": "Nicolle Grasse",
+          "last_name": "Grasse",
+          "district": 53,
+          "committee": {
+            "id": "1b9ab6044c1f7e9574263c587d011ae8",
+            "name": "Nicolle Grasse for State Representative"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "82fc8acfe850b86b1a0a60d04177aca5",
+          "member": "Mary Beth Canty",
+          "last_name": "Canty",
+          "district": 54,
+          "committee": {
+            "id": "a46b56a32db4511902f91e4a24bdda05",
+            "name": "Mary Beth Canty for Illinois"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "caf34aad555983b9084bebe2b80b8558",
+          "member": "Justin Cochran",
+          "last_name": "Cochran",
+          "district": 55,
+          "committee": {
+            "id": "8803ac130f7412bcd25f217e9a73effa",
+            "name": "Cochran for Illinois"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "23a22c847f8918d7c46754c10fd6ace6",
+          "member": "Michelle Mussman",
+          "last_name": "Mussman",
+          "district": 56,
+          "committee": {
+            "id": "b7e27fc904955d76e239cac5ea754a7a",
+            "name": "Friends of Michelle Mussman"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "ea643bcaedcce2f663099c6939fd43c6",
+          "member": "Tracy Katz Muhl",
+          "last_name": "Katz Muhl",
+          "district": 57,
+          "committee": {
+            "id": "a9525ca12e054d4d3321ce53130f68a4",
+            "name": "Friends of Tracy Katz Muhl for State Representative"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "cc561b78eac9067eefdf9ece07989dfe",
+          "member": "Bob Morgan",
+          "last_name": "Morgan",
+          "district": 58,
+          "committee": {
+            "id": "36ddb9f7d9c003a73b0daff063de5f72",
+            "name": "Friends of Bob Morgan"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Historical only \u2014 recheck",
+          "review_note": "2017 registry: Exploratory committee for potential candidacy of Bob Morgan for elective office. Current name, status and association must be rechecked; old district numbers may differ."
+        },
+        {
+          "id": "3a50c00df80443080590928e2aad960b",
+          "member": "Daniel Didech",
+          "last_name": "Didech",
+          "district": 59,
+          "committee": {
+            "id": "1b5ce79b8d1251adaf13eda719fd6d7a",
+            "name": "Daniel Didech Campaign Committee"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "d77084323cae8ab43955c43aefbe59f1",
+          "member": "Rita Mayfield",
+          "last_name": "Mayfield",
+          "district": 60,
+          "committee": {
+            "id": "0d65738089591dc3e0e296479a94f315",
+            "name": "Friends of Rita Mayfield"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "7a0cf6fd960e71632680989146f78eb4",
+          "member": "Joyce Mason",
+          "last_name": "Mason",
+          "district": 61,
+          "committee": {
+            "id": "c4bcdce8b82ceeb1a64794f0abc002c1",
+            "name": "Friends of Joyce Mason"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "7a9ab67eef9b37da9a8794a82380596c",
+          "member": "Laura Faver Dias",
+          "last_name": "Faver Dias",
+          "district": 62,
+          "committee": {
+            "id": "8fa67ae89e1199c8a0020c6c0dcd5cb8",
+            "name": "People for Laura Faver Dias"
+          },
+          "official_url": "https://www.elections.il.gov/campaigndisclosure/CommitteeDetail.aspx?ID=56%2fozEB7v7GOqx0kz%2f0YBA%3d%3d",
+          "role": "",
+          "evidence": "Confirmed by user",
+          "review_note": "Committee name, member association and official URL supplied by Daniel Didech. Not independently verified against the live registry."
+        },
+        {
+          "id": "51fc37060c453266cba064817216d31e",
+          "member": "Suzanne Ness",
+          "last_name": "Ness",
+          "district": 66,
+          "committee": {
+            "id": "e3d68dd2b3c2b5e9d96a25a1885648e9",
+            "name": "Citizens For Suzanne Ness"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "15b2201fa5be9da9535e0295a680010e",
+          "member": "Maurice West",
+          "last_name": "West",
+          "district": 67,
+          "committee": {
+            "id": "e0861cfc95546a84df84f41d90a206c0",
+            "name": "Maurice West for Rockford"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Two names in RSS; confirm whether separate committees or a name change using official IDs."
+        },
+        {
+          "id": "d0e8d876819fb8f53c85901bf8691aee",
+          "member": "Maurice West",
+          "last_name": "West",
+          "district": 67,
+          "committee": {
+            "id": "4b3f9f73a7c60009917b56ae733809ee",
+            "name": "Maurice West for Illinois"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Two names in RSS; confirm whether separate committees or a name change using official IDs."
+        },
+        {
+          "id": "342e93ab173d58ca26957c7b55f39df5",
+          "member": "Dave Vella",
+          "last_name": "Vella",
+          "district": 68,
+          "committee": {
+            "id": "1acc72d1dc44d668639ec4e91063754d",
+            "name": "Friends of Dave Vella"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "ed04305e671a7bf6692636659bced6ae",
+          "member": "Gregg Johnson",
+          "last_name": "Johnson",
+          "district": 72,
+          "committee": {
+            "id": "a8880c6dc21fa35ac01f34b6a92b85a9",
+            "name": "Friends of Gregg Johnson"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "b86ac8e590ff7efc4067ec510f4c0312",
+          "member": "Murri Briel",
+          "last_name": "Briel",
+          "district": 76,
+          "committee": {
+            "id": "155ec0cf69b4acb5af67e3ec74c2812f",
+            "name": "Friends for Murri Briel"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "34d9ca970ab994594c9bb652240efd3c",
+          "member": "Norma Hernandez",
+          "last_name": "Hernandez",
+          "district": 77,
+          "committee": {
+            "id": "6ec97be3d13867a23f93093851d16187",
+            "name": "Elect Norma Hernandez"
+          },
+          "official_url": "https://www.elections.il.gov/campaigndisclosure/CommitteeDetail.aspx?ID=amYSmajTOVzJzO%2f6nvfBIQ%3d%3d",
+          "role": "",
+          "evidence": "Confirmed by user",
+          "review_note": "Committee name, member association and official URL supplied by Daniel Didech. Not independently verified against the live registry."
+        },
+        {
+          "id": "92b8537cfd2b943c11399c697b86eb6f",
+          "member": "Camille Lilly",
+          "last_name": "Lilly",
+          "district": 78,
+          "committee": {
+            "id": "a22149809c85e0c6fda79b17e89d1a8c",
+            "name": "Friends of Camille Y Lilly"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "edf2b7651bd9a6c982bb809c2db78ba3",
+          "member": "Anthony DeLuca",
+          "last_name": "DeLuca",
+          "district": 80,
+          "committee": {
+            "id": "ca76d7e3f1e2b3362162129caa524134",
+            "name": "Friends for State Rep Anthony DeLuca"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Historical only \u2014 recheck",
+          "review_note": "2017 registry: To elect Anthony DeLuca to public office and support state & local candidates & organizations Current name, status and association must be rechecked; old district numbers may differ."
+        },
+        {
+          "id": "f3762bb01c1a7f655587a392535cee76",
+          "member": "Anne Stava-Murray",
+          "last_name": "Stava-Murray",
+          "district": 81,
+          "committee": {
+            "id": "baac408a2b6f71be331a84b375e06a44",
+            "name": "Team Stava-Murray"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Historical only \u2014 recheck",
+          "review_note": "2017 registry: To support the candidacy of Anne Stava-Murray for Representative in the General Assembly of the State of Illinois. Current name, status and association must be rechecked; old district numbers may differ."
+        },
+        {
+          "id": "93727ceb743c931f1c88d9fce9193e15",
+          "member": "Matt Hanson",
+          "last_name": "Hanson",
+          "district": 83,
+          "committee": {
+            "id": "e2e0cc62d485af265009b6ccb164c7a6",
+            "name": "Friends of Matt Hanson"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "edee4d8b29aeb6ccb9589bc2a8082716",
+          "member": "Stephanie Kifowit",
+          "last_name": "Kifowit",
+          "district": 84,
+          "committee": {
+            "id": "48d7f78c4895d8676819a2588a443e9f",
+            "name": "Friends of Stephanie Kifowit"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Historical only \u2014 recheck",
+          "review_note": "2017 registry: To elect Stephanie Kifowit to elected office Current name, status and association must be rechecked; old district numbers may differ."
+        },
+        {
+          "id": "3305c0713e49eec053df91415e28d811",
+          "member": "Dagmara Avelar",
+          "last_name": "Avelar",
+          "district": 85,
+          "committee": {
+            "id": "acb77377131112b89f95d797237d5cb8",
+            "name": "Community For Dee"
+          },
+          "official_url": "https://www.elections.il.gov/campaigndisclosure/CommitteeDetail.aspx?ID=IY8ttye2EGNvLOZl%2bTxuEw%3d%3d",
+          "role": "",
+          "evidence": "Confirmed by user",
+          "review_note": "Committee name, member association and official URL supplied by Daniel Didech. Not independently verified against the live registry."
+        },
+        {
+          "id": "ccdbd5e9cb9c32e10b96c5381920dbd0",
+          "member": "Lawrence M. Walsh Jr.",
+          "last_name": "Walsh",
+          "district": 86,
+          "committee": {
+            "id": "c9f97faab2b7c1b4c5c10ee19bded06f",
+            "name": "Friends for Larry Walsh Jr"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "d8c327259c773e4cb49db0f20d7496c6",
+          "member": "Sharon Chung",
+          "last_name": "Chung",
+          "district": 91,
+          "committee": {
+            "id": "0c7b010bfc7ac95a497f6784f6a1d136",
+            "name": "Friends of Sharon Chung"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "a9d1e4b0304b200fde935a51f9175963",
+          "member": "Jehan Gordon-Booth",
+          "last_name": "Gordon-Booth",
+          "district": 92,
+          "committee": {
+            "id": "f840a4be0493714e4453e20911b82862",
+            "name": "Friends of Jehan Gordon"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "eb54b4460bea8d0d4001e5eac70e49bc",
+          "member": "Sue Scherer",
+          "last_name": "Scherer",
+          "district": 96,
+          "committee": {
+            "id": "50ae32d74dbe2780d7abf5ffbc822696",
+            "name": "Friends of Sue Scherer"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "2c9ab0645e65ff82c62cbade0b22c9a9",
+          "member": "Jessica Dixon Heitman",
+          "last_name": "Dixon Heitman",
+          "district": 97,
+          "committee": {
+            "id": "59fa5040eb96aebfe544d8aef24bf7d8",
+            "name": "Committee to Elect Jessica Dixon Heitman"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "b69eceb2b85bf1f7c626dd4c74d00418",
+          "member": "Natalie Manley",
+          "last_name": "Manley",
+          "district": 98,
+          "committee": {
+            "id": "e9c8d66345cc8bbc34a54f1e322be37f",
+            "name": "Friends of Natalie Manley"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Historical only \u2014 recheck",
+          "review_note": "2017 registry: To support the election of Natalie Manley as State Representative in the General Assembly in the 98th Representative District State of IL. Current name, status and association must be rechecked; old district numbers may differ."
+        },
+        {
+          "id": "f23d8d535598eccab93e1df21f4390a5",
+          "member": "Carol Ammons",
+          "last_name": "Ammons",
+          "district": 103,
+          "committee": {
+            "id": "75101200c0e8d1115d5c4be71bfd94fa",
+            "name": "Friends of Carol Ammons"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Historical only \u2014 recheck",
+          "review_note": "2017 registry: To support Carol Ammons and other candidates for state and local elective office. Current name, status and association must be rechecked; old district numbers may differ."
+        },
+        {
+          "id": "bc91739cb11d1effeda2740bd91facf7",
+          "member": "Katie Stuart",
+          "last_name": "Stuart",
+          "district": 112,
+          "committee": {
+            "id": "6a874a2ce85e1ba1c18b5f071eeb189c",
+            "name": "Friends for Katie Stuart"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "0b1ae4b9d50e4613095db37091afd992",
+          "member": "Jay Hoffman",
+          "last_name": "Hoffman",
+          "district": 113,
+          "committee": {
+            "id": "8b544c4a7ec2d719232af4732ab20f9d",
+            "name": "Committee to Elect Jay C Hoffman"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "3b1197085f594492d5a7ca80dd2cd3c6",
+          "member": "Maria Peterson",
+          "last_name": "Peterson",
+          "district": 52,
+          "committee": {
+            "id": "ed4925ee4f21ed8d8d8af6ce970bed87",
+            "name": "Maria for 52"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Confirmed by user",
+          "review_note": "User requested Maria for 52 for Democratic House District 52. Maria Peterson is a candidate entry, not a claim of current officeholding. Committee name and source retained from RSS."
+        }
+      ]
+    },
+    {
+      "id": "house-republicans",
+      "name": "House Republicans",
+      "pinned": [
+        {
+          "id": "522d6222fd0968041c562be2e429ab25",
+          "member": "Tony McCombie",
+          "last_name": "",
+          "district": null,
+          "committee": {
+            "id": "32f1d1896a29c5bd5fd39b40a1ba4bc8",
+            "name": "McCombie for Illinois"
+          },
+          "official_url": null,
+          "role": "Leader",
+          "evidence": "Approved list",
+          "review_note": "Name observed; confirm committee ID and group association."
+        },
+        {
+          "id": "7364874b7ea379868d6cb646710c4933",
+          "member": "",
+          "last_name": "",
+          "district": null,
+          "committee": {
+            "id": "8145392c6f783ecc5b770769e1302c15",
+            "name": "House Republican Organization"
+          },
+          "official_url": null,
+          "role": "Caucus",
+          "evidence": "Approved list",
+          "review_note": "Name observed; confirm committee ID and group association."
+        }
+      ],
+      "members": [
+        {
+          "id": "f6b464b9c78f97f84b3cf6a6fecae44b",
+          "member": "Bradley Stephens",
+          "last_name": "Stephens",
+          "district": 20,
+          "committee": {
+            "id": "db81b65fb5d9c7c567ba535ee8d8cfb7",
+            "name": "Brad Stephens for Mayor"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Mayoral committee name found; confirm association and include other legislative committee(s)."
+        },
+        {
+          "id": "eb22418b81f7f29992ddcfc7cc47fa10",
+          "member": "Patrick Sheehan",
+          "last_name": "Sheehan",
+          "district": 37,
+          "committee": {
+            "id": "71c15128bc70919c087893caaea9f073",
+            "name": "Sheehan for Illinois"
+          },
+          "official_url": "https://www.elections.il.gov/campaigndisclosure/CommitteeDetail.aspx?ID=Wyd0BrQyu%2faK75OWGvKpCw%3d%3d",
+          "role": "",
+          "evidence": "Confirmed by user",
+          "review_note": "Committee name, member association and official URL supplied by Daniel Didech. Not independently verified against the live registry."
+        },
+        {
+          "id": "e1fde40742efc95623cc240f8d5a1f47",
+          "member": "Amy Grant",
+          "last_name": "Grant",
+          "district": 47,
+          "committee": {
+            "id": "a30d0754dd0b83120a867939d04542c6",
+            "name": "Citizens for Amy Grant"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Historical only \u2014 recheck",
+          "review_note": "2017 registry: Campaign Current name, status and association must be rechecked; old district numbers may differ."
+        },
+        {
+          "id": "7e4b19d4937ea7adedc34f0a6bf449e8",
+          "member": "Jennifer Sanalitro",
+          "last_name": "Sanalitro",
+          "district": 48,
+          "committee": {
+            "id": "8f7433ba5748c3347cbd6e6a245b0ca3",
+            "name": "Citizens for Sanalitro"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "d0291284565b66bbdc0ed2368ca252f9",
+          "member": "Martin McLaughlin",
+          "last_name": "McLaughlin",
+          "district": 52,
+          "committee": {
+            "id": "d9ef1d0759a8a4274198b4e286d4a59f",
+            "name": "Martin McLaughlin For State Representative"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "8c8f1cf994c28416d08036844d8de559",
+          "member": "Steve Reick",
+          "last_name": "Reick",
+          "district": 63,
+          "committee": {
+            "id": "4bca00fcb1bf75cfa2d4f5f0adfba37c",
+            "name": "Citizens to Elect Steven Reick"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "977c39d1c42eeab40cc9c07ff45e1f1f",
+          "member": "Tom Weber",
+          "last_name": "Weber",
+          "district": 64,
+          "committee": {
+            "id": "a53ec1c36e00d79d39f5c6df30441eff",
+            "name": "Citizens to Elect Tom Weber"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "d639b14d7dcf999fb1ecf7aabd5e1000",
+          "member": "Dan Ugaste",
+          "last_name": "Ugaste",
+          "district": 65,
+          "committee": {
+            "id": "2ea8248b0f7cc18d30dcae1352fa98ab",
+            "name": "Citizens for Dan Ugaste"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "131ce3ca913a40da3914c75a8190ebeb",
+          "member": "Joe Sosnowski",
+          "last_name": "Sosnowski",
+          "district": 69,
+          "committee": {
+            "id": "5345e766742598becbde6b288eef8014",
+            "name": "Citizens for Joe Sosnowski"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "61d0cfa424cd7478c176244ba3632764",
+          "member": "Jeff Keicher",
+          "last_name": "Keicher",
+          "district": 70,
+          "committee": {
+            "id": "673c3c9b662641d9e8a1db531c1e61be",
+            "name": "Friends of Jeff Keicher"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "5e3b19d989022eb43aaaa5adb0b37350",
+          "member": "Daniel Swanson",
+          "last_name": "Swanson",
+          "district": 71,
+          "committee": {
+            "id": "c1410302f54d585ffc4b43c34089bb96",
+            "name": "Friends of Dan Swanson"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "b7b3d2f502f9c78a6d91fbe9afcfa305",
+          "member": "Ryan Spain",
+          "last_name": "Spain",
+          "district": 73,
+          "committee": {
+            "id": "d0a779b4b35451a2f7e8512200402989",
+            "name": "Friends of Ryan Spain"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "b6a9fa4d92ef959398aec2efe23078e8",
+          "member": "Bradley Fritts",
+          "last_name": "Fritts",
+          "district": 74,
+          "committee": {
+            "id": "e1974fdc9430a6c47058eeb0cf58ec5f",
+            "name": "Citizens for Bradley J Fritts"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "e4a4ca761dd8e31b9152bb4b3bb0086f",
+          "member": "Jed Davis",
+          "last_name": "Davis",
+          "district": 75,
+          "committee": {
+            "id": "b77eb214a781bd4da3326eb513fe940c",
+            "name": "Jed for Freedom"
+          },
+          "official_url": "https://www.elections.il.gov/campaigndisclosure/CommitteeDetail.aspx?ID=f8MhTp38bbY4%2bHZQKSgKGw%3d%3d",
+          "role": "",
+          "evidence": "Confirmed by user",
+          "review_note": "Committee name, member association and official URL supplied by Daniel Didech. Not independently verified against the live registry."
+        },
+        {
+          "id": "0ab5280826d77c76be907b9426b84f9e",
+          "member": "Jackie Haas",
+          "last_name": "Haas",
+          "district": 79,
+          "committee": {
+            "id": "87d86bf896a149fddabbc623b2811ee4",
+            "name": "Citizens For Jackie Haas"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "e0e2b7e703dd1d2461a624466a725756",
+          "member": "Nicole La Ha",
+          "last_name": "La Ha",
+          "district": 82,
+          "committee": {
+            "id": "92a9aaa0bcc8446170c620a493b19e35",
+            "name": "Nicole for Illinois"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Possible match",
+          "review_note": "Possible match; abbreviated/first-name committee needs candidate-link confirmation."
+        },
+        {
+          "id": "b15022a22a2be5ba772669affffe9ea1",
+          "member": "Bill Hauter",
+          "last_name": "Hauter",
+          "district": 87,
+          "committee": {
+            "id": "c998b87fe37ddf4e573b52e972354b0e",
+            "name": "Citizens for Hauter"
+          },
+          "official_url": "https://www.elections.il.gov/campaigndisclosure/CommitteeDetail.aspx?ID=tzOEEHZkuduNX2Ca4r%2b6Rw%3d%3d",
+          "role": "",
+          "evidence": "Confirmed by user",
+          "review_note": "Committee name, member association and official URL supplied by Daniel Didech. Not independently verified against the live registry."
+        },
+        {
+          "id": "7379a3268f0bbc376c6b2db6e091a52a",
+          "member": "Regan Deering",
+          "last_name": "Deering",
+          "district": 88,
+          "committee": {
+            "id": "b1c49b553ff066b10667b624879a06cf",
+            "name": "Regan for Illinois"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Possible match",
+          "review_note": "Possible match; abbreviated/first-name committee needs candidate-link confirmation."
+        },
+        {
+          "id": "daf073321d2233442bb394b3b77a3414",
+          "member": "Tony McCombie",
+          "last_name": "McCombie",
+          "district": 89,
+          "committee": {
+            "id": "32f1d1896a29c5bd5fd39b40a1ba4bc8",
+            "name": "McCombie for Illinois"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "4f380b190661e9d3d578ff470a3940b4",
+          "member": "John Cabello",
+          "last_name": "Cabello",
+          "district": 90,
+          "committee": {
+            "id": "6060bca6408595ec18e7137eb92d2d7a",
+            "name": "Citizens for John M Cabello"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "6411c61f717a4c08eb896d2ffc26ca65",
+          "member": "Travis Weaver",
+          "last_name": "Weaver",
+          "district": 93,
+          "committee": {
+            "id": "f19297db52759b0a8756f5672f90430b",
+            "name": "Friends of Travis Weaver"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "83cbb65fba9039e4a4828edb53049288",
+          "member": "Norine Hammond",
+          "last_name": "Hammond",
+          "district": 94,
+          "committee": {
+            "id": "069789adcf1b3ed39f41cee9bbbdea42",
+            "name": "Citizens for Hammond"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "f2c661ac31271d24c1bf0c7bed9e60e3",
+          "member": "Michael Coffey",
+          "last_name": "Coffey",
+          "district": 95,
+          "committee": {
+            "id": "4736530f8712302eab968fc7184587a2",
+            "name": "Citizens for Mike Coffey"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "6829e0c2b0effdab546e63526187a1e8",
+          "member": "Kyle Moore",
+          "last_name": "Moore",
+          "district": 99,
+          "committee": {
+            "id": "0796311758aa226e54221ede4929b2e0",
+            "name": "Citizens for Kyle A Moore"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "a1679ec84b7573065dc5b2e53d0c0e90",
+          "member": "C. D. Davidsmeyer",
+          "last_name": "Davidsmeyer",
+          "district": 100,
+          "committee": {
+            "id": "4806eec82b78eaa93575faac5c9bf979",
+            "name": "Citizens for CD Davidsmeyer"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "248c991cef1c886956ac0f08e612aa10",
+          "member": "Chris Miller",
+          "last_name": "Miller",
+          "district": 101,
+          "committee": {
+            "id": "885eea91b4c4198f51b790c1d0fbd2cd",
+            "name": "Citizens for Chris Miller"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "326b9346b1dc45fef0ad3cce7559a0be",
+          "member": "Adam Niemerg",
+          "last_name": "Niemerg",
+          "district": 102,
+          "committee": {
+            "id": "45800a20b0e221f8e6fe0fc4dca39591",
+            "name": "Committee To Elect Adam Niemerg"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "a85a5a06d29c496218f70b30eff6bc96",
+          "member": "Brandun Schweizer",
+          "last_name": "Schweizer",
+          "district": 104,
+          "committee": {
+            "id": "9766fd29d3e805c03d5d8ae7ab3c5fb6",
+            "name": "Citizens For Schweizer"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "6757a460ace3cc2bf7c5746e0b4233b4",
+          "member": "Dennis Tipsword",
+          "last_name": "Tipsword",
+          "district": 105,
+          "committee": {
+            "id": "1df6dfd49ddfa0933f71b584dffb8761",
+            "name": "Citizens for Tipsword"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "88676b30837dd4d22006c99f86cda19c",
+          "member": "Jason Bunting",
+          "last_name": "Bunting",
+          "district": 106,
+          "committee": {
+            "id": "ca81f6da2c08b8877527ab22a250aa02",
+            "name": "Friends of Jason R Bunting"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "8ff260e140448d120225c11766f89742",
+          "member": "Brad Halbrook",
+          "last_name": "Halbrook",
+          "district": 107,
+          "committee": {
+            "id": "8c60d75325a26675f3315c4c88e0a05c",
+            "name": "Citizens for Brad Halbrook"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Historical only \u2014 recheck",
+          "review_note": "2017 registry: To elect Brad Halbrook Current name, status and association must be rechecked; old district numbers may differ."
+        },
+        {
+          "id": "043a8e5e858cff197ae6353386da9f8f",
+          "member": "Wayne Rosenthal",
+          "last_name": "Rosenthal",
+          "district": 108,
+          "committee": {
+            "id": "9b127f17121b175c119564b16519b4f6",
+            "name": "Friends of Wayne Rosenthal"
+          },
+          "official_url": "https://www.elections.il.gov/campaigndisclosure/CommitteeDetail.aspx?ID=bJSXy9xl5%2bFUr6yxlxLh%2fQ%3d%3d",
+          "role": "",
+          "evidence": "Confirmed by user",
+          "review_note": "Committee name, member association and official URL supplied by Daniel Didech. Not independently verified against the live registry."
+        },
+        {
+          "id": "9e9fa80d331360ebe76ccb8b495c5e8d",
+          "member": "Charles Meier",
+          "last_name": "Meier",
+          "district": 109,
+          "committee": {
+            "id": "93083c876771fc454720684916720732",
+            "name": "Citizens for Charlie Meier"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "0b7b6e30c502fddbce9b679f03c15d04",
+          "member": "Blaine Wilhour",
+          "last_name": "Wilhour",
+          "district": 110,
+          "committee": {
+            "id": "0a279efe80ca3e7598d4f315a0f4a4e3",
+            "name": "Citizens For Blaine Wilhour"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Historical only \u2014 recheck",
+          "review_note": "2017 registry: Elect Blaine Wilhour Current name, status and association must be rechecked; old district numbers may differ."
+        },
+        {
+          "id": "c04cea950797d4e9e64a09487c4b635a",
+          "member": "Amy Elik",
+          "last_name": "Elik",
+          "district": 111,
+          "committee": {
+            "id": "fd749468cf18413fcd2bf40043821872",
+            "name": "Citizens for Amy Elik"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "9e7d1d7b8bc875cde85e4c14f91f456c",
+          "member": "Kevin Schmidt",
+          "last_name": "Schmidt",
+          "district": 114,
+          "committee": {
+            "id": "9a24837150efb6ffaf7efa6470f70f39",
+            "name": "Schmidt for Illinois"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "0168e52ab4da4f9812802e0c63c9996e",
+          "member": "David Friess",
+          "last_name": "Friess",
+          "district": 115,
+          "committee": {
+            "id": "248d96f84d7127ab44ee0a3971dc2095",
+            "name": "Citizens for Friess"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "561c719b9e84a4a717cade7d4e5e82fb",
+          "member": "Dave Severin",
+          "last_name": "Severin",
+          "district": 116,
+          "committee": {
+            "id": "12e5e45e43019ad023c41ff927f53ba2",
+            "name": "Friends of Dave Severin"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "1fe4071fda484239f9f935b024cb3092",
+          "member": "Patrick Windhorst",
+          "last_name": "Windhorst",
+          "district": 117,
+          "committee": {
+            "id": "afca8b866a76f7b81e6da543ef6dda02",
+            "name": "Citizens for Patrick Windhorst"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "1cbac1c972e7e68fbd8552595d8e838d",
+          "member": "Scott Doody",
+          "last_name": "Doody",
+          "district": 118,
+          "committee": {
+            "id": "da951341dd843f2d538c8ae2c5e91e3c",
+            "name": "Friends of Scott Doody"
+          },
+          "official_url": "https://www.elections.il.gov/campaigndisclosure/CommitteeDetail.aspx?ID=updDKXgwn3SpFqfptQOqyQ%3d%3d",
+          "role": "",
+          "evidence": "Confirmed by user",
+          "review_note": "Committee name, member association and official URL supplied by Daniel Didech. Not independently verified against the live registry."
+        }
+      ]
+    },
+    {
+      "id": "senate-democrats",
+      "name": "Senate Democrats",
+      "pinned": [
+        {
+          "id": "c719b72f181f809c523777c5e44fb3e4",
+          "member": "Don Harmon",
+          "last_name": "",
+          "district": null,
+          "committee": {
+            "id": "a5b019ce0724b8a09c77d259a0a9caa0",
+            "name": "Friends of Don Harmon for State Senate"
+          },
+          "official_url": null,
+          "role": "Leader",
+          "evidence": "Approved list",
+          "review_note": "Name observed; confirm committee ID and group association."
+        },
+        {
+          "id": "1390b0242affb8b91f9a204130680e48",
+          "member": "",
+          "last_name": "",
+          "district": null,
+          "committee": {
+            "id": "0c085d19b83cef77262bf2acbe3154ed",
+            "name": "ISDF, NFP"
+          },
+          "official_url": null,
+          "role": "Caucus",
+          "evidence": "Approved list",
+          "review_note": "Confirm current Senate Democratic fund and any additional caucus committees."
+        },
+        {
+          "id": "42a08da4697d6db064694e0596c61d5f",
+          "member": "",
+          "last_name": "",
+          "district": null,
+          "committee": {
+            "id": "4ed192ecfae2260da19bcfc249463be6",
+            "name": "Senate Democratic Victory Fund"
+          },
+          "official_url": null,
+          "role": "Historical fund \u2014 review",
+          "evidence": "Approved list",
+          "review_note": "2017 registry only: Elect Democrats candidates to the Illinois State Senate Verify current status/name and whether still associated before pinning."
+        }
+      ],
+      "members": [
+        {
+          "id": "34c21eff2a6256114eb35accfd242a8d",
+          "member": "Javier Cervantes",
+          "last_name": "Cervantes",
+          "district": 1,
+          "committee": {
+            "id": "1c69d4c940b70d8284032846549a4935",
+            "name": "Cervantes for Illinois"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "e855af7e720fe468bb0ee23599320d53",
+          "member": "Omar Aquino",
+          "last_name": "Aquino",
+          "district": 2,
+          "committee": {
+            "id": "0919c6db1cc4485fd425482865cf7d9b",
+            "name": "Friends of Omar Aquino"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Historical only \u2014 recheck",
+          "review_note": "2017 registry: To support the Candidacy of Omar Aquino Current name, status and association must be rechecked; old district numbers may differ."
+        },
+        {
+          "id": "38b8f80f4c57438b93d37a1230af26f2",
+          "member": "Mattie Hunter",
+          "last_name": "Hunter",
+          "district": 3,
+          "committee": {
+            "id": "e46740066670e5b9c616349616de5475",
+            "name": "Friends of Mattie Hunter"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "c519d3b89f4a891c8862ab514890fdbd",
+          "member": "Kimberly Lightford",
+          "last_name": "Lightford",
+          "district": 4,
+          "committee": {
+            "id": "ab8f2105245b073a43e8ec4bccb54c4e",
+            "name": "Citizens for Lightford"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "a4d339d40d8ffcc1553b286ca29c5674",
+          "member": "Lakesia Collins",
+          "last_name": "Collins",
+          "district": 5,
+          "committee": {
+            "id": "6e599e5ce28250a0367ce8f29acb3462",
+            "name": "Friends of Lakesia"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Possible match",
+          "review_note": "Possible match; abbreviated/first-name committee needs candidate-link confirmation."
+        },
+        {
+          "id": "7bb756579c964946ac82f98211c07023",
+          "member": "Sara Feigenholtz",
+          "last_name": "Feigenholtz",
+          "district": 6,
+          "committee": {
+            "id": "9803587d8fd11e5f99330dd28beda651",
+            "name": "Citizens for Sara Feigenholtz"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Historical only \u2014 recheck",
+          "review_note": "2017 registry: To advance the candidacy of Sara Feigenholtz Current name, status and association must be rechecked; old district numbers may differ."
+        },
+        {
+          "id": "ce9b02e84eeba1369d0c4907a358d7cb",
+          "member": "Mike Simmons",
+          "last_name": "Simmons",
+          "district": 7,
+          "committee": {
+            "id": "622a15375eb6bb14dbd1367931dc1772",
+            "name": "Friends of Mike Simmons"
+          },
+          "official_url": "https://www.elections.il.gov/campaigndisclosure/CommitteeDetail.aspx?ID=qoEiNYUfcXF%2fHMM22JfTpQ%3d%3d",
+          "role": "",
+          "evidence": "Confirmed by user",
+          "review_note": "Committee name, member association and official URL supplied by Daniel Didech. Not independently verified against the live registry."
+        },
+        {
+          "id": "067490cb4c74300cc7dcba0c57375ef9",
+          "member": "Ram Villivalam",
+          "last_name": "Villivalam",
+          "district": 8,
+          "committee": {
+            "id": "2fd07eecfca5a3325bea2a19fb1447f1",
+            "name": "Friends of Ram"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Possible match",
+          "review_note": "Possible match; abbreviated/first-name committee needs candidate-link confirmation."
+        },
+        {
+          "id": "c0eb054cecf0cd3b53d820bca11a23b5",
+          "member": "Laura Fine",
+          "last_name": "Fine",
+          "district": 9,
+          "committee": {
+            "id": "ab3c2e6630298bacb24297c7c40f07be",
+            "name": "Friends of Laura Fine"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Historical only \u2014 recheck",
+          "review_note": "2017 registry: To support the candidacy of Laura Fine Current name, status and association must be rechecked; old district numbers may differ."
+        },
+        {
+          "id": "5b21aa9877298110ba6044ed21e18e1d",
+          "member": "Robert Martwick",
+          "last_name": "Martwick",
+          "district": 10,
+          "committee": {
+            "id": "fed084db8193753529ccb0c39853d9cf",
+            "name": "Friends of Robert Martwick"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Historical only \u2014 recheck",
+          "review_note": "2017 registry: Elect Robert Martwick to office of State Representative Current name, status and association must be rechecked; old district numbers may differ."
+        },
+        {
+          "id": "d42b584f3b8465b1538ba25c9096d7d5",
+          "member": "Mike Porfirio",
+          "last_name": "Porfirio",
+          "district": 11,
+          "committee": {
+            "id": "086b1ae1815d442565243070f13de2df",
+            "name": "Porfirio For The People"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "8b6211289543ebe16d08f9c0e13ed876",
+          "member": "Celina Villanueva",
+          "last_name": "Villanueva",
+          "district": 12,
+          "committee": {
+            "id": "79eacb3c862a842104fdaf34a4f7b3c6",
+            "name": "Friends for Celina Villanueva"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "0bab2e0da363e923f1fd06ac765e5072",
+          "member": "Robert Peters",
+          "last_name": "Peters",
+          "district": 13,
+          "committee": {
+            "id": "e4d0a3a6244b2f679ae8d528961a6cb8",
+            "name": "Peters for Illinois"
+          },
+          "official_url": "https://www.elections.il.gov/campaigndisclosure/CommitteeDetail.aspx?ID=DqMscAN2%2b0ARAtiWmFtziw%3d%3d",
+          "role": "",
+          "evidence": "Confirmed by user",
+          "review_note": "Committee name, member association and official URL supplied by Daniel Didech. Not independently verified against the live registry."
+        },
+        {
+          "id": "988fb7f5d39761d956e20d171cb60b1c",
+          "member": "Emil Jones III",
+          "last_name": "Jones",
+          "district": 14,
+          "committee": {
+            "id": "18ea3be31e774975688d8fbbbacd5976",
+            "name": "Friends of Emil Jones III"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Historical only \u2014 recheck",
+          "review_note": "2017 registry: Support Emil Jones III for State Senate Current name, status and association must be rechecked; old district numbers may differ."
+        },
+        {
+          "id": "3c83a8ce7e34b4428fb2767079eaac4c",
+          "member": "Napoleon Harris",
+          "last_name": "Harris",
+          "district": 15,
+          "committee": {
+            "id": "86a16513896a3ced7f26bf3d62298595",
+            "name": "Friends of Napoleon Harris"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Historical only \u2014 recheck",
+          "review_note": "2017 registry: Support the election of Napoleon Harris Current name, status and association must be rechecked; old district numbers may differ."
+        },
+        {
+          "id": "670a3c4da5de2a9fd042e6397b326af5",
+          "member": "Willie Preston",
+          "last_name": "Preston",
+          "district": 16,
+          "committee": {
+            "id": "45c37221ca9be65030b3a921942b495d",
+            "name": "Citizens to Elect Willie Preston"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Historical only \u2014 recheck",
+          "review_note": "2017 registry: To support the Candidacy of Willie Preston. Current name, status and association must be rechecked; old district numbers may differ."
+        },
+        {
+          "id": "36a97388f84f403e10c7722e0ded143d",
+          "member": "Elgie Sims",
+          "last_name": "Sims",
+          "district": 17,
+          "committee": {
+            "id": "43b4e939b260003243cb47469c849597",
+            "name": "Friends of Elgie Sims"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Historical only \u2014 recheck",
+          "review_note": "2017 registry: To support Elgie Sims and other candidates for state and local elective office. Current name, status and association must be rechecked; old district numbers may differ."
+        },
+        {
+          "id": "c8816b262f969b5034714991bb675bc4",
+          "member": "William Cunningham",
+          "last_name": "Cunningham",
+          "district": 18,
+          "committee": {
+            "id": "291d2538b8852ae016aeffc25fd14de5",
+            "name": "Cunningham Campaign Committee"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "752ce6c5898cd7d0ece30a98fba0ba72",
+          "member": "Michael Hastings",
+          "last_name": "Hastings",
+          "district": 19,
+          "committee": {
+            "id": "076ed55ec86ed3401dc9132246f46cca",
+            "name": "Citizens for Michael E Hastings"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "4369875d6cf56de57a209f0ef63df202",
+          "member": "Graciela Guzm\u00e1n",
+          "last_name": "Guzm\u00e1n",
+          "district": 20,
+          "committee": {
+            "id": "afa507799af0dc68597f4bb54abfd1fe",
+            "name": "Gente for Graciela Guzman"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "5c942b354aee260a173fe2f0096c1e0d",
+          "member": "Laura Ellman",
+          "last_name": "Ellman",
+          "district": 21,
+          "committee": {
+            "id": "959b3c6a207b26e969dd9aabd21c70d4",
+            "name": "Ellman for IL Senate D21"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "05bab6b7bac6a1fc3cf9067a97814bc4",
+          "member": "Cristina Castro",
+          "last_name": "Castro",
+          "district": 22,
+          "committee": {
+            "id": "feed474d5b987cdb22adfb8a202b6ed3",
+            "name": "Citizens for Castro"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "2b4c860dda29a4ccca235ac822a44a06",
+          "member": "Suzy Glowiak",
+          "last_name": "Glowiak",
+          "district": 23,
+          "committee": {
+            "id": "7005c2fa4cfc9a5f71a7f9008d5ade85",
+            "name": "Friends of Suzy Glowiak"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "806caa23ab3e5624c9cecd6696aa0e3b",
+          "member": "Karina Villa",
+          "last_name": "Villa",
+          "district": 25,
+          "committee": {
+            "id": "34196e845243eb75c7d6398d002453cc",
+            "name": "Citizens For Karina Villa"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "e2189bd3c55580c36ad45284746a0a3e",
+          "member": "Mark L. Walker",
+          "last_name": "Walker",
+          "district": 27,
+          "committee": {
+            "id": "efb9aa139a9ddba5715941927b7cf50a",
+            "name": "Citizens for Mark Walker"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Historical only \u2014 recheck",
+          "review_note": "2017 registry: To elect Mark L. Walker for Illinois House Current name, status and association must be rechecked; old district numbers may differ."
+        },
+        {
+          "id": "6bf5e389d86baae2a92a19ad8a699438",
+          "member": "Laura Murphy",
+          "last_name": "Murphy",
+          "district": 28,
+          "committee": {
+            "id": "5d6e4ef6759352ebb1cbb6d1963eb147",
+            "name": "Citizens for Laura M Murphy"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "1d5d9ec433e5df67bd24c77c4fc4eb27",
+          "member": "Julie Morrison",
+          "last_name": "Morrison",
+          "district": 29,
+          "committee": {
+            "id": "1338bec8ceedd3d3503fb5cb26c80e86",
+            "name": "Julie Morrison for State Senate"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "9c59c68faf31a8cab95a8094e8d94cd1",
+          "member": "Adriane Johnson",
+          "last_name": "Johnson",
+          "district": 30,
+          "committee": {
+            "id": "f519faa6161d965b93cc2b0f53b767d1",
+            "name": "Friends of Adriane Johnson"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "1eb71e97adc2317780328098527d6358",
+          "member": "Mary Edly-Allen",
+          "last_name": "Edly-Allen",
+          "district": 31,
+          "committee": {
+            "id": "6b85fa58407bf70575a26f97ee12c276",
+            "name": "Mary for Illinois"
+          },
+          "official_url": "https://www.elections.il.gov/campaigndisclosure/CommitteeDetail.aspx?ID=gSck5QNgUSKcceCmn11kUg%3d%3d",
+          "role": "",
+          "evidence": "Confirmed by user",
+          "review_note": "Committee name, member association and official URL supplied by Daniel Didech. Not independently verified against the live registry."
+        },
+        {
+          "id": "b5054528f698298b103ad17f71ac8d01",
+          "member": "Steve Stadelman",
+          "last_name": "Stadelman",
+          "district": 34,
+          "committee": {
+            "id": "a08aba2e51a26bdf83a9e50d7c891396",
+            "name": "Stadelman for State Senate"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Historical only \u2014 recheck",
+          "review_note": "2017 registry: To support the candidacy of Steven \"Steve\" Stadelman Current name, status and association must be rechecked; old district numbers may differ."
+        },
+        {
+          "id": "271f717652d888946563f61bca25bd79",
+          "member": "Michael Halpin",
+          "last_name": "Halpin",
+          "district": 36,
+          "committee": {
+            "id": "8de2a432089d2dbb38df732d0194b1b7",
+            "name": "Friends of Mike Halpin"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "5778312f44a222139bac2ea5a143a94f",
+          "member": "Don Harmon",
+          "last_name": "Harmon",
+          "district": 39,
+          "committee": {
+            "id": "a5b019ce0724b8a09c77d259a0a9caa0",
+            "name": "Friends of Don Harmon for State Senate"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "9aa086221f44139fd9e4f84e8acb6146",
+          "member": "Patrick Joyce",
+          "last_name": "Joyce",
+          "district": 40,
+          "committee": {
+            "id": "84ca5623123fdec12115aff1cf720a43",
+            "name": "Joyce for Senate"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "8f4cf8f08d0dcb5e28aad501673c57ff",
+          "member": "Linda Holmes",
+          "last_name": "Holmes",
+          "district": 42,
+          "committee": {
+            "id": "ee50836151e2e3969dcc0011511ddb36",
+            "name": "Citizens for Linda Holmes"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Historical only \u2014 recheck",
+          "review_note": "2017 registry: Support candidacy for public office for Linda Holmes. Current name, status and association must be rechecked; old district numbers may differ."
+        },
+        {
+          "id": "99fedc16c2188bf6e58d863ce061eaa2",
+          "member": "Rachel Ventura",
+          "last_name": "Ventura",
+          "district": 43,
+          "committee": {
+            "id": "367f848c1a22fde73e3fd458140f39c2",
+            "name": "Elect Rachel Ventura"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Historical only \u2014 recheck",
+          "review_note": "2017 registry: To elect Rachel F Ventura to public office. Current name, status and association must be rechecked; old district numbers may differ."
+        },
+        {
+          "id": "755d300920a93e8eb20087b4b6ffcd49",
+          "member": "Dave Koehler",
+          "last_name": "Koehler",
+          "district": 46,
+          "committee": {
+            "id": "1e7a8977d6ab0b81036df38c6c92f1a7",
+            "name": "Friends of Dave Koehler"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Historical only \u2014 recheck",
+          "review_note": "2017 registry: To elect Dave Koehler to Illinois State Senate District 46. Current name, status and association must be rechecked; old district numbers may differ."
+        },
+        {
+          "id": "8bcb8ba9a4b692e5a5119752832a4a30",
+          "member": "Doris Turner",
+          "last_name": "Turner",
+          "district": 48,
+          "committee": {
+            "id": "c57e84f16086437696d270be75ce7b49",
+            "name": "Friends of Doris Turner"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "aa1eb874dcebc0b8257afc58b74344ef",
+          "member": "Meg Loughran Cappel",
+          "last_name": "Loughran Cappel",
+          "district": 49,
+          "committee": {
+            "id": "e2721e0521b3839be40ac6fe5184fdab",
+            "name": "Committee to Elect Meg Loughran Cappel"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "ce3eec4ef248211b7fe550abc4bc51a2",
+          "member": "Paul Faraci",
+          "last_name": "Faraci",
+          "district": 52,
+          "committee": {
+            "id": "a1921b7596d882b15a89edbd55d8a87e",
+            "name": "Faraci for Senate"
+          },
+          "official_url": "https://www.elections.il.gov/campaigndisclosure/CommitteeDetail.aspx?ID=5ADCY4sbcSVy2Rzx94LnuA%3d%3d",
+          "role": "",
+          "evidence": "Confirmed by user",
+          "review_note": "Committee name, member association and official URL supplied by Daniel Didech. Not independently verified against the live registry."
+        },
+        {
+          "id": "49fb0ec3d5aff09d0da7da3f8438e355",
+          "member": "Christopher Belt",
+          "last_name": "Belt",
+          "district": 57,
+          "committee": {
+            "id": "688fb2ab5f9e48520f0d37370ccbafb2",
+            "name": "Friends of Christopher Belt"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "8baeef940848a04b2c8281cc3f69f2c9",
+          "member": "Nabeela Syed",
+          "last_name": "Syed",
+          "district": 26,
+          "committee": {
+            "id": "adeeff75141c7dd0f8c89dec0b90b72d",
+            "name": "Friends & Family of Nabeela Syed"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "District confirmed by user",
+          "review_note": "User placed Nabeela Syed in Senate District 26. Candidate entry, not a claim of current officeholding. Existing committee name retained from recent RSS; committee link remains unverified."
+        }
+      ]
+    },
+    {
+      "id": "senate-republicans",
+      "name": "Senate Republicans",
+      "pinned": [
+        {
+          "id": "48fe0f7487ad4f06d4e4118462b5a086",
+          "member": "John Curran",
+          "last_name": "",
+          "district": null,
+          "committee": {
+            "id": "a21253fe44290138a4b1416d116aa576",
+            "name": "Friends of John Curran"
+          },
+          "official_url": null,
+          "role": "Leader",
+          "evidence": "Approved list",
+          "review_note": "Name observed; confirm committee ID and group association."
+        },
+        {
+          "id": "5af95e27103379d584ba37924816682b",
+          "member": "",
+          "last_name": "",
+          "district": null,
+          "committee": {
+            "id": "1328bc550fcd325b075ccb0d76b3b917",
+            "name": "Illinois Senate Republican Campaign Committee"
+          },
+          "official_url": null,
+          "role": "Caucus",
+          "evidence": "Approved list",
+          "review_note": "Name observed; confirm committee ID and group association."
+        },
+        {
+          "id": "8485c35f0fd9541de124685cd250834b",
+          "member": "",
+          "last_name": "",
+          "district": null,
+          "committee": {
+            "id": "299255dc9ae0f48e85c5769ed6b21be6",
+            "name": "Republican State Senate Campaign Committee"
+          },
+          "official_url": null,
+          "role": "Additional fund \u2014 review",
+          "evidence": "Approved list",
+          "review_note": "Separate name appears in RSS; do not merge with Illinois Senate Republican Campaign Committee without official IDs."
+        },
+        {
+          "id": "e5e602b2c204e6c14c436f5d174b4199",
+          "member": "",
+          "last_name": "",
+          "district": null,
+          "committee": {
+            "id": "d1f25968d657233f32574caee9c6f98a",
+            "name": "Senate Republican Victory Fund"
+          },
+          "official_url": null,
+          "role": "Additional fund \u2014 review",
+          "evidence": "Approved list",
+          "review_note": "Name appears in RSS; confirm current caucus association before pinning."
+        }
+      ],
+      "members": [
+        {
+          "id": "579878f3999c18c0a2d535f435daad11",
+          "member": "Seth Lewis",
+          "last_name": "Lewis",
+          "district": 24,
+          "committee": {
+            "id": "c3e296182c6f40f8a45dad846ef8c7b5",
+            "name": "Citizens for Seth Lewis"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "c3fd5248be3f06a86279db23358f13c7",
+          "member": "Darby Hills",
+          "last_name": "Hills",
+          "district": 26,
+          "committee": {
+            "id": "f7270a67c3f7a4ee32f026fd5ec2b678",
+            "name": "Citizens for Darby Hills"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "52db1a541d2e785c68111c282a445ef6",
+          "member": "Craig Wilcox",
+          "last_name": "Wilcox",
+          "district": 32,
+          "committee": {
+            "id": "b22047e1e52d9679848f742ae997cdb4",
+            "name": "Citizens for Colonel Craig Wilcox"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "9c846585369cd9e45102deaa8d8ed1e5",
+          "member": "Don DeWitte",
+          "last_name": "DeWitte",
+          "district": 33,
+          "committee": {
+            "id": "4bc5a2351f29a368cea45282cd9195dd",
+            "name": "DeWitte for Illinois Senate"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "0969434c972daa055bba4204bd7f9f69",
+          "member": "Dave Syverson",
+          "last_name": "Syverson",
+          "district": 35,
+          "committee": {
+            "id": "8959cca3c93a774483874e1395fa00ee",
+            "name": "Dave Syverson Campaign Committee"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "ec02cf8666818f675abca45e6f5d57dc",
+          "member": "Li Arellano Jr.",
+          "last_name": "Arellano",
+          "district": 37,
+          "committee": {
+            "id": "5610e0449b1c409b3baed4cbd62e828d",
+            "name": "Citizens for Arellano"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "13a1dc6a4327d44815f44f8fa0f5d068",
+          "member": "Sue Rezin",
+          "last_name": "Rezin",
+          "district": 38,
+          "committee": {
+            "id": "8e880b991d35c89dd76b0ac322831dab",
+            "name": "Friends of Sue Rezin"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "b32006b33e98dd53b468aa0ab9798404",
+          "member": "John Curran",
+          "last_name": "Curran",
+          "district": 41,
+          "committee": {
+            "id": "a21253fe44290138a4b1416d116aa576",
+            "name": "Friends of John Curran"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "d5381bb9e82d6d82e2b0cbbb55216921",
+          "member": "Sally Turner",
+          "last_name": "Turner",
+          "district": 44,
+          "committee": null,
+          "official_url": null,
+          "role": "",
+          "evidence": "Missing committee",
+          "review_note": "No committee identified in the available recent RSS sample. Not evidence that no committee exists."
+        },
+        {
+          "id": "4cdc9952f3ee469d524bb17a93f07a6f",
+          "member": "Andrew Chesney",
+          "last_name": "Chesney",
+          "district": 45,
+          "committee": {
+            "id": "b9d555acc93ae996ee276a012fd14a80",
+            "name": "Chesney for Illinois"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "e14ceef25976bf357e32964a9055b2f0",
+          "member": "Neil Anderson",
+          "last_name": "Anderson",
+          "district": 47,
+          "committee": {
+            "id": "983b5007da2ccc1dbed86bd8635b96b6",
+            "name": "Anderson for Illinois"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Possible match",
+          "review_note": "Possible match; abbreviated/first-name committee needs candidate-link confirmation."
+        },
+        {
+          "id": "7f2ff8ca174cfe17e7834593d4098cbe",
+          "member": "Jil Tracy",
+          "last_name": "Tracy",
+          "district": 50,
+          "committee": {
+            "id": "f1f9c879ecc05d9796a1f3a1427eaf53",
+            "name": "Jil Tracy for State Senate"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Historical only \u2014 recheck",
+          "review_note": "2017 registry: To elect Jil Tracy to the office of State Senator for the 47th Dist Current name, status and association must be rechecked; old district numbers may differ."
+        },
+        {
+          "id": "5930d3a331ac18326cd796ba26fa2ade",
+          "member": "Chapin Rose",
+          "last_name": "Rose",
+          "district": 51,
+          "committee": {
+            "id": "0079150b8e4f926e3626bfc5534fff2e",
+            "name": "Friends of Chapin Rose"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "7cc82052eda2c1a19b98a4587bd16d29",
+          "member": "Chris Balkema",
+          "last_name": "Balkema",
+          "district": 53,
+          "committee": {
+            "id": "60d46da7e83d4a8bf1938a44ecb1a322",
+            "name": "Balkema for State Senate"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "a6e9c25992730c3420321ea046f926db",
+          "member": "Steve McClure",
+          "last_name": "McClure",
+          "district": 54,
+          "committee": {
+            "id": "28ed97ce0f279809695b4af0479f0329",
+            "name": "Friends of Steve McClure"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Historical only \u2014 recheck",
+          "review_note": "2017 registry: To support the candidacy of Steve McClure Current name, status and association must be rechecked; old district numbers may differ."
+        },
+        {
+          "id": "d4327af03e07a39427a2889ccf078bd2",
+          "member": "Jason Plummer",
+          "last_name": "Plummer",
+          "district": 55,
+          "committee": {
+            "id": "a61e31989f42166ebeafb4818b835448",
+            "name": "Plummer for Illinois"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "48a3d6408b2f357a9cf015d1b6b97438",
+          "member": "Erica Harriss",
+          "last_name": "Harriss",
+          "district": 56,
+          "committee": {
+            "id": "8908da94399844d787fbf3d194ff43f5",
+            "name": "Erica for Illinois"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Possible match",
+          "review_note": "Possible match; abbreviated/first-name committee needs candidate-link confirmation."
+        },
+        {
+          "id": "96caaf3dd016d321f27f0ac3fabe96ca",
+          "member": "Terri Bryant",
+          "last_name": "Bryant",
+          "district": 58,
+          "committee": {
+            "id": "aeb3feacf150d7156c2e4d9e5f714cac",
+            "name": "Committee to Elect Terri Bryant"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "fc5a8897079b3aa7da6a2649c78d1895",
+          "member": "Paul Jacobs",
+          "last_name": "Jacobs",
+          "district": 59,
+          "committee": {
+            "id": "a8669d442ab387cb48c251b8708732eb",
+            "name": "Committee to Elect Dr Paul Jacobs"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link. Roster lists Paul Jacobs appointed June 17, 2026; confirm current seat holder."
+        }
+      ]
+    }
+  ]
+}

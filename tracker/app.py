@@ -21,6 +21,7 @@ from pathlib import Path
 from defusedxml import ElementTree as ET
 from flask import Flask, jsonify, request, render_template, send_file
 from subscriptions import migrate, enqueue, routes, configured, dispatch, ApplePush
+from directory import load_directory, sync_directory
 
 SOURCE = 'https://www.elections.il.gov/rss/LatestReportsFiled.aspx'
 PERIOD = 60
@@ -98,6 +99,8 @@ class Store:
             ''')
 
             migrate(db)
+            self.directory_data = load_directory()
+            sync_directory(db, self.directory_data)
 
     def connect(self):
         db = sqlite3.connect(self.path, timeout=20)
@@ -283,6 +286,16 @@ def create_app(directory=None, poll=True):
         response.headers['Content-Security-Policy'] = "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'; base-uri 'none'"
         return response
 
+    @app.get('/v1/directory')
+    def directory():
+        return jsonify(store.directory_data)
+
+    @app.get('/downloads/IllinoisTracker-v5.zip')
+    def download_directory_iphone_project():
+        archive = Path(__file__).resolve().parent.parent / 'releases' / 'IllinoisTracker-iPhone-Source-v5.zip'
+        return send_file(archive, mimetype='application/zip', as_attachment=True,
+                         download_name='IllinoisTracker-iPhone-Source-v5.zip', conditional=True)
+
     @app.get('/downloads/IllinoisTracker-v4.zip')
     def download_color_coded_iphone_project():
         archive = Path(__file__).resolve().parent.parent / 'releases' / 'IllinoisTracker-iPhone-Source-v4.zip'
@@ -350,8 +363,8 @@ def create_app(directory=None, poll=True):
         rows = rows[:100]
         return jsonify({'committees': rows, 'has_more': more,
                         'next_cursor': rows[-1]['id'] if rows else None,
-                        'coverage': 'Committees observed in monitored filings; not the complete state directory',
-                        'ids_are_official': False, 'categories_available': False})
+                        'coverage': 'Reviewed legislative directory and committees observed in monitored filings; not the complete state directory',
+                        'ids_are_official': False, 'categories_available': True})
 
     @app.get('/')
     def home():

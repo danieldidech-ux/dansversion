@@ -22,7 +22,7 @@ The live backend returned the verified Rezin filing as $39,223.24 from Illinois 
 - Persistent installation-specific watchlist stored on the backend, protected by a random credential in Keychain.
 - A-1 filing details use native contribution cards: amount, contributor, monetary/in-kind type as reported, date, description, vendor and expandable addresses. Multiple entries each have a card and an exact decimal total. Follow and Open official report actions are below the contents. Notification taps open the relevant filing.
 - Notification permission handling, registration, pause and data deletion.
-- Category selection support. Categories are visibly under review and cannot be followed until verified on the server. No committee is classified from its name alone.
+- Caucuses tab with House/Senate and Democrat/Republican selectors, last-name/district sorting, pinned leader/caucus funds, committee filing pages and individual/group following. Lists use the publisher-approved review draft and selected candidate substitutions.
 - Dynamic Type, native VoiceOver labels, light/dark system appearance. No ads, tracking SDK, email or password.
 
 ## Apple setup for real push notifications
@@ -40,7 +40,7 @@ Provider setup: https://developer.apple.com/documentation/usernotifications/esta
 ## Before App Store submission
 
 - Compile, run on simulator and physical devices, test background notification delivery end to end.
-- Verify current-cycle House/Senate membership and official committee identity/aliases; activate only complete reviewed groups.
+- Continue refining the approved directory, unresolved committees, historical names and official-ID aliases before claiming comprehensive coverage.
 - Finalize name, app icon, screenshots, support contact, public privacy policy and App Store privacy answers. Privacy manifest is a starting declaration, not a completed App Store submission.
 - Load-test queues and rate limits, add app attestation/abuse protection for public registration, establish off-host backups and operational alerting.
 - Review data retention: active watchlists persist until deletion; delivery metadata is retained up to 30 days; local daily database backups rotate after three days and may contain recently deleted data until rotation.
@@ -62,3 +62,7 @@ A-1 contents are read by the existing backend from the filing-specific official 
 ## Report type colors (v4)
 
 Report labels use consistent tinted badges in both the feed and detail header: A-1 blue, D-1 purple, D-2 Quarterly green, and D-2 Final orange. Amendments keep their report category color. Other filing types are neutral. Text labels remain visible and colors adapt to light and dark appearances.
+
+## Caucus directory (v5)
+
+The directory is fetched from `/v1/directory`. Revisions to the server list appear after pulling to refresh, without a new iPhone build. Group follows automatically use revised membership. The approved draft retains historical-name caveats and one missing committee; it is not a complete official candidate roster. Committee filing lookup currently uses normalized committee names, so renamed committees require an explicit directory update.

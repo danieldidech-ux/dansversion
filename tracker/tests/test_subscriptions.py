@@ -46,6 +46,8 @@ class SubscriptionTests(unittest.TestCase):
         self.assertEqual(self.queue(),[]); self.assertEqual(self.store.status()['stored_filings'],2)
     def test_verified_categories_and_union_dedup(self):
         data={'committees':[self.key],'categories':['house-democrats']}
+        with closing(self.store.connect()) as db,db:
+            db.execute("UPDATE categories SET verified=0 WHERE id='house-democrats'")
         self.assertEqual(self.client.put('/v1/me/watchlist',headers=self.a,json=data).status_code,400)
         with closing(self.store.connect()) as db,db:
             db.execute("UPDATE categories SET verified=1 WHERE id='house-democrats'")
