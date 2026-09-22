@@ -18,7 +18,7 @@ Build evidence: https://github.com/danieldidech-ux/dansversion/actions/runs/3568
 - Recent filings with pagination, pull-to-refresh and all/following filter.
 - Searchable committee directory drawn from the live feed; follow/unfollow committees.
 - Persistent installation-specific watchlist stored on the backend, protected by a random credential in Keychain.
-- Filing detail with links to official reports; notification taps open the relevant filing.
+- Filing detail displays the official HTML or PDF report inside the app, with scroll/zoom, loading state, and retry. Follow and Open official report actions are below the report. Notification taps open the relevant filing.
 - Notification permission handling, registration, pause and data deletion.
 - Category selection support. Categories are visibly under review and cannot be followed until verified on the server. No committee is classified from its name alone.
 - Dynamic Type, native VoiceOver labels, light/dark system appearance. No ads, tracking SDK, email or password.
@@ -50,3 +50,10 @@ Build:
     xcodebuild -project IllinoisTracker.xcodeproj -scheme IllinoisTracker -sdk iphonesimulator -configuration Debug CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- build
 
 Then check: search → follow → Following feed → quit/relaunch → unfollow; pagination; search with spaces and ampersands; offline error/retry; large text; light/dark appearance; delete data; notification denied/allowed; cold-start notification tap. Reading and following are usable before APNs configuration. The Enable Alerts button stays disabled until server credentials are configured.
+
+## Installing this update
+
+Close the older project in Xcode. Unzip the updated source download into a new folder, open its `IllinoisTracker.xcodeproj`, select your iPhone simulator and press Run. Xcode will replace the simulator app using the same bundle identifier; its existing Keychain credential and server watchlist remain available. If you customized signing for a physical phone, reselect your team in Signing & Capabilities.
+
+Report contents load directly from the official state website. A temporary state-site failure shows a retry option and preserves the external report link.
+
