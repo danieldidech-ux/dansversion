@@ -30,6 +30,9 @@ private extension View {
             .background(CivicTheme.background)
             .foregroundStyle(CivicTheme.ink)
             .listStyle(.insetGrouped)
+            .listSectionSpacing(.compact)
+            .environment(\.defaultMinListRowHeight, 44)
+            .modifier(PreviewTextScale())
     }
 }
 struct RootView: View {
@@ -45,7 +48,9 @@ struct RootView: View {
     var body: some View {
         Group {
         #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("--preview-alert-options") {
+        if ProcessInfo.processInfo.arguments.contains("--preview-problem") {
+            NavigationStack { ProblemForm(context: ["screen": "Filing", "committee": "Example committee"]) }
+        } else if ProcessInfo.processInfo.arguments.contains("--preview-alert-options") {
             NavigationStack { AlertOptionsView() }
         } else if ProcessInfo.processInfo.arguments.contains("--preview-lists") {
             NavigationStack { MyListsView() }
@@ -202,16 +207,8 @@ struct FeedView: View {
         NavigationStack {
             List {
                 Section {
-                    CacheNotice(path: "/v1/filings")
-                    HStack(alignment: .top, spacing: 12) {
-                        Image(systemName: "waveform.path").foregroundStyle(accent)
-                        VStack(alignment: .leading, spacing: 5) {
-                            Text("Illinois, on the record.").font(.headline)
-                            Text(model.monitor?.stale == true ? "Feed delayed. Showing saved filings." : "Checking for new filings every minute.")
-                                .font(.subheadline).foregroundStyle(.secondary)
-                            if (model.monitor?.unresolvedGaps ?? 0) > 0 { Text("A possible gap in filing history is under review.").font(.caption).foregroundStyle(.orange) }
-                        }
-                    }.padding(.vertical, 8)
+                    if model.monitor?.stale == true { Label("Feed delayed · showing saved reports", systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.orange) }
+                    if (model.monitor?.unresolvedGaps ?? 0) > 0 { Text("A possible gap in filing history is under review.").font(.caption).foregroundStyle(.orange) }
                     Picker("Filings", selection: $watchOnly) {
                         Text("All filings").tag(false); Text("Following").tag(true)
                     }.pickerStyle(.segmented)
@@ -226,9 +223,10 @@ struct FeedView: View {
                     if watchOnly ? model.watchedHasMore : model.allHasMore {
                         Button { Task { await model.loadMore(watchlist: watchOnly) } } label: { HStack { Spacer(); Text(model.loading ? "Loading…" : "Load earlier filings"); Spacer() } }.disabled(model.loading)
                     }
-                } header: { Text("Latest discoveries") } footer: { Text("Reports and filing dates come from the Illinois State Board of Elections. Dates are displayed as published by the state.") }
+                }
             }
-            .civicSurface().navigationTitle("Latest Reports")
+            .listSectionSpacing(.compact).contentMargins(.top, 0, for: .scrollContent)
+            .civicSurface().navigationTitle("Latest Reports").navigationBarTitleDisplayMode(.inline)
             .refreshable { await model.refresh() }
             .toolbar { if model.loading { ProgressView() } }
         }
@@ -252,6 +250,9 @@ private enum FilingReportKind {
         else { self = .other }
     }
 
+    var title: String {
+        switch self { case .a1: return "A-1 · Contributions"; case .d1: return "D-1 · Organization"; case .quarterly: return "D-2 · Quarterly"; case .finalReport: return "D-2 · Final"; case .other: return "Report" }
+    }
     func color(dark: Bool) -> Color {
         let rgb: (Double, Double, Double)
         switch self {
@@ -271,7 +272,7 @@ private struct ReportTypeBadge: View {
     private var color: Color { FilingReportKind(reportType).color(dark: colorScheme == .dark) }
 
     var body: some View {
-        Text(reportType.uppercased())
+        Text((FilingReportKind(reportType) == .other ? reportType : FilingReportKind(reportType).title) + (reportType.localizedCaseInsensitiveContains("amend") ? " · AMENDED" : ""))
             .font(.caption.weight(.bold))
             .foregroundStyle(color)
             .multilineTextAlignment(.leading)
@@ -285,12 +286,33 @@ private struct ReportTypeBadge: View {
 
 struct FilingRow: View {
     let filing: Filing
+    var showPreview = true
     var body: some View {
-        VStack(alignment: .leading, spacing: 7) {
+        VStack(alignment: .leading, spacing: 8) {
             ReportTypeBadge(reportType: filing.reportType)
-            Text(filing.committeeName).font(.headline).foregroundStyle(.primary)
-            if let date = filing.publishedRaw { Text(date).font(.caption).foregroundStyle(.secondary) }
+            Text(filing.committeeName).font(.headline).foregroundStyle(CivicTheme.ink)
+            if showPreview, let p = filing.preview {
+                if p.kind == "a1" {
+                    if let total = p.total { Text(ReportContribution.currency(total)).font(.title3.bold()).monospacedDigit().foregroundStyle(accent) }
+                    if let names = p.contributors { Text(names.joined(separator: " • ") + ((p.contributorCount ?? 0) > names.count ? " + \((p.contributorCount ?? 0) - names.count) more" : "")).font(.subheadline).foregroundStyle(.primary) }
+                    Text("\(p.contributionCount ?? 0) contributions · includes reported in-kind value").font(.caption).foregroundStyle(.secondary)
+                } else if p.kind == "quarterly" {
+                    if let period = p.period { Text(period).font(.subheadline).foregroundStyle(.secondary) }
+                    previewMetric("Receipts", p.receipts)
+                    previewMetric("Spending", p.expenditures)
+                    previewMetric("Ending cash", p.endingCash)
+                }
+            } else if showPreview && (FilingReportKind(filing.reportType) == .a1 || FilingReportKind(filing.reportType) == .quarterly) {
+                Text("Summary not yet available").font(.caption).foregroundStyle(.secondary)
+            }
+            if !filing.displayDate.isEmpty { Text(filing.displayDate).font(.caption).foregroundStyle(.secondary) }
         }.padding(.vertical, 6)
+    }
+    private func previewMetric(_ label: String, _ value: String?) -> some View {
+        ViewThatFits(in: .horizontal) {
+            HStack { Text(label); Spacer(minLength: 10); Text(value.map { ReportContribution.currency($0) } ?? "Unavailable").bold().monospacedDigit() }
+            VStack(alignment: .leading) { Text(label); Text(value.map { ReportContribution.currency($0) } ?? "Unavailable").bold().monospacedDigit() }
+        }.font(.subheadline).foregroundStyle(CivicTheme.ink)
     }
 }
 struct FilingDetail: View {
@@ -300,7 +322,7 @@ struct FilingDetail: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                FilingRow(filing: filing)
+                FilingRow(filing: filing, showPreview: false)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(18)
                     .background(CivicTheme.surface, in: RoundedRectangle(cornerRadius: 16))
@@ -325,6 +347,7 @@ struct FilingDetail: View {
                         }
                     }
                 }.background(CivicTheme.surface, in: RoundedRectangle(cornerRadius: 16))
+                ProblemButton(context: ["screen": "Filing", "committee": filing.committeeName, "committee_id": filing.committeeKey, "filing_id": String(filing.seq), "source_url": filing.url ?? ""])
                 Text("Following applies to all report types filed by this committee. Alerts begin with newly discovered filings after you follow and enable notifications.")
                     .font(.footnote).foregroundStyle(.secondary)
             }.padding(16)
@@ -400,7 +423,7 @@ private struct ContributionCard: View {
         VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 6) {
                 Text(ReportContribution.currency(contribution.amount))
-                    .font(.largeTitle.weight(.bold)).foregroundStyle(accent)
+                    .font(.largeTitle.weight(.bold)).monospacedDigit().foregroundStyle(accent)
                     .accessibilityLabel("Contribution value \(ReportContribution.currency(contribution.amount))")
                 Text("from").font(.subheadline).foregroundStyle(.secondary)
                 Text(contribution.contributor).font(.title3.weight(.semibold)).textSelection(.enabled)
@@ -541,6 +564,7 @@ struct SettingsView: View {
                     }
                     if let url = URL(string: UIApplication.openSettingsURLString) { Link("Open iPhone Settings", destination: url) }
                 }
+                Section("Help") { ProblemButton(context: ["screen": "Settings"]) }
                 Section("About") {
                     Text("Illinois Filing Tracker").font(.headline)
                     Text("An independent way to follow Illinois campaign finance filings. Not affiliated with the Illinois State Board of Elections.").font(.subheadline)
@@ -548,8 +572,8 @@ struct SettingsView: View {
                     Text("The service checks every minute. State publication delays, connection issues, and iPhone notification settings can affect alert timing.").font(.footnote).foregroundStyle(.secondary)
                 }
                 Section("Your data") {
-                    Text("No email or password required. Your installation identifier, followed committees and groups, and push token are stored to deliver your alerts. Your watchlist belongs to this installation and does not sync between devices.").font(.subheadline)
-                    Button("Delete my watchlist and notification data", role: .destructive) { confirmDelete = true }.disabled(model.saving || model.loading)
+                    Text("No email or password required. Your installation identifier, followed committees and groups, and push token are stored to deliver your alerts. Problem reports you submit are also stored for review. Your watchlist belongs to this installation and does not sync between devices.").font(.subheadline)
+                    Button("Delete my saved data", role: .destructive) { confirmDelete = true }.disabled(model.saving || model.loading)
                 }
             }
             .civicSurface().navigationTitle("Settings")
@@ -657,7 +681,8 @@ struct CaucusesView: View {
                         Section("Data freshness") { CacheNotice(path: "/v1/directory") }
                         Section("Following") { Text("Follow all includes the listed committees, leaders and caucus funds. Membership updates apply automatically.") }
                         Section("Cash estimates") { Text("Highest estimates appear first; unavailable estimates appear last. Leaders and caucus funds stay pinned. Balances may use different quarter-end dates and exclude unreported spending. Pull to refresh.") }
-                        Section("Directory") { Text("Includes selected current-cycle candidates and current officeholders. Committee lists may be revised.") }
+                        Section("Directory") { Text("During the general election, lists should include ballot candidates and exclude primary losers and retiring incumbents. After officials are sworn in in January, lists should show sitting officeholders. After petition filing closes, add candidates who filed. Filing petitions does not guarantee ballot access. Roster changes are reviewed against official records.") }
+                        Section { ProblemButton(context: ["screen": "Committee directory", "group": groupID]) }
                     }.navigationTitle("About this list").navigationBarTitleDisplayMode(.inline)
                     .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showInfo = false } } }
                 }.presentationDetents([.medium, .large])
@@ -837,8 +862,9 @@ struct CommitteeFilingsView: View {
                         .id(cursor)
                 }
             }
-            if let officialURL {
-                Section { Link("Open official committee page", destination: officialURL) }
+            Section {
+                if let officialURL { Link("Open official committee page", destination: officialURL) }
+                ProblemButton(context: ["screen": "Committee", "committee": committee.name, "committee_id": committee.id, "source_url": officialURL?.absoluteString ?? ""])
             }
         }
         .civicSurface().navigationTitle("Committee")
@@ -1333,5 +1359,58 @@ private struct AlertInboxView: View {
             let page: FilingPage = try await model.connection().call("/v1/me/alerts" + (more ? "?before=\(cursor ?? 0)" : ""))
             rows = more ? rows + page.filings : page.filings; cursor = page.nextCursor; failure = nil
         } catch { failure = error.localizedDescription }
+    }
+}
+
+private struct ProblemButton: View {
+    let context: [String: String]
+    @State private var presented = false
+    var body: some View {
+        Button { presented = true } label: { Label("Report a problem", systemImage: "exclamationmark.bubble") }
+            .sheet(isPresented: $presented) { NavigationStack { ProblemForm(context: context) } }
+    }
+}
+private struct ProblemForm: View {
+    @EnvironmentObject var model: AppModel
+    @Environment(\.dismiss) private var dismiss
+    let context: [String: String]
+    @State private var category = "Incorrect data"
+    @State private var message = ""
+    @State private var sending = false
+    @State private var receipt: String?
+    @State private var failure: String?
+    var body: some View {
+        Form {
+            if let receipt {
+                Section { Label("Report received", systemImage: "checkmark.circle"); Text("Reference: " + receipt).textSelection(.enabled); Text("Saved for review. Thank you for helping improve the app.").font(.subheadline) }
+            } else {
+                Section { Picker("Problem", selection: $category) { ForEach(["Incorrect data", "Missing report", "App issue", "Other"], id: \.self) { Text($0) } } }
+                Section("What went wrong?") { TextEditor(text: $message).frame(minHeight: 140).accessibilityLabel("Describe the problem") }
+                Section { Text("This sends your description, the relevant report or committee identifiers, and the app version to the app publisher. Please do not include sensitive personal information.").font(.caption) }
+                if let failure { Text(failure).foregroundStyle(.red) }
+                Button(sending ? "Sending…" : "Send report") { Task { await send() } }.disabled(sending || message.trimmingCharacters(in: .whitespacesAndNewlines).count < 10 || message.count > 4000)
+            }
+        }.civicSurface().navigationTitle("Report a problem").navigationBarTitleDisplayMode(.inline)
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button(receipt == nil ? "Cancel" : "Done") { dismiss() }.disabled(sending) } }
+    }
+    private func send() async {
+        sending = true; defer { sending = false }
+        do {
+            try await model.setup()
+            var details = context
+            details["app_version"] = Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "unknown"
+            let result: ProblemReceipt = try await model.connection().call("/v1/me/problems", method: "POST", body: JSONSerialization.data(withJSONObject: ["category": category, "message": message, "context": details]))
+            receipt = result.id; failure = nil
+        } catch { failure = error.localizedDescription }
+    }
+}
+
+private struct PreviewTextScale: ViewModifier {
+    @ViewBuilder func body(content: Content) -> some View {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--preview-large") { content.dynamicTypeSize(.accessibility2) } else { content }
+        #else
+        content
+        #endif
     }
 }

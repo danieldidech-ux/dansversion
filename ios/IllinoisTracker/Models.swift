@@ -8,6 +8,16 @@ struct Filing: Codable, Identifiable, Hashable {
     let reportType: String
     let publishedRaw: String?
     let url: String?
+    var preview: FilingPreview? = nil
+    var displayDate: String {
+        guard let raw = publishedRaw else { return "" }
+        let f = DateFormatter(); f.locale = Locale(identifier: "en_US_POSIX"); f.timeZone = TimeZone(secondsFromGMT: 0)
+        for format in ["EEE, dd MMM yyyy HH:mm:ss", "EEE, d MMM yyyy HH:mm:ss"] {
+            f.dateFormat = format
+            if let date = f.date(from: raw) { f.dateFormat = "MMM d, yyyy · h:mm a"; return f.string(from: date) }
+        }
+        return raw
+    }
     var id: Int { seq }
     var reportURL: URL? {
         guard let url, let result = URL(string: url), result.scheme == "https",
@@ -279,3 +289,16 @@ enum ResponseCache {
         DispatchQueue.main.async { NotificationCenter.default.post(name: Notification.Name("reportCacheChanged"), object: path) }
     }
 }
+
+struct FilingPreview: Codable, Hashable {
+    let kind: String
+    let total: String?
+    let contributionCount: Int?
+    let contributors: [String]?
+    let contributorCount: Int?
+    let period: String?
+    let receipts: String?
+    let expenditures: String?
+    let endingCash: String?
+}
+struct ProblemReceipt: Decodable { let id: String }

@@ -188,7 +188,7 @@ def routes(store):
         with closing(store.connect()) as db, db:
             db.execute('DELETE FROM list_members WHERE list_id IN (SELECT id FROM private_lists WHERE device_id=?)',(g.device['id'],))
             db.execute('DELETE FROM list_entities WHERE list_id IN (SELECT id FROM private_lists WHERE device_id=?)',(g.device['id'],))
-            for table in ('private_lists','alert_preferences','entity_follows','subscriptions','category_subscriptions','outbox'):
+            for table in ('problem_reports','private_lists','alert_preferences','entity_follows','subscriptions','category_subscriptions','outbox'):
                 db.execute('DELETE FROM '+table+' WHERE device_id=?', (g.device['id'],))
             db.execute('DELETE FROM devices WHERE id=?',(g.device['id'],))
         return jsonify(ok=True)
@@ -240,6 +240,8 @@ def routes(store):
 
     from observer import install_routes
     install_routes(api,store,authenticated,report_reader)
+    from launch_features import install
+    install(api,store,authenticated)
     return api
 
 

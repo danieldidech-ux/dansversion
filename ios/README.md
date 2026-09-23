@@ -1,7 +1,12 @@
-# Illinois Filing Tracker · Version 15
+# Illinois Filing Tracker · Version 16
 
 ## Install the update
 Unzip the download, open IllinoisTracker.xcodeproj in Xcode, select your iPhone or simulator, and press Run. Use the same bundle identifier and signing team to preserve installation preferences. No Terminal steps are required.
+
+## Launch polish
+Latest Reports includes verified contribution and quarterly summaries. Report a problem from a filing, committee, directory info, or Settings; submissions are private and return a reference number. Compact spacing, textual report badges, consistent money/date formatting and larger-text layouts apply across themes.
+
+Directory policy follows general-election ballot candidates, January officeholders, and petition filers after filing closes. Full ballot reconciliation is still pending official source access and a decision on sitting senators not up this cycle. No candidate is automatically treated as elected.
 
 ## Donor-history removal
 Donor search, cross-committee donor histories, and donor follows are removed. Contributor names and amounts remain available in individual filings. Private lists track committees only.
