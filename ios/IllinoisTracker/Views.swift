@@ -368,7 +368,8 @@ struct CaucusesView: View {
     @State private var directory: CaucusDirectory?
     @State private var chamber = "house"
     @State private var party = "democrats"
-    @AppStorage("caucusSortByDistrict") private var byDistrict = false
+    @AppStorage("caucusSort") private var sortOrder = "name"
+    @State private var finances: [String: CommitteeFinance] = [:]
     @State private var loading = false
     @State private var failure: String?
     private var groupID: String { "\(chamber)-\(party)" }
@@ -380,7 +381,15 @@ struct CaucusesView: View {
             guard let committee = row.committee else { return true }
             return !pinned.contains(committee.id)
         }.sorted {
-            if byDistrict, $0.district != $1.district { return ($0.district ?? 999) < ($1.district ?? 999) }
+            if sortOrder == "cash" {
+                let a = finances[$0.committee?.id ?? ""]?.estimate
+                let b = finances[$1.committee?.id ?? ""]?.estimate
+                if a != b {
+                    if let a, let b { return a > b }
+                    return a != nil
+                }
+            }
+            if sortOrder == "district", $0.district != $1.district { return ($0.district ?? 999) < ($1.district ?? 999) }
             let comparison = $0.lastName.localizedStandardCompare($1.lastName)
             if comparison != .orderedSame { return comparison == .orderedAscending }
             return $0.member.localizedStandardCompare($1.member) == .orderedAscending
@@ -396,8 +405,10 @@ struct CaucusesView: View {
                     Picker("Party", selection: $party) {
                         Text("Democrats").tag("democrats"); Text("Republicans").tag("republicans")
                     }.pickerStyle(.segmented)
-                    Picker("Sort by", selection: $byDistrict) {
-                        Text("Last name").tag(false); Text("District number").tag(true)
+                    Picker("Sort by", selection: $sortOrder) {
+                        Text("Last name").tag("name")
+                        Text("District number").tag("district")
+                        Text("Estimated cash on hand").tag("cash")
                     }
                 }
                 if let failure {
@@ -414,6 +425,11 @@ struct CaucusesView: View {
                             Label(model.followedCategories.contains(group.id) ? "Following \(group.name)" : "Follow \(group.name)", systemImage: model.followedCategories.contains(group.id) ? "star.fill" : "star")
                         }.disabled(model.saving || model.loading)
                     } footer: { Text("Follow all listed committees, including the leader and caucus funds. Membership updates apply automatically.") }
+                    if sortOrder == "cash" {
+                        Section {
+                            Text("Highest estimates first. Unavailable estimates appear last. Balances may use different quarter-end dates; pull to refresh as summaries finish loading.").font(.caption).foregroundStyle(.secondary)
+                        }
+                    }
                     Section("Leader & caucus committees") {
                         ForEach(group.pinned) { entry in directoryRow(entry) }
                     }
@@ -426,7 +442,13 @@ struct CaucusesView: View {
             .navigationTitle(group?.name ?? "Caucuses")
             .navigationBarTitleDisplayMode(.inline)
             .task { if directory == nil { await load() } }
-            .refreshable { await load() }
+            .task(id: groupID) {
+                while !Task.isCancelled {
+                    await loadFinances()
+                    try? await Task.sleep(for: .seconds(15))
+                }
+            }
+            .refreshable { await load(); await loadFinances() }
         }
     }
     @ViewBuilder private func directoryRow(_ entry: DirectoryEntry) -> some View {
@@ -439,6 +461,11 @@ struct CaucusesView: View {
                         Text(entry.member).font(.headline)
                     }
                     Text(committee.name).font(entry.member.isEmpty ? .headline : .subheadline)
+                    if sortOrder == "cash" {
+                        if let value = finances[committee.id]?.estimatedCash {
+                            Text("Est. " + ReportContribution.currency(value)).font(.subheadline.bold()).foregroundStyle(accent)
+                        } else { Text("Estimate unavailable").font(.caption).foregroundStyle(.secondary) }
+                    }
                     if let district = entry.district {
                         Text("District \(district)").font(.caption).foregroundStyle(.secondary)
                     } else if entry.role == "Leader" {
@@ -454,6 +481,14 @@ struct CaucusesView: View {
             }
         }
     }
+    @MainActor private func loadFinances() async {
+        let requestedGroup = groupID
+        do {
+            let amounts: FinanceDirectory = try await model.connection().call("/v1/committee-finances?group=\(requestedGroup)")
+            guard !Task.isCancelled else { return }
+            finances.merge(amounts.committees) { _, new in new }
+        } catch { /* Keep verified saved amounts while retrying. */ }
+    }
     @MainActor private func load() async {
         guard !loading else { return }
         loading = true; failure = nil
@@ -462,8 +497,31 @@ struct CaucusesView: View {
             let result: CaucusDirectory = try await model.connection().call("/v1/directory")
             try Task.checkCancellation()
             directory = result
+
         } catch {
             if !Task.isCancelled { failure = error.localizedDescription }
+        }
+    }
+}
+
+struct CommitteeFinanceCard: View {
+    let finance: CommitteeFinance?
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Financial summary").font(.headline)
+            if let date = finance?.asOf { Text("As of quarter ending \(date)").font(.caption).foregroundStyle(.secondary) }
+            amount("Cash on hand + investments", finance?.cashAndInvestments)
+            amount("A-1s since quarter end", finance?.a1Total)
+            Divider()
+            amount("Estimated cash on hand", finance?.estimatedCash)
+            Text(finance?.message ?? "Loading financial summary…").font(.caption).foregroundStyle(.secondary)
+            Text("Estimate adds reported A-1 amounts to the quarterly balance. It does not subtract later spending or include smaller unreported contributions; A-1s may include noncash contributions.").font(.caption).foregroundStyle(.secondary)
+        }.padding(.vertical, 6)
+    }
+    private func amount(_ label: String, _ value: String?) -> some View {
+        HStack(alignment: .firstTextBaseline) {
+            Text(label); Spacer()
+            Text(value.map { ReportContribution.currency($0) } ?? "Unavailable").bold().monospacedDigit()
         }
     }
 }
@@ -474,6 +532,8 @@ struct CommitteeFilingsView: View {
     let member: String
     let officialURL: URL?
     @State private var filings: [Filing] = []
+    @State private var finance: CommitteeFinance?
+    @State private var history: HistoryStatus?
     @State private var cursor: Int?
     @State private var hasMore = false
     @State private var loading = false
@@ -481,6 +541,7 @@ struct CommitteeFilingsView: View {
     @State private var failure: String?
     var body: some View {
         List {
+            Section { CommitteeFinanceCard(finance: finance) }
             Section {
                 if !member.isEmpty { Text(member).font(.headline) }
                 Text(committee.name).font(.title3.bold())
@@ -491,6 +552,11 @@ struct CommitteeFilingsView: View {
                 }.disabled(model.saving || model.loading)
             }
             Section("Reports") {
+                if let history {
+                    if history.status == "ready", let total = history.total {
+                        Text("\(total) reports · Since \(history.creationDate ?? "committee creation")").font(.caption).foregroundStyle(.secondary)
+                    } else { Text(history.message ?? "Loading history…").font(.caption).foregroundStyle(.secondary) }
+                }
                 if let failure {
                     Text(failure).foregroundStyle(.secondary)
                     Button("Try again") { Task { await load(more: false) } }
@@ -499,11 +565,13 @@ struct CommitteeFilingsView: View {
                     NavigationLink { FilingDetail(filing: filing) } label: { FilingRow(filing: filing) }
                 }
                 if loading { ProgressView("Loading reports…") }
-                else if loaded && filings.isEmpty && failure == nil {
+                else if loaded && filings.isEmpty && failure == nil && history?.status == "ready" {
                     Text("No reports from this committee have been collected yet. Follow it to track new filings.").foregroundStyle(.secondary)
                 }
                 if hasMore {
-                    Button("Load earlier filings") { Task { await load(more: true) } }.disabled(loading)
+                    ProgressView("Loading earlier reports…")
+                        .task { await load(more: true) }
+                        .id(cursor)
                 }
             }
             if let officialURL {
@@ -512,22 +580,31 @@ struct CommitteeFilingsView: View {
         }
         .navigationTitle("Committee")
         .navigationBarTitleDisplayMode(.inline)
-        .task { if !loaded { await load(more: false) } }
+        .task {
+            await load(more: false)
+            while !Task.isCancelled && (history?.status == "loading" || finance?.status == "loading") {
+                try? await Task.sleep(for: .seconds(3))
+                guard !Task.isCancelled else { return }
+                if history?.status == "loading" { await load(more: false) }
+                else { finance = try? await model.connection().call("/v1/committees/\(committee.id)/finance") }
+            }
+        }
         .refreshable { await load(more: false) }
     }
     @MainActor private func load(more: Bool) async {
         guard !loading else { return }
         loading = true; failure = nil
         defer { loading = false }
-        var parts = URLComponents(); parts.path = "/v1/filings"
-        parts.queryItems = [URLQueryItem(name: "committee", value: committee.id)]
+        var parts = URLComponents(); parts.path = "/v1/committees/\(committee.id)/history"
+        parts.queryItems = []
         if more, let cursor { parts.queryItems?.append(URLQueryItem(name: "before", value: String(cursor))) }
         do {
             let page: FilingPage = try await model.connection().call(parts.string ?? "/v1/filings")
             try Task.checkCancellation()
             if more { filings += page.filings.filter { next in !filings.contains { $0.id == next.id } } }
             else { filings = page.filings }
-            cursor = page.nextCursor; hasMore = page.hasMore; loaded = true
+            cursor = page.nextCursor; hasMore = page.hasMore; loaded = true; history = page.history
+            if !more { finance = try await model.connection().call("/v1/committees/\(committee.id)/finance") }
         } catch {
             if !Task.isCancelled { failure = error.localizedDescription }
         }

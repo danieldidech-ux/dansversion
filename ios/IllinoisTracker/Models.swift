@@ -40,7 +40,7 @@ struct DirectoryEntry: Decodable, Identifiable {
 struct Category: Decodable, Identifiable {
     let id: String; let name: String; let verified: Int; let memberCount: Int
 }
-struct FilingPage: Decodable { let filings: [Filing]; let hasMore: Bool; let nextCursor: Int? }
+struct FilingPage: Decodable { let filings: [Filing]; let hasMore: Bool; let nextCursor: Int?; let history: HistoryStatus? }
 struct CommitteePage: Decodable { let committees: [Committee]; let hasMore: Bool; let nextCursor: String? }
 struct CategoryPage: Decodable { let categories: [Category] }
 struct Profile: Decodable {
@@ -131,4 +131,22 @@ struct ReportContribution: Decodable, Identifiable {
         formatter.dateFormat = "MMMM d, yyyy"
         return formatter.string(from: date)
     }
+}
+
+struct CommitteeFinance: Decodable {
+    let status: String
+    let asOf: String?
+    let cashAndInvestments: String?
+    let a1Total: String?
+    let estimatedCash: String?
+    let message: String?
+    var estimate: Decimal? { estimatedCash.flatMap { Decimal(string: $0) } }
+}
+struct FinanceDirectory: Decodable { let committees: [String: CommitteeFinance] }
+
+struct HistoryStatus: Decodable {
+    let status: String
+    let message: String?
+    let total: Int?
+    let creationDate: String?
 }

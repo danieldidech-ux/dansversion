@@ -13,7 +13,7 @@ def inspect():
    from archive_source import Source
    source=Source()
    html=source.all_rows(URL,html,'gvFiledDocs')
-   result={'html':html}
+   result={'html':html, 'search_html':source.read('https://www.elections.il.gov/CampaignDisclosure/CommitteeSearch.aspx')}
    doc=Document(html)
    for kind in ['D-2 Quarterly','A-1']:
     link=next((n for n in doc.root.all('a') if kind in n.text() and not n.attrs.get('href','').startswith('javascript')),None)

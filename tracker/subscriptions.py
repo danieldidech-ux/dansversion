@@ -201,20 +201,20 @@ def routes(store):
               JOIN categories c ON c.id=m.category_id AND c.verified=1 WHERE s.device_id=?) ORDER BY seq DESC LIMIT 51''', (before,g.device['id'],g.device['id']))]
         return jsonify(filings=rows[:50],has_more=len(rows)>50,next_cursor=rows[49]['seq'] if len(rows)>50 else None)
 
-    @api.get('/v1/filings/<int:seq>')
+    @api.get('/v1/filings/<int(signed=True):seq>')
     def filing(seq):
-        if seq>2**63-1: return jsonify(error='Not found'),404
+        if abs(seq)>2**63-1: return jsonify(error='Not found'),404
         with closing(store.connect()) as db:
-            row=db.execute('SELECT * FROM filings WHERE seq=?',(seq,)).fetchone()
+            row=lookup_filing(db,seq)
         return (jsonify(dict(row)),200) if row else (jsonify(error='Not found'),404)
 
-    @api.get('/v1/filings/<int:seq>/contents')
+    @api.get('/v1/filings/<int(signed=True):seq>/contents')
     @authenticated
     def report_contents(seq):
-        if seq > 2**63-1:
+        if abs(seq) > 2**63-1:
             return jsonify(error='Not found'), 404
         with closing(store.connect()) as db:
-            row = db.execute('SELECT * FROM filings WHERE seq=?', (seq,)).fetchone()
+            row = lookup_filing(db,seq)
         if row is None:
             return jsonify(error='Not found'), 404
         return jsonify(report_reader.read(dict(row)))
@@ -275,3 +275,9 @@ def dispatch(store, sender, enabled=None):
                 (state,time.time()+delay,None if status==200 else str(status)+': '+reason[:100],row['id']))
             if status==410 or reason=='BadDeviceToken':
                 db.execute('UPDATE devices SET enabled=0,token=NULL WHERE id=? AND token=?',(row['device_id'],row['token']))
+
+
+def lookup_filing(db,seq):
+    if seq>=0: return db.execute('SELECT * FROM filings WHERE seq=?',(seq,)).fetchone()
+    row=db.execute('SELECT payload FROM archive_reports WHERE seq=?',(-seq,)).fetchone()
+    return dict(json.loads(row[0]),seq=seq) if row else None

@@ -66,3 +66,7 @@ Report labels use consistent tinted badges in both the feed and detail header: A
 ## Caucus directory (v5)
 
 The directory is fetched from `/v1/directory`. Revisions to the server list appear after pulling to refresh, without a new iPhone build. Group follows automatically use revised membership. The approved draft retains historical-name caveats and one missing committee; it is not a complete official candidate roster. Committee filing lookup currently uses normalized committee names, so renamed committees require an explicit directory update.
+
+## Version 6
+
+Adds the complete official committee report index with automatic scrolling, a quarterly cash/investments plus post-quarter A-1 summary, and estimated-cash sorting (highest first, unknown values last). Loading occurs on the server and the first request can take time. Unresolved committee identities, unreadable reports, and ambiguous A-1 amendments show unavailable rather than zero. Estimates are not reconciled bank balances and may include noncash A-1 contributions. Senate Democratic Victory Fund is removed.

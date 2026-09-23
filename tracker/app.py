@@ -22,6 +22,7 @@ from defusedxml import ElementTree as ET
 from flask import Flask, jsonify, request, render_template, send_file
 from subscriptions import migrate, enqueue, routes, configured, dispatch, ApplePush
 from directory import load_directory, sync_directory
+from history import History
 
 SOURCE = 'https://www.elections.il.gov/rss/LatestReportsFiled.aspx'
 PERIOD = 60
@@ -252,6 +253,8 @@ def create_app(directory=None, poll=True):
     store = Store(directory)
     app = Flask(__name__)
     app.config['STORE'] = store
+    history = History(store)
+    app.config['HISTORY'] = history
     app.config['MAX_CONTENT_LENGTH'] = 64*1024
     app.register_blueprint(routes(store))
     worker = None
@@ -290,6 +293,34 @@ def create_app(directory=None, poll=True):
     def archive_diagnostic():
         from archive_diagnostic import inspect
         return jsonify(inspect())
+
+    @app.get('/v1/committees/<key>/history')
+    def committee_history(key):
+        if not history.schedule(key): return jsonify(error='Unknown committee'),404
+        try:
+            cursor=int(request.args['before']) if 'before' in request.args else None
+            if cursor is not None and cursor>=0: raise ValueError()
+        except ValueError: return jsonify(error='Invalid archive cursor'),400
+        return jsonify(history.page(key,cursor))
+
+    @app.get('/v1/committees/<key>/finance')
+    def committee_finance(key):
+        if not history.schedule(key): return jsonify(error='Unknown committee'),404
+        return jsonify(history.finance(key))
+
+    @app.get('/v1/committee-finances')
+    def committee_finances():
+        group=request.args.get('group')
+        groups=[g for g in store.directory_data['groups'] if g['id']==group] if group else store.directory_data['groups']
+        keys={e['committee']['id'] for g in groups for e in g['pinned']+g['members'] if e['committee']}
+        for key in keys: history.schedule(key,priority=1)
+        return jsonify(committees={key:history.finance(key) for key in keys})
+
+    @app.get('/downloads/IllinoisTracker-v6.zip')
+    def download_history_iphone_project():
+        archive = Path(__file__).resolve().parent.parent / 'releases' / 'IllinoisTracker-iPhone-Source-v6.zip'
+        return send_file(archive, mimetype='application/zip', as_attachment=True,
+                         download_name='IllinoisTracker-iPhone-Source-v6.zip', conditional=True)
 
     @app.get('/v1/directory')
     def caucus_directory():

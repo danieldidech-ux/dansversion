@@ -786,10 +786,10 @@
             "id": "1b5ce79b8d1251adaf13eda719fd6d7a",
             "name": "Daniel Didech Campaign Committee"
           },
-          "official_url": null,
+          "official_url": "https://www.elections.il.gov/CampaignDisclosure/CommitteeDetail.aspx?ID=PFWS3Q4VBrJwLQhAj5bRtQ%3D%3D",
           "role": "",
-          "evidence": "Name observed; link unverified",
-          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+          "evidence": "Official committee page verified; committee ID 34241",
+          "review_note": ""
         },
         {
           "id": "d77084323cae8ab43955c43aefbe59f1",

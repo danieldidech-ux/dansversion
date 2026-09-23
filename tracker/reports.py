@@ -77,8 +77,8 @@ def filing_id(url):
     q = urllib.parse.parse_qs(p.query)
     if (p.scheme != 'https' or p.hostname not in {'www.elections.il.gov','elections.il.gov'}
             or p.username or p.password or p.port not in (None,443)
-            or p.path != '/CampaignDisclosure/A1List.aspx'
-            or len(q.get('FiledDocID', [])) != 1 or q.get('ID') != q.get('FiledDocID')):
+            or p.path.lower() != '/campaigndisclosure/a1list.aspx'
+            or len(q.get('FiledDocID', [])) != 1 or ('ID' in q and q['ID'] != q['FiledDocID'])):
         raise ReportFormatError('Not a filing-specific A-1 URL')
     return q['FiledDocID'][0]
 
