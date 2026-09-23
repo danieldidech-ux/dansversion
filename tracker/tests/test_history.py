@@ -22,6 +22,13 @@ class HistoryTests(unittest.TestCase):
   quarter=next(r for r in self.rows if r['report_type']=='D-2 Quarterly Report')
   self.assertEqual(parse_quarter((FIX/'quarter-34241.html').read_text(),quarter),'409751.99')
   with self.assertRaises(ReportFormatError):parse_quarter((FIX/'quarter-34241.html').read_text().replace('lblTotalInvest','missing'),quarter)
+ def test_multipage_a1_complete_count(self):
+  html=(FIX/'a1-34241-multipage.html').read_text()
+  report=json.loads((FIX/'a1-34241-multipage.json').read_text())
+  detail=parse_a1(html,report)
+  self.assertEqual(len(detail['contributions']),14)
+  self.assertEqual(detail['total'],'23500.00')
+  with self.assertRaises(ReportFormatError):parse_a1(html.replace('14 Total Records','15 Total Records'),report)
  def test_archive_a1_link_without_rss_id(self):
   detail=parse_a1((FIX/'a1-34241.html').read_text(),self.rows[0])
   self.assertEqual(detail['total'],'1500.00')

@@ -98,13 +98,23 @@ def parse_a1(html, filing):
     table = field('gvA1List')
     if any('Page$' in n.attrs.get('href','') for n in table.all('a')):
         raise ReportFormatError('Paginated report requires full-document reader')
-    rows = list(table.all('tr'))
+    def direct_rows(node):
+        for child in node.children:
+            if isinstance(child, Node):
+                if child.tag == 'tr': yield child
+                elif child.tag in {'tbody','thead','tfoot'}: yield from direct_rows(child)
+    rows = list(direct_rows(table))
+    totals = re.findall(r'(\d[\d,]*)\s+Total Records', table.text())
     headings = ['Contributed By','Address','Amount','Received By','Description','Vendor Name','Vendor Address']
     if not rows or [n.text().strip() for n in rows[0].all('th')] != headings:
         raise ReportFormatError('Unrecognized A-1 columns')
     entries = []
     for row in rows[1:]:
         cells = [n for n in row.children if isinstance(n,Node) and n.tag == 'td']
+        if (len(cells) == 1 and cells[0].attrs.get('colspan') == '7'
+                and any(n.attrs.get('id','') == 'ContentPlaceHolder1_gvA1List_GridViewPagerTemplate' for n in cells[0].all('table'))):
+            if not totals: raise ReportFormatError('Missing contribution count')
+            continue
         if len(cells) != 7 or any(n.attrs.get('colspan','1') != '1' for n in cells):
             raise ReportFormatError('Unrecognized contribution row')
         contributor, address, amount, recipient, description, vendor, vendor_address = [n.lines() for n in cells]
@@ -118,6 +128,8 @@ def parse_a1(html, filing):
         entries.append(dict(id=len(entries)+1, contributor=' '.join(contributor), address='\n'.join(address),
             amount=format(value,'.2f'), received_date=date, contribution_type=recipient[0],
             description=' '.join(description), vendor=' '.join(vendor), vendor_address='\n'.join(vendor_address)))
+    if totals and len(entries) != int(totals[-1].replace(',','')):
+        raise ReportFormatError('Incomplete contribution table')
     if not entries or len(entries)>1000:
         raise ReportFormatError('No verified contribution rows')
     return dict(status='ready', contributions=entries, period=' '.join(field('lblReportPeriod').text().split()),
@@ -133,16 +145,12 @@ class FilingRedirect(urllib.request.HTTPRedirectHandler):
 
 def fetch_report(filing):
     filing_id(filing['url'])
-    req = urllib.request.Request(filing['url'], headers={'User-Agent':'IllinoisFilingTracker/0.2 (public campaign filing reader)', 'Accept':'text/html'})
-    with urllib.request.build_opener(FilingRedirect()).open(req,timeout=12) as response:
-        if filing_id(response.url) != filing_id(filing['url']):
-            raise ReportFormatError('Unexpected document')
-        if response.headers.get_content_type() != 'text/html':
-            raise ReportFormatError('Not an HTML report')
-        data = response.read(2_000_001)
-        if len(data)>2_000_000:
-            raise ReportFormatError('Report exceeds reader size limit')
-        return parse_a1(data.decode(response.headers.get_content_charset() or 'utf-8'), filing)
+    from archive_source import Source
+    source = Source()
+    html = source.read(filing['url'])
+    html = source.all_rows(filing['url'], html, 'gvA1List')
+    return parse_a1(html, filing)
+
 
 
 class ReportReader:

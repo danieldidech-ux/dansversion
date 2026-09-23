@@ -66,7 +66,7 @@ class History:
    state=db.execute('SELECT * FROM archive_state WHERE committee_key=?',(key,)).fetchone()
    latest=db.execute('SELECT COALESCE(MAX(seq),0) FROM filings WHERE committee_key=?',(key,)).fetchone()[0]
   if not committee:return False
-  if state and json.loads(state['finance']).get('status')!='loading' and state['checked']>time.time()- (900 if state['complete'] else 300) and state['source_seq']==latest:return True
+  if state and json.loads(state['finance']).get('status')!='loading' and state['checked']>time.time()- (900 if state['complete'] and json.loads(state['finance']).get('status')=='ready' else 300) and state['source_seq']==latest:return True
   with self.lock:
    if key not in self.pending:
     self.pending.add(key);self.counter+=1;self.tasks.put((priority,self.counter,dict(committee),latest))
