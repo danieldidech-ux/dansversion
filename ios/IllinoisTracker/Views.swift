@@ -861,8 +861,38 @@ private struct QuarterlyScheduleView: View {
     @State private var failure: String?
     @State private var query = ""
     @State private var attempt = 0
+    @AppStorage("quarterlyItemSort") private var sortOrder = "name"
     private var entries: [ScheduleEntry] {
-        (schedule?.entries ?? []).filter { query.isEmpty || $0.fields.contains { $0.value.localizedCaseInsensitiveContains(query) } }
+        (schedule?.entries ?? []).filter {
+            query.isEmpty || $0.fields.contains { $0.value.localizedCaseInsensitiveContains(query) }
+        }.sorted { left, right in
+            if sortOrder == "amount" {
+                let a = amount(left), b = amount(right)
+                if a != b {
+                    if let a, let b { return a > b }
+                    return a != nil
+                }
+            }
+            let comparison = name(left).localizedStandardCompare(name(right))
+            if comparison != .orderedSame { return comparison == .orderedAscending }
+            return left.id < right.id
+        }
+    }
+    private func name(_ entry: ScheduleEntry) -> String {
+        let labels = ["contributor", "recipient", "payee", "name", "vendor"]
+        return entry.fields.first { field in labels.contains { field.label.lowercased().contains($0) } }?.value
+            ?? entry.fields.first?.value ?? ""
+    }
+    private func amount(_ entry: ScheduleEntry) -> Decimal? {
+        guard let value = entry.fields.first(where: {
+            $0.label.caseInsensitiveCompare("Amount") == .orderedSame ||
+            $0.label.caseInsensitiveCompare("Current Value") == .orderedSame
+        })?.value.components(separatedBy: "\n").first else { return nil }
+        let cleaned = value.replacingOccurrences(of: "$", with: "")
+            .replacingOccurrences(of: ",", with: "")
+            .replacingOccurrences(of: "(", with: "-").replacingOccurrences(of: ")", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+        return Decimal(string: cleaned, locale: Locale(identifier: "en_US_POSIX"))
     }
     var body: some View {
         List {
@@ -873,6 +903,12 @@ private struct QuarterlyScheduleView: View {
             }
             if loading { ProgressView("Loading itemized entries…") }
             else if let schedule, schedule.status == "ready" {
+                Section {
+                    Picker("Sort by", selection: $sortOrder) {
+                        Text("Name (A–Z)").tag("name")
+                        Text("Amount (highest first)").tag("amount")
+                    }
+                }
                 Section("\(entries.count) of \(schedule.total ?? 0) entries") {
                     ForEach(entries) { entry in
                         VStack(alignment: .leading, spacing: 12) {
@@ -901,6 +937,11 @@ private struct QuarterlyScheduleView: View {
             }
         }.civicSurface().navigationTitle(section.title).navigationBarTitleDisplayMode(.inline)
             .searchable(text: $query, prompt: "Search names, descriptions, amounts")
+            .onAppear {
+                #if DEBUG
+                if ProcessInfo.processInfo.arguments.contains("--preview-amount") { sortOrder = "amount" }
+                #endif
+            }
             .task(id: attempt) {
                 loading = true; failure = nil
                 do {

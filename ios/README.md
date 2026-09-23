@@ -1,6 +1,6 @@
 ## Version 8 navigation
 
-Home opens with four large caucus buttons. Each opens its committee list with a back button and the existing sorting options. Latest Reports is the second tab. Modern Civic, Night Ledger, and Pink Mode are supported.
+Home opens with four large caucus buttons. Each opens its committee list with a back button and the existing sorting options. Latest Reports is the second tab. Modern Civic, Night Ledger, and Pink Mode are supported. Quarterly itemized receipts and expenditures can be sorted alphabetically or by amount, highest first.
 
 # Illinois Filing Tracker — iPhone prototype
 
