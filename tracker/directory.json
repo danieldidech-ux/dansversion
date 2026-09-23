@@ -2775,12 +2775,13 @@
     "phase": "general_election",
     "cycle": 2026,
     "rules": {
-      "general_election": "Include candidates on the ballot; exclude primary losers and incumbents not seeking reelection.",
+      "general_election": "Include candidates on the ballot plus sitting senators whose seats are not up this cycle. Exclude primary losers and incumbents not seeking reelection in seats up this cycle.",
       "officeholders": "After January swearing-in, list sitting officeholders.",
       "petition_filing": "After petition filing closes, add everyone who filed for these offices; distinguish filing from ballot certification."
     },
     "caucus_committees": "Keep associated caucus committees pinned.",
     "roster_verification": "Pending complete official general-election ballot reconciliation.",
-    "transition": "Publisher reviews official rosters before changing phase; no automatic assumption that candidates won or took office."
+    "transition": "Publisher reviews official rosters before changing phase; no automatic assumption that candidates won or took office.",
+    "senate_holdovers": "Retain sitting senators whose seats are not up this election cycle."
   }
 }

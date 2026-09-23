@@ -1,4 +1,5 @@
 import SwiftUI
+import PDFKit
 
 private enum CivicTheme {
     static func adaptive(_ light: UInt32, _ dark: UInt32) -> Color {
@@ -48,7 +49,9 @@ struct RootView: View {
     var body: some View {
         Group {
         #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("--preview-problem") {
+        if ProcessInfo.processInfo.arguments.contains("--preview-pdf") {
+            NavigationStack { FilingByIDView(seq: 2001000) }
+        } else if ProcessInfo.processInfo.arguments.contains("--preview-problem") {
             NavigationStack { ProblemForm(context: ["screen": "Filing", "committee": "Example committee"]) }
         } else if ProcessInfo.processInfo.arguments.contains("--preview-alert-options") {
             NavigationStack { AlertOptionsView() }
@@ -327,7 +330,11 @@ struct FilingDetail: View {
                     .padding(18)
                     .background(CivicTheme.surface, in: RoundedRectangle(cornerRadius: 16))
 
-                NativeReportContents(filing: filing).id(filing.seq)
+                Group {
+                if filing.reportURL?.path.lowercased().contains("cdpdfviewer.aspx") == true || filing.reportType.localizedCaseInsensitiveContains("correspondence") || filing.reportType.localizedCaseInsensitiveContains("letter") {
+                    InlineFilingPDF(filing: filing)
+                } else { NativeReportContents(filing: filing) }
+                }.id(filing.seq)
                 CacheNotice(path: "/v1/filings/\(filing.seq)/contents")
                 ShareLink("Share report", item: URL(string: "https://illinois-filing-tracker.onrender.com/share/filing/\(filing.seq)")!)
                 Link("Export report CSV", destination: URL(string: "https://illinois-filing-tracker.onrender.com/share/filing/\(filing.seq).csv")!)
@@ -681,7 +688,7 @@ struct CaucusesView: View {
                         Section("Data freshness") { CacheNotice(path: "/v1/directory") }
                         Section("Following") { Text("Follow all includes the listed committees, leaders and caucus funds. Membership updates apply automatically.") }
                         Section("Cash estimates") { Text("Highest estimates appear first; unavailable estimates appear last. Leaders and caucus funds stay pinned. Balances may use different quarter-end dates and exclude unreported spending. Pull to refresh.") }
-                        Section("Directory") { Text("During the general election, lists should include ballot candidates and exclude primary losers and retiring incumbents. After officials are sworn in in January, lists should show sitting officeholders. After petition filing closes, add candidates who filed. Filing petitions does not guarantee ballot access. Roster changes are reviewed against official records.") }
+                        Section("Directory") { Text("During the general election, lists include ballot candidates and sitting senators whose seats are not up this cycle, excluding primary losers and retiring incumbents. After officials are sworn in in January, lists should show sitting officeholders. After petition filing closes, add candidates who filed. Filing petitions does not guarantee ballot access. Roster changes are reviewed against official records.") }
                         Section { ProblemButton(context: ["screen": "Committee directory", "group": groupID]) }
                     }.navigationTitle("About this list").navigationBarTitleDisplayMode(.inline)
                     .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showInfo = false } } }
@@ -1412,5 +1419,67 @@ private struct PreviewTextScale: ViewModifier {
         #else
         content
         #endif
+    }
+}
+
+private struct NativePDFView: UIViewRepresentable {
+    let document: PDFDocument
+    func makeUIView(context: Context) -> PDFView {
+        let view = PDFView()
+        view.displayMode = .singlePageContinuous
+        view.displayDirection = .vertical
+        view.displaysPageBreaks = true
+        view.backgroundColor = .secondarySystemBackground
+        view.document = document
+        view.autoScales = true
+        view.maxScaleFactor = 6
+        return view
+    }
+    func updateUIView(_ view: PDFView, context: Context) {
+        if view.document !== document { view.document = document; view.autoScales = true }
+    }
+}
+private struct InlineFilingPDF: View {
+    let filing: Filing
+    @State private var document: PDFDocument?
+    @State private var failure: String?
+    @State private var attempt = 0
+    @State private var expanded = false
+    var body: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            if let document {
+                HStack {
+                    Text("\(document.pageCount) page\(document.pageCount == 1 ? "" : "s")").font(.caption).foregroundStyle(.secondary)
+                    Spacer()
+                    Button { expanded = true } label: { Label("Full screen", systemImage: "arrow.up.left.and.arrow.down.right") }
+                }
+                NativePDFView(document: document).frame(height: 560).clipShape(RoundedRectangle(cornerRadius: 12))
+                Text("Scroll to read • Pinch to zoom").font(.caption).foregroundStyle(.secondary)
+            } else if let failure {
+                Text(failure).font(.subheadline)
+                Button("Try again") { attempt += 1 }
+            } else { ProgressView("Loading PDF…").frame(maxWidth: .infinity, minHeight: 160) }
+        }
+        .task(id: attempt) { await load() }
+        .fullScreenCover(isPresented: $expanded) {
+            NavigationStack {
+                if let document { NativePDFView(document: document).navigationTitle("Official document").navigationBarTitleDisplayMode(.inline)
+                    .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { expanded = false } } } }
+            }
+        }
+    }
+    private func load() async {
+        failure = nil
+        guard filing.reportURL != nil else { failure = "The state has not linked a document for this filing."; return }
+        do {
+            let url = URL(string: "https://illinois-filing-tracker.onrender.com/v1/filings/\(filing.seq)/document.pdf")!
+            let (data, response) = try await URLSession.shared.data(for: URLRequest(url: url, timeoutInterval: 70))
+            guard let http = response as? HTTPURLResponse, http.statusCode == 200,
+                  data.count <= 20_000_000, let pdf = PDFDocument(data: data), pdf.pageCount > 0 else {
+                throw APIError.message("The PDF could not be loaded. Retry or use Open official report below.")
+            }
+            try Task.checkCancellation()
+            document = pdf
+        } catch { if !Task.isCancelled { failure = error.localizedDescription } }
     }
 }

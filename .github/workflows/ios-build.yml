@@ -47,6 +47,10 @@ jobs:
           xcrun simctl launch "$DEVICE" com.danieldidech.illinoisfilings --preview-problem
           sleep 12
           xcrun simctl io "$DEVICE" screenshot IllinoisTracker-problem.png
+          xcrun simctl terminate "$DEVICE" com.danieldidech.illinoisfilings
+          xcrun simctl launch "$DEVICE" com.danieldidech.illinoisfilings --preview-pdf
+          sleep 30
+          xcrun simctl io "$DEVICE" screenshot IllinoisTracker-pdf.png
       - uses: actions/upload-artifact@v4
         if: always()
         with:
