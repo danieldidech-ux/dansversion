@@ -24,7 +24,7 @@ class Source:
    safe_url(r.url)
    raw=r.read(20_000_001)
    if len(raw)>20_000_000: raise ReportFormatError('Archive exceeds reader limit')
-   if raw.startswith(b'%PDF'):raise ReportFormatError('Official document is a scanned PDF, not an electronic report')
+   if raw.startswith(b'%PDF'):raise ReportFormatError('Official document is a PDF; this reader requires an electronic HTML report')
    return raw.decode(r.headers.get_content_charset() or 'utf-8')
  def all_rows(self,url,html,table_id):
   doc=Document(html)

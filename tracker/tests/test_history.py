@@ -41,6 +41,15 @@ class HistoryTests(unittest.TestCase):
   unlinked=[r for r in rows if r['url'] is None]
   self.assertEqual(len(unlinked),2)
   self.assertNotEqual(unlinked[0]['document_id'],unlinked[1]['document_id'])
+ def test_unlabeled_records_do_not_hide_missing_current_financial_data(self):
+  quarter=next(r for r in self.rows if r['report_type']=='D-2 Quarterly Report')
+  unknown=dict(self.rows[0],report_type='Unlabeled official record',url=None)
+  with patch.object(self.history,'document',return_value=(FIX/'quarter-34241.html').read_text()):
+   result=self.history.calculate(None,COM,[quarter,unknown])
+   self.assertIsNone(result['estimated_cash'])
+   self.assertEqual(result['diagnostic']['stage'],'unlabeled_record')
+   result=self.history.calculate(None,COM,[quarter,dict(unknown,filed_at='2010-01-01T12:00:00')])
+   self.assertEqual(result['estimated_cash'],'409751.99')
  def test_quarter_includes_investments(self):
   quarter=next(r for r in self.rows if r['report_type']=='D-2 Quarterly Report')
   self.assertEqual(parse_quarter((FIX/'quarter-34241.html').read_text(),quarter),'409751.99')

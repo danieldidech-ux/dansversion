@@ -25,7 +25,7 @@ def parse_archive(html, committee):
   if len(links)>1 or (not links and list(cells[0].all('a'))):raise ReportFormatError('Unrecognized archive report link')
   url=safe_url(urllib.parse.urljoin(BASE,links[0].attrs['href'])) if links else None
   report_type=' '.join(cells[0].text().split())
-  if not report_type:raise ReportFormatError('Missing archive report type')
+  if not report_type:report_type='Unlabeled official record'
   published=cells[2].lines()[0]
   filed=datetime.strptime(published,'%m/%d/%Y %I:%M:%S %p').isoformat()
   # The official archive includes correspondence with no downloadable document.
@@ -180,6 +180,11 @@ class History:
    self.audit_context[committee['id']]=dict(stage='quarterly_report',source_url=quarter['url'],report_type=quarter['report_type'],filed_at=quarter['filed_at'])
    base=parse_quarter(self.document(source,quarter['url']),quarter)
   result=dict(status='unavailable',as_of=end,cash_and_investments=base,a1_total=None,estimated_cash=None,baseline_assumed=assumed,message='A-1 totals could not be fully verified.')
+  unknown=[r for r in rows if r['report_type']=='Unlabeled official record' and r['filed_at'][:10]>end]
+  if unknown:
+   result['message']='An unlabeled official record filed after the baseline needs review.'
+   result['diagnostic']=dict(stage='unlabeled_record',reason=result['message'],reports=unknown)
+   return result
   a1s=[r for r in rows if r['report_type'].lower().startswith('a-1') and r['filed_at'][:10]>end]
   if any('amend' in r['report_type'].lower() or r['clarification'] for r in a1s):
    result['message']='An A-1 amendment or clarification needs review before an estimate can be shown.'
