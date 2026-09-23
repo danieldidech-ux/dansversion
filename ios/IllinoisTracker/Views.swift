@@ -1,10 +1,42 @@
 import SwiftUI
 
-private let accent = Color(red: 0.12, green: 0.46, blue: 0.62)
+private enum CivicTheme {
+    static func adaptive(_ light: UInt32, _ dark: UInt32) -> Color {
+        Color(uiColor: UIColor { traits in
+            let value = traits.userInterfaceStyle == .dark ? dark : light
+            return UIColor(red: CGFloat((value >> 16) & 255) / 255,
+                           green: CGFloat((value >> 8) & 255) / 255,
+                           blue: CGFloat(value & 255) / 255, alpha: 1)
+        })
+    }
+    static let background = adaptive(0xF3F6FA, 0x10191F)
+    static let surface = adaptive(0xFFFFFF, 0x19262F)
+    static let ink = adaptive(0x102A43, 0xEEF5F8)
+    static let accent = adaptive(0x006078, 0x9FE8EE)
+    static let summary = adaptive(0x082E45, 0x192C36)
+    static let summaryNumber = adaptive(0xFFFFFF, 0x9FE8EE)
+}
+private let accent = CivicTheme.accent
+private extension View {
+    func civicSurface() -> some View {
+        self.scrollContentBackground(.hidden)
+            .background(CivicTheme.background)
+            .foregroundStyle(CivicTheme.ink)
+            .listStyle(.insetGrouped)
+    }
+}
 struct RootView: View {
     @EnvironmentObject var model: AppModel
     @State private var selectedTab = 0
+    @AppStorage("appearance") private var appearance = "light"
+    private var preferredScheme: ColorScheme? {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--preview-night") { return .dark }
+        #endif
+        return appearance == "system" ? nil : (appearance == "dark" ? .dark : .light)
+    }
     var body: some View {
+        Group {
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("--preview-committee") {
             NavigationStack { CommitteeFilingsView(committee: Committee(id: "1b5ce79b8d1251adaf13eda719fd6d7a", name: "Daniel Didech Campaign Committee"), member: "Daniel Didech", officialURL: nil) }.tint(accent)
@@ -12,6 +44,7 @@ struct RootView: View {
         #else
         mainTabs
         #endif
+        }.preferredColorScheme(preferredScheme).tint(accent)
     }
     private var mainTabs: some View {
         TabView(selection: $selectedTab) {
@@ -65,7 +98,7 @@ struct FeedView: View {
                     }
                 } header: { Text("Latest discoveries") } footer: { Text("Reports and filing dates come from the Illinois State Board of Elections. Dates are displayed as published by the state.") }
             }
-            .navigationTitle("Illinois Filings")
+            .civicSurface().navigationTitle("Illinois Filings")
             .refreshable { await model.refresh() }
             .toolbar { if model.loading { ProgressView() } }
         }
@@ -92,9 +125,9 @@ private enum FilingReportKind {
     func color(dark: Bool) -> Color {
         let rgb: (Double, Double, Double)
         switch self {
-        case .a1: rgb = dark ? (140, 200, 255) : (21, 87, 160)
+        case .a1: rgb = dark ? (125, 227, 177) : (15, 111, 67)
         case .d1: rgb = dark ? (212, 172, 255) : (113, 61, 163)
-        case .quarterly: rgb = dark ? (124, 225, 192) : (8, 107, 84)
+        case .quarterly: rgb = dark ? (140, 200, 255) : (21, 87, 160)
         case .finalReport: rgb = dark ? (255, 189, 128) : (154, 75, 0)
         case .other: return .secondary
         }
@@ -140,7 +173,7 @@ struct FilingDetail: View {
                 FilingRow(filing: filing)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(18)
-                    .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+                    .background(CivicTheme.surface, in: RoundedRectangle(cornerRadius: 16))
 
                 NativeReportContents(filing: filing).id(filing.seq)
 
@@ -157,12 +190,12 @@ struct FilingDetail: View {
                                 .frame(maxWidth: .infinity, alignment: .leading).padding(18)
                         }
                     }
-                }.background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+                }.background(CivicTheme.surface, in: RoundedRectangle(cornerRadius: 16))
                 Text("Following applies to all report types filed by this committee. Alerts begin with newly discovered filings after you follow and enable notifications.")
                     .font(.footnote).foregroundStyle(.secondary)
             }.padding(16)
-        }.background(Color(uiColor: .systemGroupedBackground))
-            .navigationTitle("Filing").navigationBarTitleDisplayMode(.inline)
+        }.background(CivicTheme.background)
+            .civicSurface().navigationTitle("Filing").navigationBarTitleDisplayMode(.inline)
     }
 }
 
@@ -204,7 +237,7 @@ private struct NativeReportContents: View {
                         Button("Try again") { attempt += 1 }.buttonStyle(.bordered)
                     }
                 }.frame(maxWidth: .infinity, alignment: .leading).padding(18)
-                    .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+                    .background(CivicTheme.surface, in: RoundedRectangle(cornerRadius: 16))
             }
         }.task(id: attempt) { await load() }
     }
@@ -253,7 +286,7 @@ private struct ContributionCard: View {
                 }.font(.subheadline)
             }
         }.padding(18).frame(maxWidth: .infinity, alignment: .leading)
-            .background(Color(uiColor: .secondarySystemGroupedBackground), in: RoundedRectangle(cornerRadius: 16))
+            .background(CivicTheme.surface, in: RoundedRectangle(cornerRadius: 16))
     }
     private func detail(_ label: String, _ value: String) -> some View {
         VStack(alignment: .leading, spacing: 3) {
@@ -300,7 +333,7 @@ struct DiscoverView: View {
                     if model.committeesHaveMore { Button("Load more committees") { Task { await model.search(query, more: true) } } }
                 } header: { Text("Committees") } footer: { Text("Includes the legislative directory and committees observed in the monitored feed. This is not the complete statewide directory.") }
             }
-            .navigationTitle("Discover")
+            .civicSurface().navigationTitle("Discover")
             .searchable(text: $query, prompt: "Find a committee")
             .task(id: query) {
                 do { try await Task.sleep(for: .milliseconds(300)); await model.search(query) } catch { }
@@ -331,16 +364,26 @@ struct WatchlistView: View {
                         HStack { NavigationLink { CommitteeFilingsView(committee: committee, member: "", officialURL: nil) } label: { Text(committee.name) }; Spacer(); Button { Task { await model.toggle(committee) } } label: { Image(systemName: "star.fill") }.buttonStyle(.borderless).disabled(model.saving || model.loading).accessibilityLabel("Unfollow \(committee.name)") }
                     }
                 }
-            }.navigationTitle("Watchlist").refreshable { await model.refresh() }
+            }.civicSurface().navigationTitle("Watchlist").refreshable { await model.refresh() }
         }
     }
 }
 struct SettingsView: View {
     @EnvironmentObject var model: AppModel
     @State private var confirmDelete = false
+    @AppStorage("appearance") private var appearance = "light"
     var body: some View {
         NavigationStack {
             List {
+                Section {
+                    Picker("Appearance", selection: $appearance) {
+                        Text("Modern Civic · Light").tag("light")
+                        Text("Night Ledger · Dark").tag("dark")
+                        Text("Follow iPhone appearance").tag("system")
+                    }
+                } header: { Text("Appearance") } footer: {
+                    Text("Modern Civic is the default. Choose Night Ledger for a dark appearance, or switch automatically with your iPhone.")
+                }
                 Section("Filing alerts") {
                     Label(model.notificationStatus, systemImage: "bell")
                     if !model.pushConfigured {
@@ -364,7 +407,7 @@ struct SettingsView: View {
                     Button("Delete my watchlist and notification data", role: .destructive) { confirmDelete = true }.disabled(model.saving || model.loading)
                 }
             }
-            .navigationTitle("Settings")
+            .civicSurface().navigationTitle("Settings")
             .confirmationDialog("Delete your saved watchlist and disable alerts?", isPresented: $confirmDelete, titleVisibility: .visible) {
                 Button("Delete my data", role: .destructive) { Task { await model.deleteData() } }
             }
@@ -448,7 +491,7 @@ struct CaucusesView: View {
                     footer: { Text("The directory includes selected current-cycle candidates as well as sitting members. Committee lists may be revised.") }
                 } else if loading { ProgressView("Loading committees…") }
             }
-            .navigationTitle(group?.name ?? "Caucuses")
+            .civicSurface().navigationTitle(group?.name ?? "Caucuses")
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 #if DEBUG
@@ -478,7 +521,7 @@ struct CaucusesView: View {
                     if sortOrder == "cash" {
                         if let value = finances[committee.id]?.estimatedCash {
                             Text("Est. " + ReportContribution.currency(value)).font(.subheadline.bold()).foregroundStyle(accent)
-                        } else { Text("Estimate unavailable").font(.caption).foregroundStyle(.secondary) }
+                        } else { Text(finances[committee.id] == nil || finances[committee.id]?.status == "loading" ? "Calculating estimate…" : "Estimate unavailable").font(.caption).foregroundStyle(.secondary) }
                     }
                     if let district = entry.district {
                         Text("District \(district)").font(.caption).foregroundStyle(.secondary)
@@ -520,22 +563,51 @@ struct CaucusesView: View {
 
 struct CommitteeFinanceCard: View {
     let finance: CommitteeFinance?
+    private var pending: Bool { finance == nil || finance?.status == "loading" }
     var body: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Text("Financial summary").font(.headline)
-            if let date = finance?.asOf { Text("As of quarter ending \(date)").font(.caption).foregroundStyle(.secondary) }
-            amount("Cash on hand + investments", finance?.cashAndInvestments)
+        VStack(alignment: .leading, spacing: 16) {
+            Text("Estimated cash on hand").font(.subheadline.weight(.medium))
+            if let estimate = finance?.estimatedCash {
+                Text(ReportContribution.currency(estimate))
+                    .font(.largeTitle.weight(.bold)).monospacedDigit()
+                    .foregroundStyle(CivicTheme.summaryNumber)
+                    .minimumScaleFactor(0.7).lineLimit(1)
+                    .accessibilityLabel("Estimated cash on hand \(ReportContribution.currency(estimate))")
+            } else {
+                Text(pending ? "Calculating…" : "Estimate unavailable")
+                    .font(.title2.bold()).foregroundStyle(CivicTheme.summaryNumber)
+            }
+            Rectangle().fill(.white.opacity(0.22)).frame(height: 1)
+            amount("Cash + investments", finance?.cashAndInvestments)
             amount("A-1s since quarter end", finance?.a1Total)
-            Divider()
-            amount("Estimated cash on hand", finance?.estimatedCash)
-            Text(finance?.message ?? "Loading financial summary…").font(.caption).foregroundStyle(.secondary)
-            Text("Estimate adds reported A-1 amounts to the quarterly balance. It does not subtract later spending or include smaller unreported contributions; A-1s may include noncash contributions.").font(.caption).foregroundStyle(.secondary)
-        }.padding(.vertical, 6)
+            if let date = finance?.asOf {
+                Text("Quarter ended \(date)").font(.caption).foregroundStyle(.white.opacity(0.85))
+            }
+            Text("Estimate does not subtract spending.").font(.caption).foregroundStyle(.white.opacity(0.85))
+            DisclosureGroup("Calculation details") {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(finance?.message ?? "Loading official financial reports…")
+                    Text("Adds reported A-1 amounts to cash and investments. Smaller unreported contributions are excluded; A-1s may include noncash contributions.")
+                }.font(.caption).padding(.top, 6)
+            }.font(.caption).tint(.white)
+        }
+        .foregroundStyle(.white).padding(20)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(CivicTheme.summary, in: RoundedRectangle(cornerRadius: 18))
+        .overlay(RoundedRectangle(cornerRadius: 18).strokeBorder(.white.opacity(0.12), lineWidth: 1))
     }
     private func amount(_ label: String, _ value: String?) -> some View {
-        HStack(alignment: .firstTextBaseline) {
-            Text(label); Spacer()
-            Text(value.map { ReportContribution.currency($0) } ?? "Unavailable").bold().monospacedDigit()
+        ViewThatFits(in: .horizontal) {
+            HStack(alignment: .firstTextBaseline, spacing: 12) {
+                Text(label).font(.subheadline); Spacer(minLength: 8)
+                Text(value.map { ReportContribution.currency($0) } ?? (pending ? "Loading…" : "Unavailable"))
+                    .font(.subheadline.weight(.semibold)).monospacedDigit()
+            }
+            VStack(alignment: .leading, spacing: 4) {
+                Text(label).font(.subheadline)
+                Text(value.map { ReportContribution.currency($0) } ?? (pending ? "Loading…" : "Unavailable"))
+                    .font(.subheadline.weight(.semibold)).monospacedDigit()
+            }
         }
     }
 }
@@ -555,15 +627,19 @@ struct CommitteeFilingsView: View {
     @State private var failure: String?
     var body: some View {
         List {
-            Section { CommitteeFinanceCard(finance: finance) }
             Section {
-                if !member.isEmpty { Text(member).font(.headline) }
-                Text(committee.name).font(.title3.bold())
+                if !member.isEmpty { Text(member).font(.subheadline.weight(.medium)).foregroundStyle(accent) }
+                Text(committee.name).font(.title2.bold()).foregroundStyle(CivicTheme.ink)
                 Button {
                     Task { await model.toggle(committee) }
                 } label: {
                     Label(model.follows(committee) ? "Following committee" : "Follow committee", systemImage: model.follows(committee) ? "star.fill" : "star")
                 }.disabled(model.saving || model.loading)
+            }
+            Section {
+                CommitteeFinanceCard(finance: finance)
+                    .listRowInsets(EdgeInsets())
+                    .listRowBackground(Color.clear)
             }
             Section("Reports") {
                 if let history {
@@ -592,7 +668,7 @@ struct CommitteeFilingsView: View {
                 Section { Link("Open official committee page", destination: officialURL) }
             }
         }
-        .navigationTitle("Committee")
+        .civicSurface().navigationTitle("Committee")
         .navigationBarTitleDisplayMode(.inline)
         .task {
             await load(more: false)

@@ -30,6 +30,10 @@ jobs:
           xcrun simctl launch "$DEVICE" com.danieldidech.illinoisfilings --preview-committee
           sleep 35
           xcrun simctl io "$DEVICE" screenshot IllinoisTracker-committee.png
+          xcrun simctl terminate "$DEVICE" com.danieldidech.illinoisfilings
+          xcrun simctl launch "$DEVICE" com.danieldidech.illinoisfilings --preview-committee --preview-night
+          sleep 15
+          xcrun simctl io "$DEVICE" screenshot IllinoisTracker-night.png
       - uses: actions/upload-artifact@v4
         with:
           name: iPhone-simulator-preview

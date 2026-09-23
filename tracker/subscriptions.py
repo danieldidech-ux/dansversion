@@ -219,6 +219,14 @@ def routes(store):
             return jsonify(error='Not found'), 404
         return jsonify(report_reader.read(dict(row)))
 
+    @api.get('/v1/filings/<int(signed=True):seq>/schedules/<key>')
+    @authenticated
+    def quarterly_schedule(seq,key):
+        if abs(seq)>2**63-1:return jsonify(error='Not found'),404
+        with closing(store.connect()) as db:row=lookup_filing(db,seq)
+        if row is None:return jsonify(error='Not found'),404
+        return jsonify(report_reader.schedule(dict(row),key))
+
     return api
 
 

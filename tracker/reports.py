@@ -144,8 +144,11 @@ class FilingRedirect(urllib.request.HTTPRedirectHandler):
 
 
 def fetch_report(filing):
-    filing_id(filing['url'])
+    from quarterly import is_quarter, parse_quarterly
     from archive_source import Source
+    if is_quarter(filing['url']):
+        return parse_quarterly(Source().read(filing['url']),filing)
+    filing_id(filing['url'])
     source = Source()
     html = source.read(filing['url'])
     html = source.all_rows(filing['url'], html, 'gvA1List')
@@ -159,11 +162,14 @@ class ReportReader:
         self.slots = threading.BoundedSemaphore(2)
         self.locks = [threading.Lock() for _ in range(16)]
         with closing(store.connect()) as db, db:
+            db.execute('CREATE TABLE IF NOT EXISTS schedule_cache (url TEXT PRIMARY KEY, expires REAL, payload TEXT)')
             db.execute('CREATE TABLE IF NOT EXISTS report_cache (seq INTEGER PRIMARY KEY, source_url TEXT, expires REAL, payload TEXT)')
 
     def read(self, filing):
         try:
-            filing_id(filing['url'] or '')
+            from quarterly import is_quarter, document_id
+            if is_quarter(filing['url']):document_id(filing['url'])
+            else:filing_id(filing['url'] or '')
         except (ValueError, TypeError):
             return dict(status='unsupported', message='This report format is not available in the app yet. Open the official report below to read it.')
         with self.locks[filing['seq'] % len(self.locks)]:
@@ -188,3 +194,28 @@ class ReportReader:
                 return result
             finally:
                 self.slots.release()
+
+    def schedule(self,filing,key):
+        from quarterly import fetch_schedule
+        parent=self.read(filing)
+        if parent.get('kind')!='quarterly' or parent.get('status')!='ready':
+            return dict(status='unavailable',message='Load the quarterly summary first, then try again.')
+        section=next((s for s in parent['sections'] if s['id']==key and s['has_details']),None)
+        if section is None:return dict(status='unsupported',message='No itemized schedule is linked for this category.')
+        url=section['source_url']
+        with self.locks[filing['seq'] % len(self.locks)]:
+            with closing(self.store.connect()) as db:
+                row=db.execute('SELECT payload FROM schedule_cache WHERE url=? AND expires>?',(url,time.time())).fetchone()
+            if row:return json.loads(row[0])
+            if not self.slots.acquire(blocking=False):return dict(status='unavailable',message='Reports are busy loading. Please try again shortly.')
+            try:
+                try:result=fetch_schedule(filing,section,parent['period'])
+                except Exception as exc:
+                    import logging
+                    logging.getLogger('gunicorn.error').warning('Quarterly schedule %s: %s',key,str(exc))
+                    result=dict(status='unavailable',message='The itemized schedule could not be read completely. Please try again.',diagnostic=str(exc)[:200])
+                with closing(self.store.connect()) as db,db:
+                    db.execute('DELETE FROM schedule_cache WHERE expires<?',(time.time(),))
+                    db.execute('INSERT OR REPLACE INTO schedule_cache VALUES (?,?,?)',(url,time.time()+(3600 if result['status']=='ready' else 30),json.dumps(result)))
+                return result
+            finally:self.slots.release()
