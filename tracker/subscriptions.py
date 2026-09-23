@@ -11,6 +11,7 @@ from flask import Blueprint, jsonify, request, g
 from reports import ReportReader
 
 CATEGORIES = [
+    ('executive-branch', 'Executive Branch'),
     ('house-democrats', 'House Democrats'), ('house-republicans', 'House Republicans'),
     ('senate-democrats', 'Senate Democrats'), ('senate-republicans', 'Senate Republicans'),
     ('caucus-committees', 'Caucus committees'),

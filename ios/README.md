@@ -1,3 +1,11 @@
+## Version 11 executive directory
+
+A yellow Executive Branch card leads to five selected statewide committees. Paul Kendrick replaces Margaret Croke in House Democrats. Croke moves to Executive Branch. Building icons have been removed. Includes version 10 typography improvements.
+
+## Version 10 home typography
+
+Chamber and party names have equal-sized bold type. A compact Illinois Committees heading replaces the large Home heading.
+
 ## Version 9 home design
 
 Home uses blue Democratic cards and red Republican cards, with chamber labels, architectural motifs, gradients, and large type. Party colors remain identifiable in every theme.

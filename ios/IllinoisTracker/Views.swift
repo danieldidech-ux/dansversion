@@ -83,6 +83,7 @@ struct RootView: View {
     }
 }
 private enum HomeCaucus: String, CaseIterable, Identifiable {
+    case executive = "executive-branch"
     case houseDemocrats = "house-democrats"
     case senateDemocrats = "senate-democrats"
     case houseRepublicans = "house-republicans"
@@ -90,6 +91,7 @@ private enum HomeCaucus: String, CaseIterable, Identifiable {
     var id: String { rawValue }
     var title: String {
         switch self {
+        case .executive: return "Executive Branch"
         case .houseDemocrats: return "House Democrats"
         case .senateDemocrats: return "Senate Democrats"
         case .houseRepublicans: return "House Republicans"
@@ -98,30 +100,31 @@ private enum HomeCaucus: String, CaseIterable, Identifiable {
     }
     var chamber: String {
         switch self {
-        case .houseDemocrats, .houseRepublicans: return "HOUSE"
-        case .senateDemocrats, .senateRepublicans: return "SENATE"
+        case .executive: return "Executive"
+        case .houseDemocrats, .houseRepublicans: return "House"
+        case .senateDemocrats, .senateRepublicans: return "Senate"
         }
     }
     var party: String {
         switch self {
+        case .executive: return "Branch"
         case .houseDemocrats, .senateDemocrats: return "Democrats"
         case .houseRepublicans, .senateRepublicans: return "Republicans"
         }
     }
     var colors: [Color] {
         switch self {
+        case .executive: return [CivicTheme.adaptive(0xFFE17A, 0xF4CC57), CivicTheme.adaptive(0xEAB52D, 0xDCA625)]
         case .houseDemocrats: return [CivicTheme.adaptive(0x1766D5, 0x144FA8), CivicTheme.adaptive(0x123580, 0x102658)]
         case .senateDemocrats: return [CivicTheme.adaptive(0x087BA8, 0x096284), CivicTheme.adaptive(0x17429D, 0x142F68)]
         case .houseRepublicans: return [CivicTheme.adaptive(0xD33149, 0xA8253D), CivicTheme.adaptive(0x86192F, 0x60182B)]
         case .senateRepublicans: return [CivicTheme.adaptive(0xBC4334, 0x983329), CivicTheme.adaptive(0x8D2048, 0x631C35)]
         }
     }
-    var symbol: String {
-        switch self {
-        case .houseDemocrats, .houseRepublicans: return "building.2"
-        case .senateDemocrats, .senateRepublicans: return "building.columns"
-        }
+    var foreground: Color {
+        self == .executive ? CivicTheme.adaptive(0x382900, 0x382900) : .white
     }
+
 }
 
 struct HomeView: View {
@@ -133,11 +136,10 @@ struct HomeView: View {
                     ForEach(HomeCaucus.allCases) { caucus in
                         NavigationLink(value: caucus) {
                             HStack(alignment: .center, spacing: 12) {
-                                VStack(alignment: .leading, spacing: 9) {
-                                    HStack(spacing: 8) {
-                                        Image(systemName: caucus.symbol).font(.caption.weight(.bold))
-                                        Text(caucus.chamber).font(.caption.weight(.heavy)).tracking(2.5)
-                                    }.foregroundStyle(.white.opacity(0.9))
+                                VStack(alignment: .leading, spacing: 2) {
+                                    Text(caucus.chamber)
+                                        .font(.system(.title, design: .rounded, weight: .bold))
+                                        .fixedSize(horizontal: false, vertical: true)
                                     Text(caucus.party)
                                         .font(.system(.title, design: .rounded, weight: .bold))
                                         .fixedSize(horizontal: false, vertical: true)
@@ -148,16 +150,12 @@ struct HomeView: View {
                                     .frame(width: 38, height: 38)
                                     .background(.white.opacity(0.16), in: Circle())
                             }
-                            .foregroundStyle(.white)
+                            .foregroundStyle(caucus.foreground)
                             .padding(.horizontal, 24).padding(.vertical, 22)
                             .frame(maxWidth: .infinity, minHeight: 125, alignment: .leading)
                             .background {
                                 ZStack(alignment: .trailing) {
                                     LinearGradient(colors: caucus.colors, startPoint: .topLeading, endPoint: .bottomTrailing)
-                                    Image(systemName: caucus.symbol)
-                                        .font(.system(size: 132, weight: .ultraLight))
-                                        .foregroundStyle(.white.opacity(0.10))
-                                        .rotationEffect(.degrees(-12)).offset(x: 24, y: 22)
                                     Circle().stroke(.white.opacity(0.09), lineWidth: 1)
                                         .frame(width: 210, height: 210).offset(x: 65, y: -35)
                                 }
@@ -175,7 +173,8 @@ struct HomeView: View {
                 }.padding(.horizontal, 20).padding(.vertical, 16)
             }
             .background(CivicTheme.background)
-            .navigationTitle("Home")
+            .navigationTitle("Illinois Committees")
+            .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: HomeCaucus.self) { caucus in
                 CaucusesView(groupID: caucus.rawValue, title: caucus.title)
             }
@@ -578,7 +577,7 @@ struct CaucusesView: View {
                 Section {
                     Picker("Sort by", selection: $sortOrder) {
                         Text("Last name").tag("name")
-                        Text("District number").tag("district")
+                        if groupID != "executive-branch" { Text("District number").tag("district") }
                         Text("Estimated cash on hand").tag("cash")
                     }
                 }
@@ -595,24 +594,27 @@ struct CaucusesView: View {
                         } label: {
                             Label(model.followedCategories.contains(group.id) ? "Following \(group.name)" : "Follow \(group.name)", systemImage: model.followedCategories.contains(group.id) ? "star.fill" : "star")
                         }.disabled(model.saving || model.loading)
-                    } footer: { Text("Follow all listed committees, including the leader and caucus funds. Membership updates apply automatically.") }
+                    } footer: { Text(groupID == "executive-branch" ? "Follow all five listed committees. Membership updates apply automatically." : "Follow all listed committees, including the leader and caucus funds. Membership updates apply automatically.") }
                     if sortOrder == "cash" {
                         Section {
                             Text("Highest estimates first. Unavailable estimates appear last. Balances may use different quarter-end dates; pull to refresh as summaries finish loading.").font(.caption).foregroundStyle(.secondary)
                         }
                     }
-                    Section("Leader & caucus committees") {
-                        ForEach(group.pinned) { entry in directoryRow(entry) }
+                    if !group.pinned.isEmpty {
+                        Section("Leader & caucus committees") {
+                            ForEach(group.pinned) { entry in directoryRow(entry) }
+                        }
                     }
                     Section {
                         ForEach(members) { entry in directoryRow(entry) }
-                    } header: { Text("Members & candidates") }
-                    footer: { Text("The directory includes selected current-cycle candidates as well as sitting members. Committee lists may be revised.") }
+                    } header: { Text(groupID == "executive-branch" ? "Statewide officials & candidates" : "Members & candidates") }
+                    footer: { Text("The directory includes selected current-cycle candidates as well as current officeholders. Committee lists may be revised.") }
                 } else if loading { ProgressView("Loading committees…") }
             }
             .civicSurface().navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
+                if groupID == "executive-branch", sortOrder == "district" { sortOrder = "name" }
                 #if DEBUG
                 if ProcessInfo.processInfo.arguments.contains("--preview-cash") { sortOrder = "cash" }
                 #endif

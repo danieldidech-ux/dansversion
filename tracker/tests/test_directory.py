@@ -47,6 +47,24 @@ class DirectoryTests(unittest.TestCase):
                 if entry['committee']:
                     self.assertEqual(entry['committee']['id'], committee_key(entry['committee']['name']))
 
+    def test_executive_group_and_house_replacement(self):
+        groups = {g['id']: g for g in self.client.get('/v1/directory').json['groups']}
+        executive = groups['executive-branch']['members']
+        self.assertEqual({e['member'] for e in executive}, {'JB Pritzker', 'Kwame Raoul', 'Mike Frerichs', 'Alexi Giannoulias', 'Margaret Croke'})
+        house = groups['house-democrats']['members']
+        self.assertEqual(next(e for e in house if e['district'] == 12)['committee']['name'], 'Paul for Illinois')
+        self.assertNotIn('Margaret Croke', [e['member'] for e in house])
+        response = self.client.put('/v1/me/watchlist', headers=self.auth,
+            json={'committees': [], 'categories': ['executive-branch']})
+        self.assertEqual(response.status_code, 200)
+        self.client.put('/v1/me/push', headers=self.auth,
+            json={'enabled': True, 'token': 'e'*64, 'environment': 'sandbox'})
+        with closing(self.store.connect()) as db, db:
+            for i, entry in enumerate(executive):
+                enqueue(db, 200+i, entry['committee']['id'], 1)
+            enqueue(db, 210, committee_key('Paul for Illinois'), 1)
+            self.assertEqual(db.execute('SELECT count(*) FROM outbox').fetchone()[0], 5)
+
     def test_unseen_committee_follow_and_group_dedup(self):
         key = committee_key('All in With Lilian')
         response = self.client.put('/v1/me/watchlist', headers=self.auth,

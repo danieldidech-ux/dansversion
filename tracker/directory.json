@@ -1,6 +1,83 @@
 {
-  "revision": "2026-09-23-approved-4",
+  "revision": "2026-09-23-approved-5",
   "groups": [
+    {
+      "id": "executive-branch",
+      "name": "Executive Branch",
+      "pinned": [],
+      "members": [
+        {
+          "id": "6aed001978ad18dd682c9b223b9d9ec7",
+          "member": "JB Pritzker",
+          "last_name": "Pritzker",
+          "district": null,
+          "committee": {
+            "id": "e1bf415a0b981f6fdbe0582382de0185",
+            "name": "JB for Governor"
+          },
+          "official_url": "https://www.elections.il.gov/campaigndisclosure/CommitteeDetail.aspx?ID=7Exw%2B%2F%2Fff6nVISibs71hTA%3D%3D",
+          "role": "",
+          "evidence": "User-selected group; committee matched to public records",
+          "review_note": "Executive grouping includes current-cycle candidates; not a claim of current officeholding."
+        },
+        {
+          "id": "ceb67f27abe7cb7ec99da9b8e3c3fd8a",
+          "member": "Kwame Raoul",
+          "last_name": "Raoul",
+          "district": null,
+          "committee": {
+            "id": "e7b2c341670cc19862b1e68853acee1f",
+            "name": "Raoul for Illinois"
+          },
+          "official_url": "https://www.elections.il.gov/campaigndisclosure/CommitteeDetail.aspx?ID=k%2Fe1PGcHnTu5MQuir1bn%2Bw%3D%3D",
+          "role": "",
+          "evidence": "User-selected group; committee matched to public records",
+          "review_note": "Executive grouping includes current-cycle candidates; not a claim of current officeholding."
+        },
+        {
+          "id": "a535d6dd873d9a5a2afe002ac8745f9a",
+          "member": "Mike Frerichs",
+          "last_name": "Frerichs",
+          "district": null,
+          "committee": {
+            "id": "9ddf12d70921d442c377b4923cb3f33a",
+            "name": "Friends of Frerichs"
+          },
+          "official_url": "https://www.elections.il.gov/campaigndisclosure/CommitteeDetail.aspx?ID=B6TWZoTF066FF2k5pPaDoA%3D%3D",
+          "role": "",
+          "evidence": "User-selected group; committee matched to public records",
+          "review_note": "Executive grouping includes current-cycle candidates; not a claim of current officeholding."
+        },
+        {
+          "id": "70d50ed84299f7db7cadcee8f511b9fb",
+          "member": "Alexi Giannoulias",
+          "last_name": "Giannoulias",
+          "district": null,
+          "committee": {
+            "id": "fa4ebf926bae56cfeeef54c2a28f9b34",
+            "name": "Citizens for Giannoulias"
+          },
+          "official_url": "https://www.elections.il.gov/campaigndisclosure/CommitteeDetail.aspx?ID=8n0Z%2FhFZyviNxr775qIC8w%3D%3D",
+          "role": "",
+          "evidence": "User-selected group; committee matched to public records",
+          "review_note": "Executive grouping includes current-cycle candidates; not a claim of current officeholding."
+        },
+        {
+          "id": "bfc9b000db8433c5086e6931da6da49e",
+          "member": "Margaret Croke",
+          "last_name": "Croke",
+          "district": null,
+          "committee": {
+            "id": "9525c51e40a4712ba1454efa674f7eb0",
+            "name": "Croke For Illinois"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        }
+      ]
+    },
     {
       "id": "house-democrats",
       "name": "House Democrats",
@@ -60,7 +137,7 @@
           },
           "official_url": null,
           "role": "",
-          "evidence": "Historical only — recheck",
+          "evidence": "Historical only \u2014 recheck",
           "review_note": "2017 registry: To support the candidacy of Elizabeth Hernandez for State Representative, 24th District Current name, status and association must be rechecked; old district numbers may differ."
         },
         {
@@ -79,8 +156,8 @@
         },
         {
           "id": "626905872bc2324b5c8bb97196dc8299",
-          "member": "Lilian Jiménez",
-          "last_name": "Jiménez",
+          "member": "Lilian Jim\u00e9nez",
+          "last_name": "Jim\u00e9nez",
           "district": 4,
           "committee": {
             "id": "fabb7be23bb9c9dbf9828f1f564590e5",
@@ -190,18 +267,18 @@
           "review_note": "Committee name, association and official URL supplied by Daniel Didech. Not independently verified against the live registry."
         },
         {
-          "id": "bfc9b000db8433c5086e6931da6da49e",
-          "member": "Margaret Croke",
-          "last_name": "Croke",
+          "id": "afe353150d5d26917283f99a27f47ee0",
+          "member": "Paul Kendrick",
+          "last_name": "Kendrick",
           "district": 12,
           "committee": {
-            "id": "9525c51e40a4712ba1454efa674f7eb0",
-            "name": "Croke For Illinois"
+            "id": "3c86124230927033ba5f676029c52634",
+            "name": "Paul for Illinois"
           },
           "official_url": null,
           "role": "",
-          "evidence": "Name observed; link unverified",
-          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+          "evidence": "User-selected group; committee matched to public records",
+          "review_note": "Executive grouping includes current-cycle candidates; not a claim of current officeholding."
         },
         {
           "id": "889f5d3b04d1c5cce2c81ce0e68de6cb",
@@ -331,8 +408,8 @@
         },
         {
           "id": "5d0b6e5f2445b1a7811014803b55b1e8",
-          "member": "Edgar González Jr.",
-          "last_name": "González",
+          "member": "Edgar Gonz\u00e1lez Jr.",
+          "last_name": "Gonz\u00e1lez",
           "district": 23,
           "committee": {
             "id": "074b5bbac6b363e9a5fb43c4a376ae2d",
@@ -424,7 +501,7 @@
           },
           "official_url": null,
           "role": "",
-          "evidence": "Historical only — recheck",
+          "evidence": "Historical only \u2014 recheck",
           "review_note": "2017 registry: To elect Thaddeus Jones as State Representative of the 29th Dist. Current name, status and association must be rechecked; old district numbers may differ."
         },
         {
@@ -456,22 +533,7 @@
           "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
         },
         {
-          "id": "02f5737f327a0837172de52d45ff49ac",
-          "member": "Lisa Davis",
-          "last_name": "Davis",
-          "district": 32,
-          "committee": {
-            "id": "aa584735512e9df737b70e5ddbec3bd1",
-            "name": "Friends of Lisa J Davis"
-          },
-          "official_url": null,
-          "role": "",
-          "evidence": "Name observed; link unverified",
-          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
-        },
-        {
-          "id": "d14d1c30d782220a8770580655072b94",
-          "member": "Marcus C. Evans Jr.",
+          "id": "02f…167 tokens truncated…ns Jr.",
           "last_name": "Evans",
           "district": 33,
           "committee": {
@@ -480,7 +542,7 @@
           },
           "official_url": null,
           "role": "",
-          "evidence": "Historical only — recheck",
+          "evidence": "Historical only \u2014 recheck",
           "review_note": "2017 registry: To support the candidacy of Marcus C Evans Jr Current name, status and association must be rechecked; old district numbers may differ."
         },
         {
@@ -564,7 +626,7 @@
           },
           "official_url": null,
           "role": "",
-          "evidence": "Historical only — recheck",
+          "evidence": "Historical only \u2014 recheck",
           "review_note": "2017 registry: To support and elect Jaime M. Andrade, Jr. to the office of IL State Representative. Current name, status and association must be rechecked; old district numbers may differ."
         },
         {
@@ -606,7 +668,7 @@
           },
           "official_url": null,
           "role": "",
-          "evidence": "Historical only — recheck",
+          "evidence": "Historical only \u2014 recheck",
           "review_note": "2017 registry: To support the election of Anna Moeller to the 43rd State Representative District Current name, status and association must be rechecked; old district numbers may differ."
         },
         {
@@ -620,7 +682,7 @@
           },
           "official_url": null,
           "role": "",
-          "evidence": "Historical only — recheck",
+          "evidence": "Historical only \u2014 recheck",
           "review_note": "2017 registry: To support the candidacy of Fre Crespo Current name, status and association must be rechecked; old district numbers may differ. Also confirm present caucus membership."
         },
         {
@@ -774,7 +836,7 @@
           },
           "official_url": null,
           "role": "",
-          "evidence": "Historical only — recheck",
+          "evidence": "Historical only \u2014 recheck",
           "review_note": "2017 registry: Exploratory committee for potential candidacy of Bob Morgan for elective office. Current name, status and association must be rechecked; old district numbers may differ."
         },
         {
@@ -998,7 +1060,7 @@
           },
           "official_url": null,
           "role": "",
-          "evidence": "Historical only — recheck",
+          "evidence": "Historical only \u2014 recheck",
           "review_note": "2017 registry: To elect Stephanie Kifowit to elected office Current name, status and association must be rechecked; old district numbers may differ."
         },
         {
@@ -1096,7 +1158,7 @@
           },
           "official_url": null,
           "role": "",
-          "evidence": "Historical only — recheck",
+          "evidence": "Historical only \u2014 recheck",
           "review_note": "2017 registry: To support the election of Natalie Manley as State Representative in the General Assembly in the 98th Representative District State of IL. Current name, status and association must be rechecked; old district numbers may differ."
         },
         {
@@ -1110,7 +1172,7 @@
           },
           "official_url": null,
           "role": "",
-          "evidence": "Historical only — recheck",
+          "evidence": "Historical only \u2014 recheck",
           "review_note": "2017 registry: To support Carol Ammons and other candidates for state and local elective office. Current name, status and association must be rechecked; old district numbers may differ."
         },
         {
@@ -1230,7 +1292,7 @@
           },
           "official_url": null,
           "role": "",
-          "evidence": "Historical only — recheck",
+          "evidence": "Historical only \u2014 recheck",
           "review_note": "2017 registry: Campaign Current name, status and association must be rechecked; old district numbers may differ."
         },
         {
@@ -1622,7 +1684,7 @@
           },
           "official_url": null,
           "role": "",
-          "evidence": "Historical only — recheck",
+          "evidence": "Historical only \u2014 recheck",
           "review_note": "2017 registry: To elect Brad Halbrook Current name, status and association must be rechecked; old district numbers may differ."
         },
         {
@@ -1664,7 +1726,7 @@
           },
           "official_url": null,
           "role": "",
-          "evidence": "Historical only — recheck",
+          "evidence": "Historical only \u2014 recheck",
           "review_note": "2017 registry: Elect Blaine Wilhour Current name, status and association must be rechecked; old district numbers may differ."
         },
         {
@@ -1812,7 +1874,7 @@
           },
           "official_url": null,
           "role": "",
-          "evidence": "Historical only — recheck",
+          "evidence": "Historical only \u2014 recheck",
           "review_note": "2017 registry: To support the Candidacy of Omar Aquino Current name, status and association must be rechecked; old district numbers may differ."
         },
         {
@@ -1868,7 +1930,7 @@
           },
           "official_url": null,
           "role": "",
-          "evidence": "Historical only — recheck",
+          "evidence": "Historical only \u2014 recheck",
           "review_note": "2017 registry: To advance the candidacy of Sara Feigenholtz Current name, status and association must be rechecked; old district numbers may differ."
         },
         {
@@ -1910,7 +1972,7 @@
           },
           "official_url": null,
           "role": "",
-          "evidence": "Historical only — recheck",
+          "evidence": "Historical only \u2014 recheck",
           "review_note": "2017 registry: To support the candidacy of Laura Fine Current name, status and association must be rechecked; old district numbers may differ."
         },
         {
@@ -1924,7 +1986,7 @@
           },
           "official_url": null,
           "role": "",
-          "evidence": "Historical only — recheck",
+          "evidence": "Historical only \u2014 recheck",
           "review_note": "2017 registry: Elect Robert Martwick to office of State Representative Current name, status and association must be rechecked; old district numbers may differ."
         },
         {
@@ -1980,7 +2042,7 @@
           },
           "official_url": null,
           "role": "",
-          "evidence": "Historical only — recheck",
+          "evidence": "Historical only \u2014 recheck",
           "review_note": "2017 registry: Support Emil Jones III for State Senate Current name, status and association must be rechecked; old district numbers may differ."
         },
         {
@@ -1994,7 +2056,7 @@
           },
           "official_url": null,
           "role": "",
-          "evidence": "Historical only — recheck",
+          "evidence": "Historical only \u2014 recheck",
           "review_note": "2017 registry: Support the election of Napoleon Harris Current name, status and association must be rechecked; old district numbers may differ."
         },
         {
@@ -2022,7 +2084,7 @@
           },
           "official_url": null,
           "role": "",
-          "evidence": "Historical only — recheck",
+          "evidence": "Historical only \u2014 recheck",
           "review_note": "2017 registry: To support Elgie Sims and other candidates for state and local elective office. Current name, status and association must be rechecked; old district numbers may differ."
         },
         {
@@ -2055,8 +2117,8 @@
         },
         {
           "id": "4369875d6cf56de57a209f0ef63df202",
-          "member": "Graciela Guzmán",
-          "last_name": "Guzmán",
+          "member": "Graciela Guzm\u00e1n",
+          "last_name": "Guzm\u00e1n",
           "district": 20,
           "committee": {
             "id": "afa507799af0dc68597f4bb54abfd1fe",
@@ -2134,7 +2196,7 @@
           },
           "official_url": null,
           "role": "",
-          "evidence": "Historical only — recheck",
+          "evidence": "Historical only \u2014 recheck",
           "review_note": "2017 registry: To elect Mark L. Walker for Illinois House Current name, status and association must be rechecked; old district numbers may differ."
         },
         {
@@ -2204,7 +2266,7 @@
           },
           "official_url": null,
           "role": "",
-          "evidence": "Historical only — recheck",
+          "evidence": "Historical only \u2014 recheck",
           "review_note": "2017 registry: To support the candidacy of Steven \"Steve\" Stadelman Current name, status and association must be rechecked; old district numbers may differ."
         },
         {
@@ -2260,7 +2322,7 @@
           },
           "official_url": null,
           "role": "",
-          "evidence": "Historical only — recheck",
+          "evidence": "Historical only \u2014 recheck",
           "review_note": "2017 registry: Support candidacy for public office for Linda Holmes. Current name, status and association must be rechecked; old district numbers may differ."
         },
         {
@@ -2274,7 +2336,7 @@
           },
           "official_url": null,
           "role": "",
-          "evidence": "Historical only — recheck",
+          "evidence": "Historical only \u2014 recheck",
           "review_note": "2017 registry: To elect Rachel F Ventura to public office. Current name, status and association must be rechecked; old district numbers may differ."
         },
         {
@@ -2405,7 +2467,7 @@
             "name": "Republican State Senate Campaign Committee"
           },
           "official_url": null,
-          "role": "Additional fund — review",
+          "role": "Additional fund \u2014 review",
           "evidence": "Approved list",
           "review_note": "Separate name appears in RSS; do not merge with Illinois Senate Republican Campaign Committee without official IDs."
         },
@@ -2419,7 +2481,7 @@
             "name": "Senate Republican Victory Fund"
           },
           "official_url": null,
-          "role": "Additional fund — review",
+          "role": "Additional fund \u2014 review",
           "evidence": "Approved list",
           "review_note": "Name appears in RSS; confirm current caucus association before pinning."
         }
@@ -2590,7 +2652,7 @@
           },
           "official_url": null,
           "role": "",
-          "evidence": "Historical only — recheck",
+          "evidence": "Historical only \u2014 recheck",
           "review_note": "2017 registry: To elect Jil Tracy to the office of State Senator for the 47th Dist Current name, status and association must be rechecked; old district numbers may differ."
         },
         {
@@ -2632,7 +2694,7 @@
           },
           "official_url": null,
           "role": "",
-          "evidence": "Historical only — recheck",
+          "evidence": "Historical only \u2014 recheck",
           "review_note": "2017 registry: To support the candidacy of Steve McClure Current name, status and association must be rechecked; old district numbers may differ."
         },
         {
