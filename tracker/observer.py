@@ -1,5 +1,5 @@
 """Private lists, verified disclosure index, alert preferences and public sharing."""
-import csv, hashlib, io, json, re, time, uuid
+import csv, hashlib, io, json, re, time, uuid, shutil
 from contextlib import closing
 from datetime import datetime, timedelta
 from decimal import Decimal, InvalidOperation
@@ -26,6 +26,9 @@ def migrate(db):
  columns={r[1] for r in db.execute('PRAGMA table_info(disclosures)')}
  if 'document_key' not in columns:db.execute("ALTER TABLE disclosures ADD COLUMN document_key TEXT NOT NULL DEFAULT ''")
 
+def index_has_space(store):
+ return shutil.disk_usage(store.directory).free >= 128*1024*1024
+
 def normal(s):return ' '.join(s.casefold().split())
 def entity_id(name,address):return hashlib.sha256((normal(name)+'\n'+normal(address)).encode()).hexdigest()[:32]
 def source_name(name):return re.split(r'\s+(?:Occupation|Employer):',name,maxsplit=1)[0].strip()
@@ -33,6 +36,7 @@ def source_name(name):return re.split(r'\s+(?:Occupation|Employer):',name,maxspl
 def index_entries(store,filing,entries,section='a1'):
  """Keep individual disclosures traceable; never merge identities by similar name."""
  from history import identity
+ if not index_has_space(store):return entries
  with closing(store.connect()) as db,db:
   document_key=identity(filing['url']);retained=[]
   for i,e in enumerate(entries):
@@ -51,7 +55,7 @@ def index_entries(store,filing,entries,section='a1'):
  return entries
 
 def index_schedule(store,filing,section,result):
- if result.get('status')!='ready':return
+ if result.get('status')!='ready' or not index_has_space(store):return
  entries=[]
  for row in result['entries']:
   fields={f['label']:f['value'] for f in row['fields']}
@@ -74,6 +78,7 @@ def index_tick(store):
  """One job per tick, live first. Historical imports never trigger donor alerts."""
  from reports import ReportReader
  from subscriptions import lookup_filing
+ if not index_has_space(store):return
  with closing(store.connect()) as db,db:
   db.execute("INSERT OR IGNORE INTO index_jobs(seq) SELECT seq FROM filings WHERE lower(report_type) LIKE 'a-1%' OR lower(report_type) LIKE 'd-2 quarterly%'")
   db.execute("INSERT OR IGNORE INTO index_jobs(seq) SELECT -seq FROM archive_reports WHERE json_extract(payload,'$.report_type') LIKE 'A-1%' OR json_extract(payload,'$.report_type') LIKE 'D-2 Quarterly%'")
@@ -237,7 +242,8 @@ def install_routes(api,store,authenticated,reader):
   with closing(store.connect()) as db:
    rows=[dict(r) for r in db.execute('SELECT * FROM entities WHERE instr(lower(name),lower(?))>0 ORDER BY name,address LIMIT 101',(query,))]
    counts=dict(db.execute('SELECT status,count(*) FROM index_jobs GROUP BY status').fetchall())
-  return jsonify(entities=rows[:100],has_more=len(rows)>100,coverage=f"{counts.get('ready',0)} reports indexed; {sum(v for k,v in counts.items() if k!='ready')} pending or unavailable. Search covers imported disclosures, not the complete statewide archive.")
+  paused=" Indexing paused to preserve storage for live filings." if not index_has_space(store) else ""
+  return jsonify(entities=rows[:100],has_more=len(rows)>100,coverage=paused+f"{counts.get('ready',0)} reports indexed; {sum(v for k,v in counts.items() if k!='ready')} pending or unavailable. Search covers imported disclosures, not the complete statewide archive.")
  @api.get('/v1/entities/<identifier>')
  def entity(identifier):
   try:offset=int(request.args.get('offset',0));assert 0<=offset<=1000000

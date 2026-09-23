@@ -86,6 +86,13 @@ class ObserverTests(unittest.TestCase):
   self.assertEqual(len(self.c.get('/v1/me/filings',headers=self.auth).json['filings']),1)
   self.assertEqual(self.c.get('/v1/me/filings',headers=self.other).json['filings'],[])
 
+ def test_index_pauses_before_storage_exhaustion(self):
+  with patch('observer.index_has_space',return_value=False):
+   index_entries(self.store,self.filing(),[self.entry()])
+   result=self.c.get('/v1/entities').json
+   self.assertEqual(result['entities'],[])
+   self.assertIn('paused',result['coverage'])
+
  def test_preferences_validation(self):
   for patchdata in ({'minimum':'NaN'},{'minimum':'-1'},{'timezone':'Made/up'},{'quiet':True,'quiet_start':7,'quiet_end':7}):
    self.assertEqual(self.c.put('/v1/me/alert-preferences',headers=self.auth,json=dict(DEFAULTS,**patchdata)).status_code,400)

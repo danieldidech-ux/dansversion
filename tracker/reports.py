@@ -197,7 +197,8 @@ class ReportReader:
                 self.slots.release()
 
     def index(self,filing,result):
-        if result.get('status')=='ready':
+        from observer import index_has_space
+        if result.get('status')=='ready' and index_has_space(self.store):
             with closing(self.store.connect()) as db,db:
                 db.execute('INSERT OR REPLACE INTO shared_reports VALUES (?,?)',(filing['seq'],json.dumps(result)))
         if result.get('status')=='ready' and result.get('contributions'):
