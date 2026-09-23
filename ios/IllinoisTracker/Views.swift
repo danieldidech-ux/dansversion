@@ -52,6 +52,18 @@ private struct TactileButtonStyle: ButtonStyle {
             .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: configuration.isPressed)
     }
 }
+private struct TactileRowSurface: View {
+    var body: some View {
+        RoundedRectangle(cornerRadius: 12)
+            .fill(CivicTheme.surface.gradient)
+            .overlay {
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(CivicTheme.accent.opacity(0.23), lineWidth: 1)
+            }
+            .shadow(color: .black.opacity(0.14), radius: 2, x: 0, y: 2)
+            .padding(.vertical, 3)
+    }
+}
 private struct TactileDisclosureStyle: DisclosureGroupStyle {
     func makeBody(configuration: Configuration) -> some View {
         VStack(alignment: .leading, spacing: 10) {
@@ -231,7 +243,7 @@ struct HomeView: View {
                             .accessibilityElement(children: .ignore)
                             .accessibilityLabel(caucus.title)
                             .accessibilityHint("Opens the committee list")
-                        }.buttonStyle(TactileButtonStyle(inset: 0))
+                        }.listRowBackground(TactileRowSurface()).listRowSeparator(.hidden).buttonStyle(TactileButtonStyle(inset: 0))
                     }
                 }.padding(.horizontal, 20).padding(.vertical, 16)
             }
@@ -271,7 +283,7 @@ struct FeedView: View {
                     else if rows.isEmpty {
                         ContentUnavailableView(watchOnly ? "Your watch starts here" : "No filings loaded", systemImage: watchOnly ? "star" : "doc.text", description: Text(watchOnly ? "Follow committees in Discover to see their reports here." : "Pull down to try again."))
                     }
-                    ForEach(rows) { filing in NavigationLink { FilingDetail(filing: filing) } label: { FilingRow(filing: filing) }.buttonStyle(TactileButtonStyle()) }
+                    ForEach(rows) { filing in NavigationLink { FilingDetail(filing: filing) } label: { FilingRow(filing: filing) }.listRowBackground(TactileRowSurface()).listRowSeparator(.hidden).buttonStyle(TactileButtonStyle()) }
                     if watchOnly ? model.watchedHasMore : model.allHasMore {
                         Button { Task { await model.loadMore(watchlist: watchOnly) } } label: { HStack { Spacer(); Text(model.loading ? "Loading…" : "Load earlier filings"); Spacer() } }.disabled(model.loading)
                     }
@@ -353,7 +365,7 @@ struct FilingRow: View {
                         Spacer(minLength: 8)
                         Image(systemName: "chevron.right").font(.caption.bold()).foregroundStyle(accent)
                     }.frame(maxWidth: .infinity, alignment: .leading)
-                }.buttonStyle(TactileButtonStyle()).accessibilityHint("Opens this committee’s reports and financial overview")
+                }.listRowBackground(TactileRowSurface()).listRowSeparator(.hidden).buttonStyle(TactileButtonStyle()).accessibilityHint("Opens this committee’s reports and financial overview")
             } else {
                 Text(filing.committeeName).font(.headline).foregroundStyle(CivicTheme.ink)
             }
@@ -401,7 +413,7 @@ struct FilingDetail: View {
                 CacheNotice(path: "/v1/filings/\(filing.seq)/contents")
                 ShareLink("Share report", item: URL(string: "https://illinois-filing-tracker.onrender.com/share/filing/\(filing.seq)")!)
                 Link("Export report CSV", destination: URL(string: "https://illinois-filing-tracker.onrender.com/share/filing/\(filing.seq).csv")!)
-                NavigationLink("Add committee to a private list") { AddCommitteeToList(committee: committee) }.buttonStyle(TactileButtonStyle())
+                NavigationLink("Add committee to a private list") { AddCommitteeToList(committee: committee) }.listRowBackground(TactileRowSurface()).listRowSeparator(.hidden).buttonStyle(TactileButtonStyle())
 
                 VStack(spacing: 0) {
                     Button { Task { await model.toggle(committee) } } label: {
@@ -554,7 +566,7 @@ struct DiscoverView: View {
                 Section {
                     ForEach(model.committees) { committee in
                         HStack(spacing: 12) {
-                            NavigationLink { CommitteeFilingsView(committee: committee, member: "", officialURL: nil) } label: { Text(committee.name) }.buttonStyle(TactileButtonStyle())
+                            NavigationLink { CommitteeFilingsView(committee: committee, member: "", officialURL: nil) } label: { Text(committee.name) }.listRowBackground(TactileRowSurface()).listRowSeparator(.hidden).buttonStyle(TactileButtonStyle())
                             Spacer()
                             Button { Task { await model.toggle(committee) } } label: { Image(systemName: model.follows(committee) ? "checkmark.circle.fill" : "plus.circle").font(.title3) }
                                 .buttonStyle(TactileButtonStyle()).disabled(model.saving || model.loading)
@@ -579,8 +591,8 @@ struct WatchlistView: View {
         NavigationStack {
             List {
                 Section {
-                    NavigationLink("My private lists") { MyListsView() }.buttonStyle(TactileButtonStyle())
-                    NavigationLink("Delivered alerts & digests") { AlertInboxView() }.buttonStyle(TactileButtonStyle())
+                    NavigationLink("My private lists") { MyListsView() }.listRowBackground(TactileRowSurface()).listRowSeparator(.hidden).buttonStyle(TactileButtonStyle())
+                    NavigationLink("Delivered alerts & digests") { AlertInboxView() }.listRowBackground(TactileRowSurface()).listRowSeparator(.hidden).buttonStyle(TactileButtonStyle())
                 }
                 Section {
                     Label(model.alertsEnabled && model.pushConfigured ? "Filing alerts enabled" : "Manage alerts in Settings", systemImage: model.alertsEnabled && model.pushConfigured ? "bell.badge" : "bell")
@@ -597,7 +609,7 @@ struct WatchlistView: View {
                 }
                 Section("Committees · \(model.following.count)") {
                     ForEach(model.following) { committee in
-                        HStack { NavigationLink { CommitteeFilingsView(committee: committee, member: "", officialURL: nil) } label: { Text(committee.name) }.buttonStyle(TactileButtonStyle()); Spacer(); Button { Task { await model.toggle(committee) } } label: { Image(systemName: "star.fill") }.buttonStyle(TactileButtonStyle()).disabled(model.saving || model.loading).accessibilityLabel("Unfollow \(committee.name)") }
+                        HStack { NavigationLink { CommitteeFilingsView(committee: committee, member: "", officialURL: nil) } label: { Text(committee.name) }.listRowBackground(TactileRowSurface()).listRowSeparator(.hidden).buttonStyle(TactileButtonStyle()); Spacer(); Button { Task { await model.toggle(committee) } } label: { Image(systemName: "star.fill") }.buttonStyle(TactileButtonStyle()).disabled(model.saving || model.loading).accessibilityLabel("Unfollow \(committee.name)") }
                     }
                 }
             }.civicSurface().navigationTitle("Watchlist").refreshable { await model.refresh() }
@@ -622,7 +634,7 @@ struct SettingsView: View {
                     Text("Modern Civic is the default. Choose Night Ledger, Pink Mode, or switch between light and dark with your iPhone.")
                 }
                 Section("Filing alerts") {
-                    NavigationLink("Alert filters, digests & quiet hours") { AlertOptionsView() }.buttonStyle(TactileButtonStyle())
+                    NavigationLink("Alert filters, digests & quiet hours") { AlertOptionsView() }.listRowBackground(TactileRowSurface()).listRowSeparator(.hidden).buttonStyle(TactileButtonStyle())
                     Label(model.notificationStatus, systemImage: "bell")
                     if !model.pushConfigured {
                         Text("Push delivery is waiting for Apple Developer setup. You can follow committees and browse reports now.").font(.subheadline).foregroundStyle(CivicTheme.secondary)
@@ -793,7 +805,7 @@ struct CaucusesView: View {
                         Text("Chamber leader").font(.caption).foregroundStyle(CivicTheme.secondary)
                     }
                 }.padding(.vertical, 3)
-            }.buttonStyle(TactileButtonStyle())
+            }.listRowBackground(TactileRowSurface()).listRowSeparator(.hidden).buttonStyle(TactileButtonStyle())
         } else {
             VStack(alignment: .leading, spacing: 5) {
                 Text(entry.member).font(.headline)
@@ -896,7 +908,7 @@ struct CommitteeFilingsView: View {
             Section {
                 if !member.isEmpty { Text(member).font(.subheadline.weight(.medium)).foregroundStyle(accent) }
                 Text(committee.name).font(.title2.bold()).foregroundStyle(CivicTheme.ink)
-                NavigationLink("Add to a private list") { AddCommitteeToList(committee: committee) }.buttonStyle(TactileButtonStyle())
+                NavigationLink("Add to a private list") { AddCommitteeToList(committee: committee) }.listRowBackground(TactileRowSurface()).listRowSeparator(.hidden).buttonStyle(TactileButtonStyle())
                 CacheNotice(path: "/v1/committees/\(committee.id)/history")
                 Button {
                     Task { await model.toggle(committee) }
@@ -920,7 +932,7 @@ struct CommitteeFilingsView: View {
                     Button("Try again") { Task { await load(more: false) } }
                 }
                 ForEach(filings) { filing in
-                    NavigationLink { FilingDetail(filing: filing) } label: { FilingRow(filing: filing) }.buttonStyle(TactileButtonStyle())
+                    NavigationLink { FilingDetail(filing: filing) } label: { FilingRow(filing: filing) }.listRowBackground(TactileRowSurface()).listRowSeparator(.hidden).buttonStyle(TactileButtonStyle())
                 }
                 if loading { ProgressView("Loading reports…") }
                 else if loaded && filings.isEmpty && failure == nil && history?.status == "ready" {
@@ -1012,7 +1024,7 @@ private struct QuarterlyReportView: View {
                                         Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(accent)
                                     }.padding(16)
                                         .background(CivicTheme.surface, in: RoundedRectangle(cornerRadius: 14))
-                                }.buttonStyle(TactileButtonStyle(inset: 0))
+                                }.listRowBackground(TactileRowSurface()).listRowSeparator(.hidden).buttonStyle(TactileButtonStyle(inset: 0))
                             } else {
                                 scheduleLabel(section).padding(16).frame(maxWidth: .infinity, alignment: .leading)
                                     .background(CivicTheme.surface, in: RoundedRectangle(cornerRadius: 14))
@@ -1257,7 +1269,7 @@ private struct MyListsView: View {
                             Text(list.name).font(.headline)
                             Text("\(list.committees.count) committees · \(list.newCount) new reports").font(.caption).foregroundStyle(CivicTheme.secondary)
                         }
-                    }.buttonStyle(TactileButtonStyle())
+                    }.listRowBackground(TactileRowSurface()).listRowSeparator(.hidden).buttonStyle(TactileButtonStyle())
                 }.onDelete { offsets in Task { for i in offsets { await remove(lists[i]) }; await load() } }
                 if lists.isEmpty { Text("Organize committees into your own lists. List members are included in filing alerts when enabled.").foregroundStyle(CivicTheme.secondary) }
             }
@@ -1298,7 +1310,7 @@ private struct ObserverListView: View {
                 } }
             }
             if let failure { Text(failure); Button("Try again") { Task { await load(false) } } }
-            ForEach(filings) { filing in NavigationLink { FilingDetail(filing: filing) } label: { FilingRow(filing: filing) }.buttonStyle(TactileButtonStyle()) }
+            ForEach(filings) { filing in NavigationLink { FilingDetail(filing: filing) } label: { FilingRow(filing: filing) }.listRowBackground(TactileRowSurface()).listRowSeparator(.hidden).buttonStyle(TactileButtonStyle()) }
             if cursor != nil { Button("Load earlier reports") { Task { await load(true) } } }
             if filings.isEmpty && failure == nil { Text("No collected reports in this list yet. Add committees using Edit.").foregroundStyle(CivicTheme.secondary) }
         }.civicSurface().navigationTitle(currentName.isEmpty ? list.name : currentName).navigationBarTitleDisplayMode(.inline)
@@ -1378,7 +1390,7 @@ private struct AddCommitteeToList: View {
     @State private var busy = false
     var body: some View {
         List {
-            Section { Text(committee.name).font(.headline); NavigationLink("Create or manage lists") { MyListsView() }.buttonStyle(TactileButtonStyle()) }
+            Section { Text(committee.name).font(.headline); NavigationLink("Create or manage lists") { MyListsView() }.listRowBackground(TactileRowSurface()).listRowSeparator(.hidden).buttonStyle(TactileButtonStyle()) }
             ForEach(lists) { list in
                 let includes = list.committees.contains { $0.id == committee.id }
                 Button { Task { await toggle(list) } } label: { Label(list.name, systemImage: includes ? "checkmark.circle.fill" : "plus.circle") }.disabled(busy)
@@ -1425,7 +1437,7 @@ private struct AlertInboxView: View {
     @State private var failure: String?
     var body: some View {
         List {
-            ForEach(rows) { filing in NavigationLink { FilingDetail(filing: filing) } label: { FilingRow(filing: filing) }.buttonStyle(TactileButtonStyle()) }
+            ForEach(rows) { filing in NavigationLink { FilingDetail(filing: filing) } label: { FilingRow(filing: filing) }.listRowBackground(TactileRowSurface()).listRowSeparator(.hidden).buttonStyle(TactileButtonStyle()) }
             if cursor != nil { Button("Earlier alerts") { Task { await load(true) } } }
             if rows.isEmpty { Text("Delivered alerts and digest reports appear here. Push setup and notification permission are required.") }
             if let failure { Text(failure) }
