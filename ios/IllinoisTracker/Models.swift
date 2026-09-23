@@ -120,6 +120,10 @@ struct API {
             if cacheable {
                 let json = try? JSONSerialization.jsonObject(with: data) as? [String: Any]
                 let status = json?["status"] as? String
+                if let status, ["unavailable", "loading"].contains(status), let saved = ResponseCache.read(path) {
+                    ResponseCache.setStale(path, true)
+                    return try decoder.decode(T.self, from: saved)
+                }
                 if status == nil || status == "ready" {
                     if let directory = result as? CaucusDirectory, directory.skippedEntries > 0 {
                         ResponseCache.setStale(path, true)

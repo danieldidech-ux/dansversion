@@ -60,12 +60,27 @@ class ObserverTests(unittest.TestCase):
   sender=Mock();sender.send.return_value=(200,'');dispatch(self.store,sender,enabled=True)
   self.assertEqual(sender.send.call_count,1);self.assertEqual(sender.send.call_args[0][0]['digest_count'],2)
   self.assertEqual(len(self.c.get('/v1/me/alerts',headers=self.auth).json['filings']),2)
+ def test_archive_alias_does_not_break_live_donor_alert_lookup(self):
+  f=self.filing();entry=self.entry();index_entries(self.store,f,[entry])
+  index_entries(self.store,dict(f,seq=-999),[self.entry()])
+  with closing(self.store.connect()) as db:
+   self.assertEqual(db.execute('SELECT seq FROM disclosures').fetchone()[0],f['seq'])
+ def test_invalid_list_edit_is_atomic_and_delete_removes_private_data(self):
+  identifier=self.create();base='/v1/me/lists/'+identifier
+  self.assertEqual(self.c.put(base,headers=self.auth,json={'name':'Changed','donors':['unknown']}).status_code,400)
+  self.assertEqual(self.c.get('/v1/me/lists',headers=self.auth).json['lists'][0]['name'],'My races')
+  self.c.put('/v1/me/alert-preferences',headers=self.auth,json=DEFAULTS)
+  self.c.delete('/v1/me',headers=self.auth)
+  with closing(self.store.connect()) as db:
+   self.assertEqual(db.execute('SELECT count(*) FROM private_lists').fetchone()[0],0)
+   self.assertEqual(db.execute('SELECT count(*) FROM alert_preferences').fetchone()[0],0)
+
  def test_preferences_validation(self):
   for patchdata in ({'minimum':'NaN'},{'minimum':'-1'},{'timezone':'Made/up'},{'quiet':True,'quiet_start':7,'quiet_end':7}):
    self.assertEqual(self.c.put('/v1/me/alert-preferences',headers=self.auth,json=dict(DEFAULTS,**patchdata)).status_code,400)
  def test_share_escaping_and_csv_formula_protection(self):
   f=self.filing();entry=self.entry(name='=HYPERLINK("bad")');entry['description']='<script>alert(1)</script>'
-  with closing(self.store.connect()) as db,db:db.execute('INSERT INTO report_cache VALUES (?,?,?,?)',(f['seq'],f['url'],time.time()+3600,json.dumps(dict(status='ready',contributions=[entry]))))
+  with closing(self.store.connect()) as db,db:db.execute('INSERT INTO shared_reports VALUES (?,?)',(f['seq'],json.dumps(dict(status='ready',contributions=[entry]))))
   page=self.c.get('/share/filing/'+str(f['seq']));self.assertEqual(page.status_code,200);self.assertNotIn(b'<script>',page.data)
   csv=self.c.get('/share/filing/'+str(f['seq'])+'.csv');self.assertIn(b"'=HYPERLINK",csv.data)
   self.assertEqual(self.c.get('/share/filing/9999999999999999999999999999').status_code,404)

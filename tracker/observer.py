@@ -10,6 +10,8 @@ DEFAULTS=dict(mode='all',minimum='0',delivery='instant',quiet=False,quiet_start=
 
 def migrate(db):
  db.executescript('''
+ CREATE TABLE IF NOT EXISTS shared_reports(seq INTEGER PRIMARY KEY,payload TEXT NOT NULL);
+ CREATE TABLE IF NOT EXISTS shared_schedules(url TEXT PRIMARY KEY,payload TEXT NOT NULL);
  CREATE TABLE IF NOT EXISTS alert_preferences(device_id TEXT PRIMARY KEY,payload TEXT NOT NULL);
  CREATE TABLE IF NOT EXISTS private_lists(id TEXT PRIMARY KEY,device_id TEXT NOT NULL,name TEXT NOT NULL,seen_seq INTEGER NOT NULL DEFAULT 0,created REAL NOT NULL);
  CREATE TABLE IF NOT EXISTS list_members(list_id TEXT NOT NULL,committee_key TEXT NOT NULL,PRIMARY KEY(list_id,committee_key));
@@ -21,6 +23,8 @@ def migrate(db):
  CREATE INDEX IF NOT EXISTS disclosure_report ON disclosures(seq);
  CREATE TABLE IF NOT EXISTS index_jobs(seq INTEGER PRIMARY KEY,status TEXT NOT NULL DEFAULT 'pending',checked REAL NOT NULL DEFAULT 0,attempts INTEGER NOT NULL DEFAULT 0,message TEXT);
  ''')
+ columns={r[1] for r in db.execute('PRAGMA table_info(disclosures)')}
+ if 'document_key' not in columns:db.execute("ALTER TABLE disclosures ADD COLUMN document_key TEXT NOT NULL DEFAULT ''")
 
 def normal(s):return ' '.join(s.casefold().split())
 def entity_id(name,address):return hashlib.sha256((normal(name)+'\n'+normal(address)).encode()).hexdigest()[:32]
@@ -30,12 +34,20 @@ def index_entries(store,filing,entries,section='a1'):
  """Keep individual disclosures traceable; never merge identities by similar name."""
  from history import identity
  with closing(store.connect()) as db,db:
+  document_key=identity(filing['url']);retained=[]
   for i,e in enumerate(entries):
    name=source_name(e['contributor']);address=e.get('address','');eid=entity_id(name,address)
    rid=hashlib.sha256((filing['committee_key']+'|'+identity(filing['url'])+'|'+section+'|'+str(i)).encode()).hexdigest()[:32]
    db.execute('INSERT OR IGNORE INTO entities VALUES (?,?,?)',(eid,name,address))
-   db.execute('INSERT OR REPLACE INTO disclosures VALUES (?,?,?,?,?,?,?,?,?,?,?)',(rid,eid,filing['committee_key'],filing['committee_name'],filing['seq'],section,e['amount'],e['received_date'],e.get('contribution_type',section),filing['url'],json.dumps(e)))
+   retained.append(rid)
+   db.execute('''INSERT INTO disclosures(id,entity_id,committee_key,committee_name,seq,section,amount,date,kind,source_url,payload,document_key)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?) ON CONFLICT(id) DO UPDATE SET entity_id=excluded.entity_id,
+    seq=CASE WHEN disclosures.seq>0 THEN disclosures.seq ELSE excluded.seq END,
+    amount=excluded.amount,date=excluded.date,kind=excluded.kind,source_url=excluded.source_url,payload=excluded.payload,document_key=excluded.document_key''',
+    (rid,eid,filing['committee_key'],filing['committee_name'],filing['seq'],section,e['amount'],e['received_date'],e.get('contribution_type',section),filing['url'],json.dumps(e),document_key))
    e['entity_id']=eid;e['disclosure_id']=rid
+  for row in db.execute('SELECT id FROM disclosures WHERE committee_key=? AND document_key=? AND section=?',(filing['committee_key'],document_key,section)).fetchall():
+   if row['id'] not in retained:db.execute('DELETE FROM disclosures WHERE id=?',(row['id'],))
  return entries
 
 def index_schedule(store,filing,section,result):
@@ -54,6 +66,8 @@ def index_schedule(store,filing,section,result):
   entries.append(e)
   row['entity_id']=entity_id(source_name(name),e['address'])
  index_entries(store,filing,entries,section)
+ with closing(store.connect()) as db,db:
+  db.execute('INSERT OR REPLACE INTO shared_schedules VALUES (?,?)',(result['source_url'],json.dumps(result)))
 
 
 def index_tick(store):
@@ -259,7 +273,7 @@ def install_routes(api,store,authenticated,reader):
   if abs(seq)>2**63-1:return 'Not found',404
   with closing(store.connect()) as db:
    filing=lookup_filing(db,seq)
-   cache=db.execute('SELECT payload FROM report_cache WHERE seq=?',(seq,)).fetchone()
+   cache=db.execute('SELECT payload FROM shared_reports WHERE seq=?',(seq,)).fetchone()
   if not filing:return 'Not found',404
   detail=json.loads(cache[0]) if cache else {};rows=detail.get('contributions',[])
   return render_template_string(SHARE,filing=dict(filing),detail=detail,rows=rows,seq=seq)
@@ -267,11 +281,11 @@ def install_routes(api,store,authenticated,reader):
  def export_filing(seq):
   if abs(seq)>2**63-1:return 'Not found',404
   with closing(store.connect()) as db:
-   filing=lookup_filing(db,seq);cache=db.execute('SELECT payload FROM report_cache WHERE seq=?',(seq,)).fetchone()
+   filing=lookup_filing(db,seq);cache=db.execute('SELECT payload FROM shared_reports WHERE seq=?',(seq,)).fetchone()
    section=request.args.get('section');payload=json.loads(cache[0]) if cache else {}
    if section:
     sec=next((s for s in payload.get('sections',[]) if s['id']==section),None)
-    cached=db.execute('SELECT payload FROM schedule_cache WHERE url=?',(sec['source_url'],)).fetchone() if sec else None
+    cached=db.execute('SELECT payload FROM shared_schedules WHERE url=?',(sec['source_url'],)).fetchone() if sec else None
     payload=json.loads(cached[0]) if cached else {}
   if not filing:return 'Not found',404
   if payload.get('status')!='ready':return 'Open this report or schedule in the app first to prepare verified export data.',409
@@ -298,5 +312,5 @@ def install_routes(api,store,authenticated,reader):
   if not row:return 'Not found',404
   return render_template_string(TRANSACTION,row=dict(row))
 
-SHARE='''<!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{filing.committee_name}} · Illinois report</title><style>body{font:17px system-ui;background:#f3f6fa;color:#102a43;max-width:760px;margin:40px auto;padding:20px}article{background:white;border-radius:18px;padding:24px;margin:18px 0}h1{font-size:30px}a{color:#006078}dt{margin-top:12px}dd{margin-left:0;font-weight:bold}</style><main><small>ILLINOIS CAMPAIGN FINANCE</small><h1>{{filing.committee_name}}</h1><p>{{filing.report_type}} · Filed {{filing.published_raw}}</p><p>{{detail.period or ''}}</p>{% for r in rows %}<article><h2>${{r.amount}} from {{r.contributor}}</h2><p>{{r.contribution_type}} · Received {{r.received_date}}</p><p>{{r.description}}</p></article>{% endfor %}{% if detail.summary %}<article><dl>{% for key,value in detail.summary.items() %}<dt>{{key|replace('_',' ')|title}}</dt><dd>${{value}}</dd>{% endfor %}</dl></article>{% endif %}{% if not rows and not detail.summary %}<p>Report details have not been prepared yet. View the official filing below.</p>{% endif %}<p><a href="{{filing.url}}">View official report</a> · <a href="/share/filing/{{seq}}.csv">Download CSV</a></p><footer>Independent report viewer. Source: Illinois State Board of Elections. No app or account required. Disclosures may include amendments; amounts are not necessarily current balances.</footer></main></html>'''
+SHARE='''<!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{filing.committee_name}} · Illinois report</title><meta property="og:title" content="{{filing.committee_name}} · {{filing.report_type}}"><meta property="og:description" content="Filed {{filing.published_raw}}. {% if detail.total %}Reported value: ${{detail.total}}.{% endif %} View the filing and official source."><style>body{font:17px system-ui;background:#f3f6fa;color:#102a43;max-width:760px;margin:40px auto;padding:20px}article{background:white;border-radius:18px;padding:24px;margin:18px 0}h1{font-size:30px}a{color:#006078}dt{margin-top:12px}dd{margin-left:0;font-weight:bold}</style><main><small>ILLINOIS CAMPAIGN FINANCE</small><h1>{{filing.committee_name}}</h1><p>{{filing.report_type}} · Filed {{filing.published_raw}}</p><p>{{detail.period or ''}}</p>{% for r in rows %}<article><h2>${{r.amount}} from {{r.contributor}}</h2><p>{{r.contribution_type}} · Received {{r.received_date}}</p><p>{{r.description}}</p></article>{% endfor %}{% if detail.summary %}<article><dl>{% for key,value in detail.summary.items() %}<dt>{{key|replace('_',' ')|title}}</dt><dd>${{value}}</dd>{% endfor %}</dl></article>{% endif %}{% if not rows and not detail.summary %}<p>Report details have not been prepared yet. View the official filing below.</p>{% endif %}<p><a href="{{filing.url}}">View official report</a> · <a href="/share/filing/{{seq}}.csv">Download CSV</a></p><footer>Independent report viewer. Source: Illinois State Board of Elections. No app or account required. Disclosures may include amendments; amounts are not necessarily current balances.</footer></main></html>'''
 TRANSACTION='''<!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{row.name}} · Illinois disclosure</title><style>body{font:18px system-ui;color:#102a43;background:#f3f6fa;max-width:680px;margin:40px auto;padding:24px}article{background:white;padding:24px;border-radius:18px}</style><article><small>ILLINOIS CAMPAIGN FINANCE</small><h1>${{row.amount}}</h1><h2>{{row.name}}</h2><p>{{row.kind}} · {{row.date}}</p><p>Reported by {{row.committee_name}}</p><a href="/share/filing/{{row.seq}}">View filing</a> · <a href="{{row.source_url}}">Official source</a><p>A reported disclosure; may also appear in other reports or amendments.</p></article></html>'''

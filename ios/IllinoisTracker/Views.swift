@@ -45,7 +45,13 @@ struct RootView: View {
     var body: some View {
         Group {
         #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("--preview-committee") {
+        if ProcessInfo.processInfo.arguments.contains("--preview-alert-options") {
+            NavigationStack { AlertOptionsView() }
+        } else if ProcessInfo.processInfo.arguments.contains("--preview-lists") {
+            NavigationStack { MyListsView() }
+        } else if ProcessInfo.processInfo.arguments.contains("--preview-donors") {
+            NavigationStack { DonorSearchView() }
+        } else if ProcessInfo.processInfo.arguments.contains("--preview-committee") {
             NavigationStack { CommitteeFilingsView(committee: Committee(id: "1b5ce79b8d1251adaf13eda719fd6d7a", name: "Daniel Didech Campaign Committee"), member: "Daniel Didech", officialURL: nil) }.tint(accent)
         } else if ProcessInfo.processInfo.arguments.contains("--preview-quarter") {
             NavigationStack { FilingDetail(filing: previewQuarter) }
@@ -1106,7 +1112,7 @@ private struct AlertOptionsView: View {
                 Button(saving ? "Saving…" : "Save alert preferences") { Task { await save() } }.disabled(!ready || saving)
                 if let message { Text(message).font(.footnote) }
             }
-        }.navigationTitle("Alert preferences").navigationBarTitleDisplayMode(.inline)
+        }.civicSurface().navigationTitle("Alert preferences").navigationBarTitleDisplayMode(.inline)
             .task {
                 do { try await model.setup(); options = try await model.connection().call("/v1/me/alert-preferences"); ready = true }
                 catch { message = error.localizedDescription }
@@ -1170,13 +1176,15 @@ private struct ObserverListView: View {
     @State private var cursor: Int?
     @State private var failure: String?
     @State private var editing = false
+    @State private var seen: Int?
+    @State private var currentName = ""
     var body: some View {
         List {
             Section {
                 Button("Edit name and committees") { editing = true }
-                Text("\(filings.filter { $0.seq > list.seenSeq }.count) loaded reports since your last visit").font(.caption)
+                Text("\(filings.filter { $0.seq > (seen ?? list.seenSeq) }.count) loaded reports since your last visit").font(.caption)
                 Button("Mark these reports as seen") { Task {
-                    do { let _: OK = try await model.connection().call("/v1/me/lists/\(list.id)/seen", method: "POST", body: JSONSerialization.data(withJSONObject: ["seq": filings.map(\.seq).max() ?? list.seenSeq])) }
+                    do { let _: OK = try await model.connection().call("/v1/me/lists/\(list.id)/seen", method: "POST", body: JSONSerialization.data(withJSONObject: ["seq": filings.map(\.seq).max() ?? list.seenSeq])); seen = filings.map(\.seq).max() ?? list.seenSeq }
                     catch { failure = error.localizedDescription }
                 } }
             }
@@ -1184,7 +1192,7 @@ private struct ObserverListView: View {
             ForEach(filings) { filing in NavigationLink { FilingDetail(filing: filing) } label: { FilingRow(filing: filing) } }
             if cursor != nil { Button("Load earlier reports") { Task { await load(true) } } }
             if filings.isEmpty && failure == nil { Text("No collected reports in this list yet. Add committees using Edit.").foregroundStyle(.secondary) }
-        }.civicSurface().navigationTitle(list.name).navigationBarTitleDisplayMode(.inline)
+        }.civicSurface().navigationTitle(currentName.isEmpty ? list.name : currentName).navigationBarTitleDisplayMode(.inline)
             .task { await load(false) }.refreshable { await load(false) }
             .sheet(isPresented: $editing, onDismiss: { Task { await load(false) } }) { NavigationStack { EditObserverListView(list: list) } }
     }
@@ -1193,6 +1201,8 @@ private struct ObserverListView: View {
             let suffix = more ? "?before=\(cursor ?? 0)" : ""
             let page: FilingPage = try await model.connection().call("/v1/me/lists/\(list.id)/filings" + suffix)
             filings = more ? filings + page.filings : page.filings; cursor = page.nextCursor; failure = nil
+            let all: ObserverLists = try await model.connection().call("/v1/me/lists")
+            currentName = all.lists.first { $0.id == list.id }?.name ?? list.name
         } catch { failure = error.localizedDescription }
     }
 }
@@ -1208,6 +1218,7 @@ private struct EditObserverListView: View {
     @State private var query = ""
     @State private var failure: String?
     @State private var saving = false
+    @State private var loaded = false
     var body: some View {
         List {
             Section("Name") { TextField("List name", text: $name) }
@@ -1227,9 +1238,16 @@ private struct EditObserverListView: View {
         }.navigationTitle("Edit list").searchable(text: $query, prompt: "Search committees")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) { Button("Save") { Task { await save() } }.disabled(saving || name.isEmpty) }
+                ToolbarItem(placement: .confirmationAction) { Button("Save") { Task { await save() } }.disabled(!loaded || saving || name.isEmpty) }
             }
-            .onAppear { name = list.name; selected = list.committees; selectedDonors = list.donors }
+            .task {
+                do {
+                    let all: ObserverLists = try await model.connection().call("/v1/me/lists")
+                    if let current = all.lists.first(where: { $0.id == list.id }) {
+                        name = current.name; selected = current.committees; selectedDonors = current.donors; loaded = true
+                    }
+                } catch { failure = error.localizedDescription }
+            }
             .task(id: query) {
                 do {
                     try await Task.sleep(for: .milliseconds(250))
