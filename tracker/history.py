@@ -4,6 +4,7 @@ from contextlib import closing
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from decimal import Decimal
+from itertools import zip_longest
 from archive_source import Source, BASE, safe_url
 from reports import Document, Node, ReportFormatError, normalized, parse_a1
 
@@ -50,14 +51,44 @@ def unavailable(message,status='unavailable'):
 class History:
  def __init__(self,store):
   self.audit_context={}
-  self.store=store;self.tasks=queue.PriorityQueue();self.lock=threading.Lock();self.pending=set();self.promoted=set();self.active=None;self.worker=None;self.counter=0
+  self.store=store;self.tasks=queue.PriorityQueue();self.lock=threading.Lock();self.pending=set();self.promoted=set();self.tickets={};self.active=set();self.workers=[];self.counter=0
   self.urls={e['committee']['id']:e['official_url'] for g in store.directory_data['groups'] for e in g['members']+g['pinned'] if e.get('committee') and e.get('official_url')}
   self.urls['1b5ce79b8d1251adaf13eda719fd6d7a']=BASE+'CommitteeDetail.aspx?ID=PFWS3Q4VBrJwLQhAj5bRtQ%3D%3D'
   with closing(store.connect()) as db,db:
    db.executescript('''CREATE TABLE IF NOT EXISTS archive_reports (seq INTEGER PRIMARY KEY AUTOINCREMENT,committee_key TEXT,document_id TEXT,payload TEXT,UNIQUE(committee_key,document_id));
    CREATE INDEX IF NOT EXISTS archive_committee ON archive_reports(committee_key);
    CREATE TABLE IF NOT EXISTS archive_state (committee_key TEXT PRIMARY KEY,checked REAL,source_seq INTEGER,complete INTEGER,payload TEXT,finance TEXT);
-   CREATE TABLE IF NOT EXISTS archive_documents (url TEXT PRIMARY KEY,checked REAL,html TEXT);''')
+   CREATE TABLE IF NOT EXISTS archive_documents (url TEXT PRIMARY KEY,checked REAL,html TEXT);
+   CREATE TABLE IF NOT EXISTS archive_finance_parts (identity TEXT PRIMARY KEY,checked REAL,payload TEXT);''')
+ def warm_directory(self):
+  # Interleave categories, rather than putting every member of the first caucus
+  # ahead of the others. Missing/current-version balances precede cached ones.
+  groups=[[e['committee']['id'] for e in g['pinned']+g['members'] if e.get('committee')] for g in self.store.directory_data['groups']]
+  seen=set()
+  for row in zip_longest(*groups):
+   for key in row:
+    if key is None or key in seen:continue
+    seen.add(key)
+    self.schedule(key,priority=1 if self.finance(key)['status']!='ready' else 2)
+ def maintain(self):
+  while True:
+   try:self.warm_directory()
+   except Exception:logging.getLogger('gunicorn.error').exception('Committee estimate maintenance failed')
+   time.sleep(60)
+ def part(self,source,report,quarter=False):
+  # Reuse only successfully parsed, identity-checked documents. Changed archive
+  # metadata/amendments get a different key; in-place changes are rechecked daily.
+  key=hashlib.sha256(json.dumps([2,quarter,report],sort_keys=True).encode()).hexdigest()
+  with closing(self.store.connect()) as db:
+   row=db.execute('SELECT payload FROM archive_finance_parts WHERE identity=? AND checked>?',(key,time.time()-86400)).fetchone()
+  if row:return json.loads(row[0])
+  value=parse_quarter(self.document(source,report['url']),report) if quarter else parse_a1(self.document(source,report['url'],'gvA1List'),report)
+  with closing(self.store.connect()) as db,db:
+   db.execute('INSERT OR REPLACE INTO archive_finance_parts VALUES (?,?,?)',(key,time.time(),json.dumps(value)))
+   db.execute('DELETE FROM archive_finance_parts WHERE checked<?',(time.time()-86400,))
+   while db.execute('SELECT COALESCE(SUM(length(payload)),0) FROM archive_finance_parts').fetchone()[0]>32_000_000:
+    db.execute('DELETE FROM archive_finance_parts WHERE identity=(SELECT identity FROM archive_finance_parts ORDER BY checked LIMIT 1)')
+  return value
  def document(self,source,url,all_table=None):
   with closing(self.store.connect()) as db:
    row=db.execute('SELECT html FROM archive_documents WHERE url=? AND checked>?',(url,time.time()-3600)).fetchone()
@@ -77,40 +108,49 @@ class History:
    state=db.execute('SELECT * FROM archive_state WHERE committee_key=?',(key,)).fetchone()
    latest=db.execute('SELECT COALESCE(MAX(seq),0) FROM filings WHERE committee_key=?',(key,)).fetchone()[0]
   if not committee:return False
-  if state and json.loads(state['finance']).get('calculation_version')==2 and json.loads(state['finance']).get('status')!='loading' and state['checked']>time.time()- (900 if state['complete'] and json.loads(state['finance']).get('status')=='ready' else 300) and state['source_seq']==latest:return True
+  finance=json.loads(state['finance']) if state else {}
+  if state and finance.get('calculation_version')==2 and finance.get('status')!='loading' and not finance.get('refreshing') and state['checked']>time.time()- (900 if state['complete'] and self.verified(finance) and not finance.get('stale') else 300) and state['source_seq']==latest:return True
   with self.lock:
    if key not in self.pending:
-    self.pending.add(key);self.counter+=1;self.tasks.put((priority,self.counter,dict(committee),latest))
-   elif priority==0 and key!=self.active and key not in self.promoted:
-    self.promoted.add(key);self.counter+=1;self.tasks.put((0,self.counter,dict(committee),latest))
-   if self.worker is None or not self.worker.is_alive():
-    self.worker=threading.Thread(target=self.run,daemon=True);self.worker.start()
+    self.pending.add(key);self.counter+=1;self.tickets[key]=self.counter;self.tasks.put((priority,self.counter,dict(committee),latest))
+   elif priority==0 and key not in self.active and key not in self.promoted:
+    self.promoted.add(key);self.counter+=1;self.tickets[key]=self.counter;self.tasks.put((0,self.counter,dict(committee),latest))
+   self.workers=[worker for worker in self.workers if worker.is_alive()]
+   while len(self.workers)<2:
+    worker=threading.Thread(target=self.run,daemon=True);self.workers.append(worker);worker.start()
   return True
  def run(self):
   while True:
-   _,_,committee,latest=self.tasks.get()
+   _,ticket,committee,latest=self.tasks.get()
    with self.lock:
-    if committee['id'] not in self.pending:
+    if self.tickets.get(committee['id'])!=ticket or committee['id'] in self.active:
      self.tasks.task_done();continue
-    self.active=committee['id']
+    self.active.add(committee['id'])
    try:self.refresh(committee,latest)
    except Exception as e:
     logging.getLogger('gunicorn.error').warning('Archive unavailable for %s: %s',committee['id'],type(e).__name__)
+    try:
+     self.save_failure(committee,latest,e)
+    except Exception:logging.getLogger('gunicorn.error').exception('Could not save archive failure')
+   finally:
+    with self.lock:
+     self.pending.discard(committee['id']);self.promoted.discard(committee['id']);self.tickets.pop(committee['id'],None);self.active.discard(committee['id'])
+    self.tasks.task_done()
+   time.sleep(.5)
+ def save_failure(self,committee,latest,e):
     with closing(self.store.connect()) as db,db:
-     old=db.execute('SELECT complete,payload,finance FROM archive_state WHERE committee_key=?',(committee['id'],)).fetchone()
+     old=db.execute('SELECT complete,payload,finance,checked FROM archive_state WHERE committee_key=?',(committee['id'],)).fetchone()
      payload=json.loads(old['payload']) if old else {}
      detail=diagnose(e,self.audit_context.get(committee['id'],{}))
      payload.update(status='unavailable',message=detail['reason'],diagnostic=detail)
      previous=json.loads(old['finance']) if old else {}
      finance=dict(unavailable(detail['reason']),diagnostic=detail)
-     if previous.get('status')=='ready' and previous.get('calculation_version')==2:
-      finance=dict(previous,stale=True,message='Saved verified balance; refresh failed: '+detail['reason'])
+     if self.verified(previous):
+      finance=dict(previous,stale=True,refreshing=False,verified_at=previous.get('verified_at',old['checked']),message='Saved verified balance; refresh failed: '+detail['reason'])
      db.execute('INSERT OR REPLACE INTO archive_state VALUES (?,?,?,?,?,?)',(committee['id'],time.time(),latest,0,json.dumps(payload),json.dumps(finance)))
-   finally:
-    with self.lock:
-     self.pending.discard(committee['id']);self.promoted.discard(committee['id']);self.active=None
-    self.tasks.task_done()
-   time.sleep(.5)
+ @staticmethod
+ def verified(finance):
+  return finance.get('status')=='ready' and finance.get('calculation_version')==2
  def resolve(self,source,committee):
   if committee['id'] in self.urls:return self.urls[committee['id']]
   state=self.state(committee['id'])
@@ -136,15 +176,21 @@ class History:
   html=source.all_rows(url,source.read(url),'gvFiledDocs')
   rows,created,official_id=parse_archive(html,committee)
   payload=dict(status='ready',total=len(rows),creation_date=created,official_id=official_id,official_url=url,message='Complete official report index loaded.')
+  old=self.state(committee['id'])
+  previous=json.loads(old['finance']) if old else {}
+  if self.verified(previous):previous.setdefault('verified_at',old['checked'])
+  interim=dict(previous,refreshing=True) if self.verified(previous) else unavailable('Calculating from official reports…','loading')
   with closing(self.store.connect()) as db,db:
    for row in rows:
     db.execute('INSERT INTO archive_reports(committee_key,document_id,payload) VALUES (?,?,?) ON CONFLICT(committee_key,document_id) DO UPDATE SET payload=excluded.payload',(committee['id'],row['document_id'],json.dumps(row)))
    # Publish the verified index before the more expensive financial calculation.
-   db.execute('INSERT OR REPLACE INTO archive_state VALUES (?,?,?,?,?,?)',(committee['id'],time.time(),latest,1,json.dumps(payload),json.dumps(unavailable('Calculating from official reports…','loading'))))
+   db.execute('INSERT OR REPLACE INTO archive_state VALUES (?,?,?,?,?,?)',(committee['id'],time.time(),latest,1,json.dumps(payload),json.dumps(interim)))
   try: finance=self.calculate(source,committee,rows,created)
   except Exception as exc:
    detail=diagnose(exc,self.audit_context.get(committee['id'],{}))
    finance=dict(unavailable(detail['reason']),diagnostic=detail)
+  if self.verified(finance):finance['verified_at']=time.time()
+  elif self.verified(previous):finance=dict(previous,stale=True,refreshing=False,message='Saved verified balance; refresh failed: '+finance['message'],diagnostic=finance.get('diagnostic'))
   with closing(self.store.connect()) as db,db:
    db.execute('UPDATE archive_state SET finance=? WHERE committee_key=?',(json.dumps(finance),committee['id']))
  def state(self,key):
@@ -154,7 +200,7 @@ class History:
   row=self.state(key)
   result=json.loads(row['finance']) if row else unavailable('Loading official reports…','loading')
   if result.get('calculation_version')!=2:return unavailable('Recalculating monetary receipts separately from in-kind support…','loading')
-  result['checked_at']=row['checked'] if row else None
+  result['checked_at']=result.get('verified_at',row['checked'] if row else None)
   return result
  def page(self,key,before=None):
   row=self.state(key)
@@ -185,7 +231,7 @@ class History:
    quarter=max(quarters,key=lambda r:(period_end(r),r['filed_at']))
    end=period_end(quarter)
    self.audit_context[committee['id']]=dict(stage='quarterly_report',source_url=quarter['url'],report_type=quarter['report_type'],filed_at=quarter['filed_at'])
-   base=parse_quarter(self.document(source,quarter['url']),quarter)
+   base=self.part(source,quarter,quarter=True)
   result=dict(status='unavailable',as_of=end,cash_and_investments=base,a1_total=None,estimated_cash=None,baseline_assumed=assumed,calculation_version=2,monetary_receipts=None,in_kind_total=None,message='A-1 totals could not be fully verified.')
   unknown=[r for r in rows if r['report_type']=='Unlabeled official record' and r['filed_at'][:10]>end]
   if unknown:
@@ -203,8 +249,7 @@ class History:
     doc_id=report.get('document_id') or identity(report['url'])
     if doc_id in seen_docs:continue
     seen_docs.add(doc_id)
-    html=self.document(source,report['url'],'gvA1List')
-    detail=parse_a1(html,report)
+    detail=self.part(source,report)
     current=set()
     for e in detail['contributions']:
      if e['received_date']<=end:continue

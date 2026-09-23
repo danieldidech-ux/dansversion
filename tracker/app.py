@@ -293,6 +293,9 @@ def create_app(directory=None, poll=True):
                 indexing=threading.Thread(target=observer_loop,args=(store,),daemon=True)
                 app.config['INDEX_WORKER']=indexing
                 indexing.start()
+                estimates=threading.Thread(target=history.maintain,daemon=True)
+                app.config['ESTIMATE_WORKER']=estimates
+                estimates.start()
 
     @app.after_request
     def security(response):
@@ -419,7 +422,11 @@ def create_app(directory=None, poll=True):
                 state=history.state(committee['id'])
                 entries.append(dict(group=group['name'],member=entry['member'],district=entry['district'],committee=committee,official_url=entry.get('official_url'),
                     finance=history.finance(committee['id']),history=json.loads(state['payload']) if state else None,checked_at=state['checked'] if state else None))
-        return jsonify(revision=store.directory_data['revision'],entries=entries,queued=len(history.pending),active=history.active)
+        with history.lock:
+            active=sorted(history.active)
+            queued=len(history.pending)-len(active)
+        return jsonify(revision=store.directory_data['revision'],entries=entries,queued=queued,active=active,
+                       estimate_workers=sum(w.is_alive() for w in history.workers),estimate_refresh='balanced-v1')
 
     @app.get('/v1/directory')
     def caucus_directory():
