@@ -241,7 +241,7 @@ def routes(store):
     from observer import install_routes
     install_routes(api,store,authenticated,report_reader)
     from launch_features import install
-    install(api,store,authenticated)
+    install(api,store,authenticated,report_reader)
     from pdf_reports import install as install_pdf
     install_pdf(api,store)
     return api

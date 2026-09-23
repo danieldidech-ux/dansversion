@@ -381,7 +381,7 @@ struct FilingRow: View {
                     previewMetric("Cash + investments", p.cashAndInvestments)
                 }
             } else if showPreview && (FilingReportKind(filing.reportType) == .a1 || FilingReportKind(filing.reportType) == .quarterly) {
-                Text("Summary not yet available").font(.caption).foregroundStyle(CivicTheme.secondary)
+                Text(filing.previewStatus == "unavailable" ? "Summary temporarily unavailable" : "Loading summary…").font(.caption).foregroundStyle(CivicTheme.secondary)
             }
             if !filing.displayDate.isEmpty { Text(filing.displayDate).font(.caption).foregroundStyle(CivicTheme.secondary) }
         }.padding(.vertical, 6)
@@ -892,6 +892,8 @@ struct CommitteeFinanceCard: View {
 
 struct CommitteeFilingsView: View {
     @EnvironmentObject var model: AppModel
+    @State private var visibleReports: Set<Int> = []
+    @Environment(\.scenePhase) private var scenePhase
     let committee: Committee
     let member: String
     let officialURL: URL?
@@ -932,7 +934,10 @@ struct CommitteeFilingsView: View {
                     Button("Try again") { Task { await load(more: false) } }
                 }
                 ForEach(filings) { filing in
-                    NavigationLink { FilingDetail(filing: filing) } label: { FilingRow(filing: filing) }.listRowBackground(TactileRowSurface()).listRowSeparator(.hidden).buttonStyle(TactileButtonStyle())
+                    NavigationLink { FilingDetail(filing: filing) } label: { FilingRow(filing: filing)
+                        .onAppear { visibleReports.insert(filing.seq) }
+                        .onDisappear { visibleReports.remove(filing.seq) }
+                    }.listRowBackground(TactileRowSurface()).listRowSeparator(.hidden).buttonStyle(TactileButtonStyle())
                 }
                 if loading { ProgressView("Loading reports…") }
                 else if loaded && filings.isEmpty && failure == nil && history?.status == "ready" {
@@ -960,7 +965,38 @@ struct CommitteeFilingsView: View {
                 else { finance = try? await model.connection().call("/v1/committees/\(committee.id)/finance") }
             }
         }
-        .refreshable { await load(more: false) }
+        .task(id: visibleReports.sorted().map(String.init).joined(separator: ",") + String(describing: scenePhase)) {
+            guard scenePhase == .active else { return }
+            try? await Task.sleep(for: .milliseconds(250))
+            guard !Task.isCancelled else { return }
+            await refreshVisibleSummaries()
+        }
+        .refreshable { await load(more: false); await refreshVisibleSummaries(singlePass: true) }
+    }
+    @MainActor private func refreshVisibleSummaries(singlePass: Bool = false) async {
+        for _ in 0..<(singlePass ? 1 : 60) {
+            guard !Task.isCancelled, scenePhase == .active else { return }
+            let ids = filings.filter {
+                visibleReports.contains($0.seq) && $0.preview == nil &&
+                (FilingReportKind($0.reportType) == .a1 || FilingReportKind($0.reportType) == .quarterly)
+            }.prefix(50).map { String($0.seq) }
+            guard !ids.isEmpty else { return }
+            do {
+                let batch: SummaryBatch = try await model.connection().call("/v1/summary-previews?ids=" + ids.joined(separator: ","))
+                try Task.checkCancellation()
+                for update in batch.summaries {
+                    if let index = filings.firstIndex(where: { $0.seq == update.seq }) {
+                        if let preview = update.preview { filings[index].preview = preview }
+                        filings[index].previewStatus = update.status
+                    }
+                }
+                if !batch.summaries.contains(where: { $0.status == "loading" }) { return }
+            } catch {
+                if Task.isCancelled { return }
+            }
+            if singlePass { return }
+            try? await Task.sleep(for: .seconds(3))
+        }
     }
     @MainActor private func load(more: Bool) async {
         guard !loading else { return }

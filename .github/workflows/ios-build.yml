@@ -18,10 +18,10 @@ jobs:
       - name: Wait for matching backend release
         run: |
           for attempt in $(seq 1 30); do
-            if curl --fail --silent --max-time 15 https://illinois-filing-tracker.onrender.com/downloads/IllinoisTracker-v17.zip -o /tmp/live-release.zip && cmp -s /tmp/live-release.zip releases/IllinoisTracker-iPhone-Source-v17.zip; then break; fi
+            if curl --fail --silent --max-time 15 https://illinois-filing-tracker.onrender.com/downloads/IllinoisTracker-v18.zip -o /tmp/live-release.zip && cmp -s /tmp/live-release.zip releases/IllinoisTracker-iPhone-Source-v18.zip; then break; fi
             sleep 10
           done
-          cmp /tmp/live-release.zip releases/IllinoisTracker-iPhone-Source-v17.zip
+          cmp /tmp/live-release.zip releases/IllinoisTracker-iPhone-Source-v18.zip
       - name: Validate native directory decoding
         run: |
           curl --fail --retry 3 --max-time 30 https://illinois-filing-tracker.onrender.com/v1/directory -o /tmp/live-directory.json
@@ -35,9 +35,9 @@ jobs:
           xcrun simctl boot "$DEVICE"
           xcrun simctl bootstatus "$DEVICE" -b
           xcrun simctl install "$DEVICE" build/Build/Products/Debug-iphonesimulator/IllinoisTracker.app
-          xcrun simctl launch "$DEVICE" com.danieldidech.illinoisfilings --preview-quarter --preview-night
-          sleep 40
-          xcrun simctl io "$DEVICE" screenshot IllinoisTracker-quarter.png
+          xcrun simctl launch "$DEVICE" com.danieldidech.illinoisfilings --preview-committee --preview-night
+          sleep 60
+          xcrun simctl io "$DEVICE" screenshot IllinoisTracker-committee.png
           xcrun simctl terminate "$DEVICE" com.danieldidech.illinoisfilings
           xcrun simctl launch "$DEVICE" com.danieldidech.illinoisfilings --preview-reports
           sleep 15

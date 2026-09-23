@@ -14,7 +14,27 @@ def preview(report):
   return dict(kind='a1',includes_in_kind=any('in-kind' in x.get('contribution_type','').lower() for x in contributions),total=report.get('total'),contribution_count=len(contributions),contributors=names[:2],contributor_count=len(names))
  return None
 
-def install(app,store,authenticated):
+def install(app,store,authenticated,reader):
+ from summary_loader import SummaryLoader
+ from subscriptions import lookup_filing
+ loader=SummaryLoader(store,reader)
+ @app.get('/v1/summary-previews')
+ @authenticated
+ def summary_previews():
+  try:
+   ids=list(dict.fromkeys(int(x) for x in request.args.get('ids','').split(',')))
+   if not 1<=len(ids)<=50 or any(abs(x)>2**63-1 for x in ids):raise ValueError()
+  except ValueError:return jsonify(error='Provide 1 to 50 valid report IDs.'),400
+  results=[]
+  with closing(store.connect()) as db:
+   rows=[lookup_filing(db,seq) for seq in ids]
+  for seq,row in zip(ids,rows):
+   if row is None:results.append(dict(seq=seq,status='unsupported',preview=None));continue
+   filing=dict(row);state=loader.snapshot(filing)
+   if state['status']=='loading':loader.schedule(filing,priority=0)
+   results.append(dict(seq=seq,**state))
+  return jsonify(summaries=results)
+
  with closing(store.connect()) as db,db:
   db.execute('''CREATE TABLE IF NOT EXISTS problem_reports(id TEXT PRIMARY KEY,device_id TEXT NOT NULL,created REAL NOT NULL,category TEXT NOT NULL,message TEXT NOT NULL,context TEXT NOT NULL,status TEXT NOT NULL DEFAULT 'new')''')
   db.execute('CREATE INDEX IF NOT EXISTS problem_reports_device ON problem_reports(device_id,created)')
@@ -23,15 +43,12 @@ def install(app,store,authenticated):
   if request.method!='GET' or response.status_code!=200 or not response.is_json:return response
   data=response.get_json()
   if not isinstance(data,dict) or not isinstance(data.get('filings'),list):return response
-  rows=data['filings'];ids=[r['seq'] for r in rows if isinstance(r,dict) and 'seq' in r]
-  if ids:
-   with closing(store.connect()) as db:
-    records=db.execute('SELECT seq,payload FROM shared_reports WHERE seq IN ('+','.join('?' for _ in ids)+')',ids).fetchall()
-   previews={}
-   for seq,payload in records:
-    try:previews[seq]=preview(json.loads(payload))
-    except (ValueError,KeyError,TypeError):continue
-   for row in rows:row['preview']=previews.get(row.get('seq'))
+  rows=data['filings']
+  for i,row in enumerate(rows):
+   if not isinstance(row,dict) or 'seq' not in row:continue
+   state=loader.snapshot(row)
+   row['preview']=state['preview'];row['preview_status']=state['status']
+   if i<8 and state['status']=='loading' and current_app.config.get('PRELOAD_SUMMARIES',True):loader.schedule(row)
   response.set_data(current_app.json.dumps(data));return response
  @app.post('/v1/me/problems')
  @authenticated

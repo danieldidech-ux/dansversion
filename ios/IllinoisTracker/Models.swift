@@ -9,6 +9,7 @@ struct Filing: Codable, Identifiable, Hashable {
     let publishedRaw: String?
     let url: String?
     var preview: FilingPreview? = nil
+    var previewStatus: String? = nil
     var displayDate: String {
         guard let raw = publishedRaw else { return "" }
         let f = DateFormatter(); f.locale = Locale(identifier: "en_US_POSIX"); f.timeZone = TimeZone(secondsFromGMT: 0)
@@ -304,3 +305,12 @@ struct FilingPreview: Codable, Hashable {
     let cashAndInvestments: String?
 }
 struct ProblemReceipt: Decodable { let id: String }
+
+struct SummaryBatch: Decodable {
+    let summaries: [SummaryUpdate]
+}
+struct SummaryUpdate: Decodable {
+    let seq: Int
+    let status: String
+    let preview: FilingPreview?
+}
