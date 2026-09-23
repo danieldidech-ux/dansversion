@@ -21,7 +21,7 @@ def parse_archive(html, committee):
   cells=[n for n in tr.children if isinstance(n,Node) and n.tag=='td']
   if len(cells)!=5: continue
   links=[n for n in cells[0].all('a') if n.attrs.get('href') and not n.attrs['href'].startswith('javascript:')]
-  if len(links)!=1: raise ReportFormatError('Unrecognized archive report link')
+  if len(links)!=1: raise ReportFormatError('Unrecognized archive report link: '+repr([(n.text(),n.attrs) for n in cells[0].all('a')])[:700]+' row='+cells[0].text()[:150])
   url=safe_url(urllib.parse.urljoin(BASE,links[0].attrs['href']))
   published=cells[2].lines()[0]
   filed=datetime.strptime(published,'%m/%d/%Y %I:%M:%S %p').isoformat()
@@ -194,7 +194,7 @@ def parse_quarter(html,report):
  values=[]
  for name in ['lblEndFundsAvail','lblTotalInvest']:
   text=field(name).text().strip()
-  if not re.fullmatch(r'-?\$[\d,]+\.\d{2}',text):raise ReportFormatError('Invalid quarterly balance')
+  if not re.fullmatch(r'-?\$[\d,]+\.\d{2}',text):raise ReportFormatError('Invalid quarterly balance '+name+': '+repr(text))
   values.append(Decimal(text.replace('$','').replace(',','')))
  return format(sum(values),'.2f')
 
