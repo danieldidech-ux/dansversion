@@ -18,6 +18,17 @@ class HistoryTests(unittest.TestCase):
   self.assertEqual(self.rows[-1]['filed_at'][:10],'2017-11-13')
   with self.assertRaises(ReportFormatError):parse_archive((FIX/'committee-34241.html').read_text().replace('359 Total Records','360 Total Records'),COM)
   with self.assertRaises(ReportFormatError):parse_archive((FIX/'committee-34241.html').read_text(),dict(COM,name='Other committee'))
+ def test_unlinked_correspondence_preserves_complete_archive(self):
+  html=(FIX/'committee-34241.html').read_text()
+  import re
+  html=re.sub(r'<a href="A1List[^>]*>.*?</a>', 'Letter/Correspondence', html, count=1)
+  rows,_,_=parse_archive(html,COM)
+  self.assertEqual(len(rows),359)
+  unlinked=[r for r in rows if r['url'] is None]
+  self.assertEqual(len(unlinked),1)
+  self.assertEqual(unlinked[0]['report_type'],'Letter/Correspondence')
+  with self.assertRaisesRegex(ReportFormatError,'without a downloadable'):
+   self.history.document(None,None)
  def test_quarter_includes_investments(self):
   quarter=next(r for r in self.rows if r['report_type']=='D-2 Quarterly Report')
   self.assertEqual(parse_quarter((FIX/'quarter-34241.html').read_text(),quarter),'409751.99')

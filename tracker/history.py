@@ -1,5 +1,5 @@
 """Cached historical reports; never inserted into the live notification stream."""
-import json, re, threading, time, queue, urllib.parse, logging, shutil, urllib.error
+import hashlib, json, re, threading, time, queue, urllib.parse, logging, shutil, urllib.error
 from contextlib import closing
 from datetime import datetime
 from decimal import Decimal
@@ -21,12 +21,17 @@ def parse_archive(html, committee):
   cells=[n for n in tr.children if isinstance(n,Node) and n.tag=='td']
   if len(cells)!=5: continue
   links=[n for n in cells[0].all('a') if n.attrs.get('href') and not n.attrs['href'].startswith('javascript:')]
-  if len(links)!=1: raise ReportFormatError('Unrecognized archive report link: '+repr([(n.text(),n.attrs) for n in cells[0].all('a')])[:700]+' row='+cells[0].text()[:150])
-  url=safe_url(urllib.parse.urljoin(BASE,links[0].attrs['href']))
+  if len(links)>1 or (not links and list(cells[0].all('a'))):raise ReportFormatError('Unrecognized archive report link')
+  url=safe_url(urllib.parse.urljoin(BASE,links[0].attrs['href'])) if links else None
+  report_type=' '.join(cells[0].text().split())
+  if not report_type:raise ReportFormatError('Missing archive report type')
   published=cells[2].lines()[0]
   filed=datetime.strptime(published,'%m/%d/%Y %I:%M:%S %p').isoformat()
-  rows.append(dict(committee_key=committee['id'],committee_name=committee['name'],report_type=' '.join(links[0].text().split()),url=url,
-     published_raw=published,filed_at=filed,period=' '.join(cells[1].text().split()),clarification=' '.join(cells[4].text().split()),document_id=identity(url)))
+  # The official archive includes correspondence with no downloadable document.
+  # Retain these index entries and still validate the full official record count.
+  document_id=identity(url) if url else 'unlinked:'+hashlib.sha256(json.dumps([committee['id']]+[c.text() for c in cells]).encode()).hexdigest()
+  rows.append(dict(committee_key=committee['id'],committee_name=committee['name'],report_type=report_type,url=url,
+     published_raw=published,filed_at=filed,period=' '.join(cells[1].text().split()),clarification=' '.join(cells[4].text().split()),document_id=document_id))
  totals=re.findall(r'(\d[\d,]*)\s+Total Records',table.text())
  if not rows or (totals and len(rows)!=int(totals[-1].replace(',',''))) or (not totals and (len(rows)>5 or any('PageNext' in n.attrs.get('id','') for n in table.all('a')))):
   raise ReportFormatError('Archive is incomplete; refusing to label it complete')
@@ -53,6 +58,7 @@ class History:
   with closing(self.store.connect()) as db:
    row=db.execute('SELECT html FROM archive_documents WHERE url=? AND checked>?',(url,time.time()-3600)).fetchone()
   if row: return row[0]
+  if not url:raise ReportFormatError('Official archive lists this report without a downloadable document')
   html=source.read(url)
   if all_table: html=source.all_rows(url,html,all_table)
   with closing(self.store.connect()) as db,db:
