@@ -70,3 +70,9 @@ The directory is fetched from `/v1/directory`. Revisions to the server list appe
 ## Version 6
 
 Adds the complete official committee report index with automatic scrolling, a quarterly cash/investments plus post-quarter A-1 summary, and estimated-cash sorting (highest first, unknown values last). Loading occurs on the server and the first request can take time. Unresolved committee identities, unreadable reports, and ambiguous A-1 amendments show unavailable rather than zero. Estimates are not reconciled bank balances and may include noncash A-1 contributions. Senate Democratic Victory Fund is removed.
+
+## Version 7: native quarterly reports and appearance
+
+Modern Civic is the default light theme. Settings → Appearance also offers Night Ledger, Pink Mode, and Follow iPhone appearance. Preferences persist between launches.
+
+Electronic D-2 quarterly reports display a native financial summary. Tap an itemized category to browse and search receipts, expenditures, transfers, or investments without leaving the app. Unitemized totals remain separate. Official-source links are available at the bottom. PDF-only or unrecognized reports retain a clear unavailable state rather than invented data.

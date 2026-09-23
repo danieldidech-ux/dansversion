@@ -9,14 +9,21 @@ private enum CivicTheme {
                            blue: CGFloat(value & 255) / 255, alpha: 1)
         })
     }
-    static let background = adaptive(0xF3F6FA, 0x10191F)
-    static let surface = adaptive(0xFFFFFF, 0x19262F)
-    static let ink = adaptive(0x102A43, 0xEEF5F8)
-    static let accent = adaptive(0x006078, 0x9FE8EE)
-    static let summary = adaptive(0x082E45, 0x192C36)
-    static let summaryNumber = adaptive(0xFFFFFF, 0x9FE8EE)
+    private static var pink: Bool {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--preview-pink") { return true }
+        #endif
+        return UserDefaults.standard.string(forKey: "appearance") == "pink"
+    }
+    static var background: Color { pink ? adaptive(0xFFF2F6, 0xFFF2F6) : adaptive(0xF3F6FA, 0x10191F) }
+    static var surface: Color { pink ? adaptive(0xFFFFFF, 0xFFFFFF) : adaptive(0xFFFFFF, 0x19262F) }
+    static var ink: Color { pink ? adaptive(0x482237, 0x482237) : adaptive(0x102A43, 0xEEF5F8) }
+    static var accent: Color { pink ? adaptive(0x96375F, 0x96375F) : adaptive(0x006078, 0x9FE8EE) }
+    static var summary: Color { pink ? adaptive(0x662740, 0x662740) : adaptive(0x082E45, 0x192C36) }
+    static var summaryNumber: Color { pink ? .white : adaptive(0xFFFFFF, 0x9FE8EE) }
 }
-private let accent = CivicTheme.accent
+private var accent: Color { CivicTheme.accent }
+
 private extension View {
     func civicSurface() -> some View {
         self.scrollContentBackground(.hidden)
@@ -48,7 +55,7 @@ struct RootView: View {
         #else
         mainTabs
         #endif
-        }.preferredColorScheme(preferredScheme).tint(accent)
+        }.id(appearance).preferredColorScheme(preferredScheme).tint(accent)
     }
     #if DEBUG
     private var previewQuarter: Filing {
@@ -390,10 +397,11 @@ struct SettingsView: View {
                     Picker("Appearance", selection: $appearance) {
                         Text("Modern Civic · Light").tag("light")
                         Text("Night Ledger · Dark").tag("dark")
+                        Text("Pink Mode").tag("pink")
                         Text("Follow iPhone appearance").tag("system")
                     }
                 } header: { Text("Appearance") } footer: {
-                    Text("Modern Civic is the default. Choose Night Ledger for a dark appearance, or switch automatically with your iPhone.")
+                    Text("Modern Civic is the default. Choose Night Ledger, Pink Mode, or switch between light and dark with your iPhone.")
                 }
                 Section("Filing alerts") {
                     Label(model.notificationStatus, systemImage: "bell")

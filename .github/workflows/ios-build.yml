@@ -35,6 +35,10 @@ jobs:
           sleep 15
           xcrun simctl io "$DEVICE" screenshot IllinoisTracker-night.png
           xcrun simctl terminate "$DEVICE" com.danieldidech.illinoisfilings
+          xcrun simctl launch "$DEVICE" com.danieldidech.illinoisfilings --preview-committee --preview-pink
+          sleep 10
+          xcrun simctl io "$DEVICE" screenshot IllinoisTracker-pink.png
+          xcrun simctl terminate "$DEVICE" com.danieldidech.illinoisfilings
           xcrun simctl launch "$DEVICE" com.danieldidech.illinoisfilings --preview-quarter
           sleep 20
           xcrun simctl io "$DEVICE" screenshot IllinoisTracker-quarter.png
