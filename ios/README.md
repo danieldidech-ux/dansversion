@@ -1,3 +1,7 @@
+## Version 9 home design
+
+Home uses blue Democratic cards and red Republican cards, with chamber labels, architectural motifs, gradients, and large type. Party colors remain identifiable in every theme.
+
 ## Version 8 navigation
 
 Home opens with four large caucus buttons. Each opens its committee list with a back button and the existing sorting options. Latest Reports is the second tab. Modern Civic, Night Ledger, and Pink Mode are supported. Quarterly itemized receipts and expenditures can be sorted alphabetically or by amount, highest first.

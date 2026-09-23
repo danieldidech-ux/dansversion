@@ -96,6 +96,26 @@ private enum HomeCaucus: String, CaseIterable, Identifiable {
         case .senateRepublicans: return "Senate Republicans"
         }
     }
+    var chamber: String {
+        switch self {
+        case .houseDemocrats, .houseRepublicans: return "HOUSE"
+        case .senateDemocrats, .senateRepublicans: return "SENATE"
+        }
+    }
+    var party: String {
+        switch self {
+        case .houseDemocrats, .senateDemocrats: return "Democrats"
+        case .houseRepublicans, .senateRepublicans: return "Republicans"
+        }
+    }
+    var colors: [Color] {
+        switch self {
+        case .houseDemocrats: return [CivicTheme.adaptive(0x1766D5, 0x144FA8), CivicTheme.adaptive(0x123580, 0x102658)]
+        case .senateDemocrats: return [CivicTheme.adaptive(0x087BA8, 0x096284), CivicTheme.adaptive(0x17429D, 0x142F68)]
+        case .houseRepublicans: return [CivicTheme.adaptive(0xD33149, 0xA8253D), CivicTheme.adaptive(0x86192F, 0x60182B)]
+        case .senateRepublicans: return [CivicTheme.adaptive(0xBC4334, 0x983329), CivicTheme.adaptive(0x8D2048, 0x631C35)]
+        }
+    }
     var symbol: String {
         switch self {
         case .houseDemocrats, .houseRepublicans: return "building.2"
@@ -112,22 +132,44 @@ struct HomeView: View {
                 VStack(spacing: 16) {
                     ForEach(HomeCaucus.allCases) { caucus in
                         NavigationLink(value: caucus) {
-                            HStack(spacing: 18) {
-                                Image(systemName: caucus.symbol)
-                                    .font(.title2).frame(width: 32)
-                                Text(caucus.title)
-                                    .font(.title2.weight(.semibold))
-                                    .multilineTextAlignment(.leading)
-                                    .fixedSize(horizontal: false, vertical: true)
+                            HStack(alignment: .center, spacing: 12) {
+                                VStack(alignment: .leading, spacing: 9) {
+                                    HStack(spacing: 8) {
+                                        Image(systemName: caucus.symbol).font(.caption.weight(.bold))
+                                        Text(caucus.chamber).font(.caption.weight(.heavy)).tracking(2.5)
+                                    }.foregroundStyle(.white.opacity(0.9))
+                                    Text(caucus.party)
+                                        .font(.system(.title, design: .rounded, weight: .bold))
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
                                 Spacer(minLength: 0)
-                                Image(systemName: "chevron.right").font(.subheadline.bold())
+                                Image(systemName: "arrow.up.right")
+                                    .font(.body.weight(.semibold))
+                                    .frame(width: 38, height: 38)
+                                    .background(.white.opacity(0.16), in: Circle())
                             }
-                            .foregroundStyle(CivicTheme.ink)
-                            .padding(24).frame(maxWidth: .infinity, minHeight: 112, alignment: .leading)
-                            .background(CivicTheme.surface, in: RoundedRectangle(cornerRadius: 24))
-                            .overlay(alignment: .leading) {
-                                Capsule().fill(accent).frame(width: 4, height: 40).padding(.leading, 1)
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 24).padding(.vertical, 22)
+                            .frame(maxWidth: .infinity, minHeight: 125, alignment: .leading)
+                            .background {
+                                ZStack(alignment: .trailing) {
+                                    LinearGradient(colors: caucus.colors, startPoint: .topLeading, endPoint: .bottomTrailing)
+                                    Image(systemName: caucus.symbol)
+                                        .font(.system(size: 132, weight: .ultraLight))
+                                        .foregroundStyle(.white.opacity(0.10))
+                                        .rotationEffect(.degrees(-12)).offset(x: 24, y: 22)
+                                    Circle().stroke(.white.opacity(0.09), lineWidth: 1)
+                                        .frame(width: 210, height: 210).offset(x: 65, y: -35)
+                                }
                             }
+                            .clipShape(RoundedRectangle(cornerRadius: 25))
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 25).strokeBorder(.white.opacity(0.16), lineWidth: 1)
+                            }
+                            .shadow(color: caucus.colors.last!.opacity(0.20), radius: 10, x: 0, y: 6)
+                            .accessibilityElement(children: .ignore)
+                            .accessibilityLabel(caucus.title)
+                            .accessibilityHint("Opens the committee list")
                         }.buttonStyle(.plain)
                     }
                 }.padding(.horizontal, 20).padding(.vertical, 16)
