@@ -301,5 +301,6 @@ struct FilingPreview: Codable, Hashable {
     let receipts: String?
     let expenditures: String?
     let endingCash: String?
+    let cashAndInvestments: String?
 }
 struct ProblemReceipt: Decodable { let id: String }

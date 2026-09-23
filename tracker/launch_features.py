@@ -7,7 +7,7 @@ def preview(report):
  if report.get('status')!='ready':return None
  if report.get('kind')=='quarterly':
   summary=report.get('summary') or {}
-  return dict(kind='quarterly',period=report.get('period'),receipts=summary.get('receipts'),expenditures=summary.get('expenditures'),ending_cash=summary.get('ending_cash'))
+  return dict(kind='quarterly',period=report.get('period'),receipts=summary.get('receipts'),expenditures=summary.get('expenditures'),ending_cash=summary.get('ending_cash'),cash_and_investments=summary.get('cash_and_investments'))
  contributions=report.get('contributions') or []
  if contributions:
   names=list(dict.fromkeys(re.split(r'\s+(?:Occupation|Employer):',x['contributor'],maxsplit=1)[0].strip() for x in contributions))

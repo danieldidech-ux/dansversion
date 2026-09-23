@@ -26,6 +26,50 @@ private enum CivicTheme {
 }
 private var accent: Color { CivicTheme.accent }
 
+
+private struct TactileButtonStyle: ButtonStyle {
+    var inset: CGFloat = 10
+    @Environment(\.isEnabled) private var enabled
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .padding(inset)
+            .frame(minHeight: 44)
+            .background {
+                RoundedRectangle(cornerRadius: 12)
+                    .fill(CivicTheme.surface.gradient)
+                    .shadow(color: .black.opacity(enabled && !configuration.isPressed ? 0.18 : 0.04),
+                            radius: configuration.isPressed ? 0 : 3, x: 0, y: configuration.isPressed ? 0 : 2)
+            }
+            .overlay {
+                RoundedRectangle(cornerRadius: 12)
+                    .strokeBorder(LinearGradient(colors: [CivicTheme.accent.opacity(0.30), CivicTheme.accent.opacity(0.12)],
+                                                 startPoint: .top, endPoint: .bottom), lineWidth: 1)
+            }
+            .contentShape(RoundedRectangle(cornerRadius: 12))
+            .opacity(enabled ? 1 : 0.45)
+            .scaleEffect(configuration.isPressed && !reduceMotion ? 0.985 : 1)
+            .animation(reduceMotion ? nil : .easeOut(duration: 0.12), value: configuration.isPressed)
+    }
+}
+private struct TactileDisclosureStyle: DisclosureGroupStyle {
+    func makeBody(configuration: Configuration) -> some View {
+        VStack(alignment: .leading, spacing: 10) {
+            Button { configuration.isExpanded.toggle() } label: {
+                HStack {
+                    configuration.label
+                    Spacer()
+                    Image(systemName: configuration.isExpanded ? "chevron.down" : "chevron.right")
+                        .font(.caption.bold())
+                }.frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(TactileButtonStyle())
+            .accessibilityValue(configuration.isExpanded ? "Expanded" : "Collapsed")
+            if configuration.isExpanded { configuration.content }
+        }
+    }
+}
+
 private extension View {
     func civicSurface() -> some View {
         self.scrollContentBackground(.hidden)
@@ -35,6 +79,8 @@ private extension View {
             .listSectionSpacing(.compact)
             .environment(\.defaultMinListRowHeight, 44)
             .modifier(PreviewTextScale())
+            .buttonStyle(TactileButtonStyle())
+            .disclosureGroupStyle(TactileDisclosureStyle())
     }
 }
 struct RootView: View {
@@ -70,6 +116,8 @@ struct RootView: View {
         mainTabs
         #endif
         }.id(appearance).preferredColorScheme(preferredScheme).tint(accent)
+            .buttonStyle(TactileButtonStyle())
+            .disclosureGroupStyle(TactileDisclosureStyle())
     }
     #if DEBUG
     private var previewQuarter: Filing {
@@ -183,7 +231,7 @@ struct HomeView: View {
                             .accessibilityElement(children: .ignore)
                             .accessibilityLabel(caucus.title)
                             .accessibilityHint("Opens the committee list")
-                        }.buttonStyle(.plain)
+                        }.buttonStyle(TactileButtonStyle(inset: 0))
                     }
                 }.padding(.horizontal, 20).padding(.vertical, 16)
             }
@@ -291,10 +339,24 @@ private struct ReportTypeBadge: View {
 struct FilingRow: View {
     let filing: Filing
     var showPreview = true
+    var linkCommittee = false
     var body: some View {
         VStack(alignment: .leading, spacing: 8) {
             ReportTypeBadge(reportType: filing.reportType)
-            Text(filing.committeeName).font(.headline).foregroundStyle(CivicTheme.ink)
+            if linkCommittee {
+                NavigationLink {
+                    CommitteeFilingsView(committee: Committee(id: filing.committeeKey, name: filing.committeeName), member: "", officialURL: nil)
+                } label: {
+                    HStack {
+                        Text(filing.committeeName).font(.headline).foregroundStyle(CivicTheme.ink)
+                            .multilineTextAlignment(.leading)
+                        Spacer(minLength: 8)
+                        Image(systemName: "chevron.right").font(.caption.bold()).foregroundStyle(accent)
+                    }.frame(maxWidth: .infinity, alignment: .leading)
+                }.accessibilityHint("Opens this committee’s reports and financial overview")
+            } else {
+                Text(filing.committeeName).font(.headline).foregroundStyle(CivicTheme.ink)
+            }
             if showPreview, let p = filing.preview {
                 if p.kind == "a1" {
                     if let total = p.total { Text(ReportContribution.currency(total)).font(.title3.bold()).monospacedDigit().foregroundStyle(accent) }
@@ -304,7 +366,7 @@ struct FilingRow: View {
                     if let period = p.period { Text(period).font(.subheadline).foregroundStyle(CivicTheme.secondary) }
                     previewMetric("Receipts", p.receipts)
                     previewMetric("Spending", p.expenditures)
-                    previewMetric("Ending cash", p.endingCash)
+                    previewMetric("Cash + investments", p.cashAndInvestments)
                 }
             } else if showPreview && (FilingReportKind(filing.reportType) == .a1 || FilingReportKind(filing.reportType) == .quarterly) {
                 Text("Summary not yet available").font(.caption).foregroundStyle(CivicTheme.secondary)
@@ -326,7 +388,7 @@ struct FilingDetail: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: 20) {
-                FilingRow(filing: filing, showPreview: false)
+                FilingRow(filing: filing, showPreview: false, linkCommittee: true)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(18)
                     .background(CivicTheme.surface, in: RoundedRectangle(cornerRadius: 16))
@@ -401,7 +463,7 @@ private struct NativeReportContents: View {
                     Text(failure ?? report?.message ?? "Open the official report below to read this filing.")
                         .font(.subheadline).foregroundStyle(CivicTheme.secondary)
                     if report?.status != "unsupported" {
-                        Button("Try again") { attempt += 1 }.buttonStyle(.bordered)
+                        Button("Try again") { attempt += 1 }.buttonStyle(TactileButtonStyle())
                     }
                 }.frame(maxWidth: .infinity, alignment: .leading).padding(18)
                     .background(CivicTheme.surface, in: RoundedRectangle(cornerRadius: 16))
@@ -483,7 +545,7 @@ struct DiscoverView: View {
                                 Spacer()
                                 if category.verified == 1 {
                                     Button { Task { await model.toggleCategory(category.id) } } label: { Image(systemName: model.followedCategories.contains(category.id) ? "checkmark.circle.fill" : "plus.circle") }
-                                        .buttonStyle(.borderless).disabled(model.saving || model.loading)
+                                        .buttonStyle(TactileButtonStyle()).disabled(model.saving || model.loading)
                                 } else { Image(systemName: "clock").foregroundStyle(CivicTheme.secondary) }
                             }
                         }
@@ -495,7 +557,7 @@ struct DiscoverView: View {
                             NavigationLink { CommitteeFilingsView(committee: committee, member: "", officialURL: nil) } label: { Text(committee.name) }
                             Spacer()
                             Button { Task { await model.toggle(committee) } } label: { Image(systemName: model.follows(committee) ? "checkmark.circle.fill" : "plus.circle").font(.title3) }
-                                .buttonStyle(.borderless).disabled(model.saving || model.loading)
+                                .buttonStyle(TactileButtonStyle()).disabled(model.saving || model.loading)
                                 .accessibilityLabel("\(model.follows(committee) ? "Unfollow" : "Follow") \(committee.name)")
                         }.padding(.vertical, 4)
                     }
@@ -529,13 +591,13 @@ struct WatchlistView: View {
                 if !model.followedCategories.isEmpty {
                     Section("Groups") {
                         ForEach(model.categories.filter { model.followedCategories.contains($0.id) }) { category in
-                            HStack { Text(category.name); Spacer(); Button("Unfollow") { Task { await model.toggleCategory(category.id) } }.buttonStyle(.borderless).disabled(model.saving || model.loading) }
+                            HStack { Text(category.name); Spacer(); Button("Unfollow") { Task { await model.toggleCategory(category.id) } }.buttonStyle(TactileButtonStyle()).disabled(model.saving || model.loading) }
                         }
                     }
                 }
                 Section("Committees · \(model.following.count)") {
                     ForEach(model.following) { committee in
-                        HStack { NavigationLink { CommitteeFilingsView(committee: committee, member: "", officialURL: nil) } label: { Text(committee.name) }; Spacer(); Button { Task { await model.toggle(committee) } } label: { Image(systemName: "star.fill") }.buttonStyle(.borderless).disabled(model.saving || model.loading).accessibilityLabel("Unfollow \(committee.name)") }
+                        HStack { NavigationLink { CommitteeFilingsView(committee: committee, member: "", officialURL: nil) } label: { Text(committee.name) }; Spacer(); Button { Task { await model.toggle(committee) } } label: { Image(systemName: "star.fill") }.buttonStyle(TactileButtonStyle()).disabled(model.saving || model.loading).accessibilityLabel("Unfollow \(committee.name)") }
                     }
                 }
             }.civicSurface().navigationTitle("Watchlist").refreshable { await model.refresh() }
@@ -644,7 +706,7 @@ struct CaucusesView: View {
                             Button { Task { await model.toggleCategory(group.id) } } label: {
                                 Label(model.followedCategories.contains(group.id) ? "Following" : "Follow all", systemImage: model.followedCategories.contains(group.id) ? "star.fill" : "star")
                                     .font(.subheadline.weight(.semibold))
-                            }.buttonStyle(.borderless).disabled(model.saving || model.loading)
+                            }.buttonStyle(TactileButtonStyle()).disabled(model.saving || model.loading)
                             .accessibilityLabel(model.followedCategories.contains(group.id) ? "Unfollow all \(group.name)" : "Follow all \(group.name)")
                         }
                     }
@@ -950,7 +1012,7 @@ private struct QuarterlyReportView: View {
                                         Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(accent)
                                     }.padding(16)
                                         .background(CivicTheme.surface, in: RoundedRectangle(cornerRadius: 14))
-                                }.buttonStyle(.plain)
+                                }.buttonStyle(TactileButtonStyle(inset: 0))
                             } else {
                                 scheduleLabel(section).padding(16).frame(maxWidth: .infinity, alignment: .leading)
                                     .background(CivicTheme.surface, in: RoundedRectangle(cornerRadius: 14))

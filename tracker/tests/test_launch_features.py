@@ -38,3 +38,9 @@ class LaunchTests(unittest.TestCase):
   self.assertEqual(self.c.post('/v1/me/problems',headers=self.other,json=dict(body,message='x')).status_code,400)
   self.c.delete('/v1/me',headers=self.auth)
   with closing(self.store.connect()) as db:self.assertEqual(db.execute('SELECT count(*) FROM problem_reports').fetchone()[0],0)
+
+ def test_quarterly_preview_combined_balance(self):
+  result=preview({'status':'ready','kind':'quarterly','summary':{'ending_cash':'189762.56','investments':'250000.00','cash_and_investments':'439762.56'}})
+  self.assertEqual(result['cash_and_investments'],'439762.56')
+  self.assertEqual(result['ending_cash'],'189762.56')
+  self.assertIsNone(preview({'status':'ready','kind':'quarterly','summary':{'ending_cash':'189762.56'}})['cash_and_investments'])
