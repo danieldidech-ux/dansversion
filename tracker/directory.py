@@ -8,6 +8,22 @@ def load_directory():
     ids = [g['id'] for g in directory['groups']]
     if len(ids) != len(set(ids)):
         raise ValueError('Duplicate directory group')
+    for group in directory['groups']:
+        for section in ('pinned', 'members'):
+            entries = group[section]
+            entry_ids = set()
+            for entry in entries:
+                for field in ('id', 'member', 'last_name', 'role'):
+                    if not isinstance(entry.get(field), str):
+                        raise ValueError(f"Invalid directory entry: {group['id']} {field}")
+                if entry['id'] in entry_ids:
+                    raise ValueError('Duplicate directory entry')
+                entry_ids.add(entry['id'])
+                committee = entry.get('committee')
+                if committee is not None:
+                    for field in ('id', 'name'):
+                        if not isinstance(committee.get(field), str) or not committee[field]:
+                            raise ValueError(f'Invalid committee {field}')
     return directory
 
 

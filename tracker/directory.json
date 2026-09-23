@@ -533,7 +533,22 @@
           "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
         },
         {
-          "id": "02f…167 tokens truncated…ns Jr.",
+          "id": "02f5737f327a0837172de52d45ff49ac",
+          "member": "Lisa Davis",
+          "last_name": "Davis",
+          "district": 32,
+          "committee": {
+            "id": "aa584735512e9df737b70e5ddbec3bd1",
+            "name": "Friends of Lisa J Davis"
+          },
+          "official_url": null,
+          "role": "",
+          "evidence": "Name observed; link unverified",
+          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+        },
+        {
+          "id": "d14d1c30d782220a8770580655072b94",
+          "member": "Marcus C. Evans Jr.",
           "last_name": "Evans",
           "district": 33,
           "committee": {

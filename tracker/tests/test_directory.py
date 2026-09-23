@@ -4,7 +4,7 @@ import unittest
 from unittest.mock import patch
 from contextlib import closing
 from app import create_app, committee_key
-from directory import sync_directory
+from directory import sync_directory, load_directory
 from subscriptions import enqueue
 
 
@@ -46,6 +46,13 @@ class DirectoryTests(unittest.TestCase):
             for entry in group['members'] + group['pinned']:
                 if entry['committee']:
                     self.assertEqual(entry['committee']['id'], committee_key(entry['committee']['name']))
+
+    def test_reject_directory_missing_ios_required_field(self):
+        broken = copy.deepcopy(self.store.directory_data)
+        del broken['groups'][0]['members'][0]['member']
+        with patch('directory.json.loads', return_value=broken):
+            with self.assertRaisesRegex(ValueError, 'member'):
+                load_directory()
 
     def test_executive_group_and_house_replacement(self):
         groups = {g['id']: g for g in self.client.get('/v1/directory').json['groups']}
