@@ -41,7 +41,7 @@ class DirectoryTests(unittest.TestCase):
         self.assertEqual(next(x for x in house if x['district'] == 52)['committee']['name'], 'Maria for 52')
         self.assertEqual(next(x for x in senate if x['district'] == 26)['member'], 'Nabeela Syed')
         self.assertNotIn('Democratic Majority', str(groups))
-        self.assertIsNone(next(x for x in groups['senate-republicans']['members'] if x['district'] == 44)['committee'])
+        self.assertEqual(next(x for x in groups['senate-republicans']['members'] if x['district'] == 44)['committee']['name'], 'Friends of Sally Turner')
         for group in groups.values():
             for entry in group['members'] + group['pinned']:
                 if entry['committee']:
