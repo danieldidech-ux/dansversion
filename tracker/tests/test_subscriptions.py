@@ -57,6 +57,7 @@ class SubscriptionTests(unittest.TestCase):
     def test_retry_then_success(self):
         self.follow(); self.enable(); self.store.ingest(parse_feed(feed(2,1)))
         sender=Mock(); sender.send.return_value=(503,'ServiceUnavailable')
+        with closing(self.store.connect()) as db,db: db.execute('UPDATE outbox SET created_at=created_at-180')
         dispatch(self.store,sender,enabled=True); self.assertEqual(self.queue()[0]['state'],'pending')
         dispatch(self.store,sender,enabled=True); self.assertEqual(sender.send.call_count,1)
         with closing(self.store.connect()) as db,db: db.execute('UPDATE outbox SET next_attempt=0')
@@ -66,6 +67,7 @@ class SubscriptionTests(unittest.TestCase):
         self.follow(); self.enable(); self.store.ingest(parse_feed(feed(2,1)))
         sender=Mock(); sender.send.return_value=(410,'Unregistered')
         dispatch(self.store,sender,enabled=False); sender.send.assert_not_called()
+        with closing(self.store.connect()) as db,db: db.execute('UPDATE outbox SET created_at=created_at-180')
         dispatch(self.store,sender,enabled=True)
         self.assertFalse(self.client.get('/v1/me',headers=self.a).json['alerts_enabled'])
     def test_validation_and_token_ownership(self):

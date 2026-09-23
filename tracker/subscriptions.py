@@ -202,10 +202,14 @@ def routes(store):
         except ValueError:
             return jsonify(error='Invalid cursor'), 400
         with closing(store.connect()) as db:
-            rows = [dict(r) for r in db.execute('''SELECT * FROM filings WHERE seq<? AND committee_key IN (
+            rows = [dict(r) for r in db.execute('''SELECT * FROM filings WHERE seq<? AND (committee_key IN (
               SELECT committee_key FROM subscriptions WHERE device_id=? UNION
               SELECT m.committee_key FROM category_members m JOIN category_subscriptions s ON s.category_id=m.category_id
-              JOIN categories c ON c.id=m.category_id AND c.verified=1 WHERE s.device_id=?) ORDER BY seq DESC LIMIT 51''', (before,g.device['id'],g.device['id']))]
+              JOIN categories c ON c.id=m.category_id AND c.verified=1 WHERE s.device_id=? UNION
+              SELECT m.committee_key FROM list_members m JOIN private_lists l ON l.id=m.list_id WHERE l.device_id=?)
+              OR seq IN (SELECT x.seq FROM disclosures x JOIN entity_follows e ON e.entity_id=x.entity_id WHERE e.device_id=?
+                UNION SELECT x.seq FROM disclosures x JOIN list_entities m ON m.entity_id=x.entity_id JOIN private_lists l ON l.id=m.list_id WHERE l.device_id=?))
+              ORDER BY seq DESC LIMIT 51''', (before,)+(g.device['id'],)*5)]
         return jsonify(filings=rows[:50],has_more=len(rows)>50,next_cursor=rows[49]['seq'] if len(rows)>50 else None)
 
     @api.get('/v1/filings/<int(signed=True):seq>')

@@ -126,6 +126,8 @@ def alert_summary(db,row,p):
   if not records:return None,None
   records=[r for r in records if Decimal(r['amount'])>=Decimal(p['minimum'])]
   if not records:return False,None
+ if not records and typ.startswith('a-1') and time.time()-row['created_at']<120:
+  return None,None
  if records and typ.startswith('a-1'):
   total=sum((Decimal(r['amount']) for r in records),Decimal(0))
   name=db.execute('SELECT name FROM entities WHERE id=?',(records[0]['entity_id'],)).fetchone()[0]

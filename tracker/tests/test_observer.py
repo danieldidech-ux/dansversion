@@ -75,6 +75,17 @@ class ObserverTests(unittest.TestCase):
    self.assertEqual(db.execute('SELECT count(*) FROM private_lists').fetchone()[0],0)
    self.assertEqual(db.execute('SELECT count(*) FROM alert_preferences').fetchone()[0],0)
 
+ def test_all_alerts_wait_briefly_for_rich_details_then_fallback(self):
+  self.c.put('/v1/me/watchlist',headers=self.auth,json={'committees':[self.key]});self.c.put('/v1/me/push',headers=self.auth,json={'enabled':True,'token':'f'*64})
+  self.store.ingest(parse_feed(feed(2,1)))
+  sender=Mock();sender.send.return_value=(200,'');dispatch(self.store,sender,enabled=True);sender.send.assert_not_called()
+  with closing(self.store.connect()) as db,db:db.execute('UPDATE outbox SET created_at=created_at-180,next_attempt=0')
+  dispatch(self.store,sender,enabled=True);self.assertEqual(sender.send.call_count,1)
+ def test_following_feed_includes_private_lists(self):
+  identifier=self.create();self.c.put('/v1/me/lists/'+identifier,headers=self.auth,json={'committees':[self.key]})
+  self.assertEqual(len(self.c.get('/v1/me/filings',headers=self.auth).json['filings']),1)
+  self.assertEqual(self.c.get('/v1/me/filings',headers=self.other).json['filings'],[])
+
  def test_preferences_validation(self):
   for patchdata in ({'minimum':'NaN'},{'minimum':'-1'},{'timezone':'Made/up'},{'quiet':True,'quiet_start':7,'quiet_end':7}):
    self.assertEqual(self.c.put('/v1/me/alert-preferences',headers=self.auth,json=dict(DEFAULTS,**patchdata)).status_code,400)
