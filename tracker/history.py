@@ -17,7 +17,7 @@ def parse_archive(html, committee):
  field=lambda s:doc.by_id('ContentPlaceHolder1_'+s).text().strip()
  if normalized(field('lblName'))!=normalized(committee['name']): raise ReportFormatError('Committee identity mismatch')
  table=doc.by_id('ContentPlaceHolder1_gvFiledDocs')
- rows=[]
+ rows=[];unlinked_counts={}
  for tr in table.all('tr'):
   cells=[n for n in tr.children if isinstance(n,Node) and n.tag=='td']
   if len(cells)!=5: continue
@@ -31,12 +31,15 @@ def parse_archive(html, committee):
   # The official archive includes correspondence with no downloadable document.
   # Retain these index entries and still validate the full official record count.
   document_id=identity(url) if url else 'unlinked:'+hashlib.sha256(json.dumps([committee['id']]+[c.text() for c in cells]).encode()).hexdigest()
+  if not url:
+   unlinked_counts[document_id]=unlinked_counts.get(document_id,0)+1
+   document_id+=':'+str(unlinked_counts[document_id])
   rows.append(dict(committee_key=committee['id'],committee_name=committee['name'],report_type=report_type,url=url,
      published_raw=published,filed_at=filed,period=' '.join(cells[1].text().split()),clarification=' '.join(cells[4].text().split()),document_id=document_id))
  totals=re.findall(r'(\d[\d,]*)\s+Total Records',table.text())
  if not rows or (totals and len(rows)!=int(totals[-1].replace(',',''))) or (not totals and (len(rows)>5 or any('PageNext' in n.attrs.get('id','') for n in table.all('a')))):
   raise ReportFormatError('Archive is incomplete; refusing to label it complete')
- if len({r['document_id'] for r in rows})!=len(rows): raise ReportFormatError('Duplicate archive identities')
+ if len({r['document_id'] for r in rows})!=len(rows): raise ReportFormatError('Duplicate archive identities: '+repr([(r['report_type'],r['filed_at'],r['url']) for r in rows if sum(x['document_id']==r['document_id'] for x in rows)>1])[:900])
  return rows,field('lblCreationDate'),field('lblCommitteeID')
 
 

@@ -29,6 +29,18 @@ class HistoryTests(unittest.TestCase):
   self.assertEqual(unlinked[0]['report_type'],'Letter/Correspondence')
   with self.assertRaisesRegex(ReportFormatError,'without a downloadable'):
    self.history.document(None,None)
+ def test_distinct_unlinked_entries_with_identical_public_metadata(self):
+  html=(FIX/'committee-34241.html').read_text()
+  import re
+  match=re.search(r'<tr[^>]*>\s*<td[^>]*><a href="A1List.*?</tr>',html,re.S)
+  row=re.sub(r'<a href="A1List[^>]*>.*?</a>','Letter/Correspondence',match.group())
+  html=html[:match.start()]+row+row+html[match.end():]
+  html=html.replace('359 Total Records','360 Total Records')
+  rows,_,_=parse_archive(html,COM)
+  self.assertEqual(len(rows),360)
+  unlinked=[r for r in rows if r['url'] is None]
+  self.assertEqual(len(unlinked),2)
+  self.assertNotEqual(unlinked[0]['document_id'],unlinked[1]['document_id'])
  def test_quarter_includes_investments(self):
   quarter=next(r for r in self.rows if r['report_type']=='D-2 Quarterly Report')
   self.assertEqual(parse_quarter((FIX/'quarter-34241.html').read_text(),quarter),'409751.99')
