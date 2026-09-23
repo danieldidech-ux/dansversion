@@ -33,6 +33,17 @@ class HistoryTests(unittest.TestCase):
   quarter=next(r for r in self.rows if r['report_type']=='D-2 Quarterly Report')
   self.assertEqual(parse_quarter((FIX/'quarter-34241.html').read_text(),quarter),'409751.99')
   with self.assertRaises(ReportFormatError):parse_quarter((FIX/'quarter-34241.html').read_text().replace('lblTotalInvest','missing'),quarter)
+ def test_parenthesized_negative_cash_balance(self):
+  quarter=next(r for r in self.rows if r['report_type']=='D-2 Quarterly Report')
+  html=(FIX/'quarter-34241.html').read_text().replace('$189,762.56','($5,120.27)')
+  self.assertEqual(parse_quarter(html,quarter),'214869.16')
+ def test_new_committee_zero_baseline_only_without_quarter(self):
+  with patch('history.previous_quarter_end',return_value='2026-06-30'),patch.object(self.history,'document',return_value=(FIX/'a1-34241.html').read_text()):
+   result=self.history.calculate(None,COM,[self.rows[0]],'7/11/2026')
+   self.assertEqual(result['status'],'ready');self.assertEqual(result['estimated_cash'],'1500.00')
+   self.assertEqual(result['cash_and_investments'],'0.00');self.assertTrue(result['baseline_assumed'])
+   result=self.history.calculate(None,COM,[],'1/1/2020')
+   self.assertIsNone(result['estimated_cash'])
  def test_multipage_a1_complete_count(self):
   html=(FIX/'a1-34241-multipage.html').read_text()
   report=json.loads((FIX/'a1-34241-multipage.json').read_text())

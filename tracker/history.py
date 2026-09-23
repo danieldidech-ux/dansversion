@@ -1,7 +1,8 @@
 """Cached historical reports; never inserted into the live notification stream."""
 import hashlib, json, re, threading, time, queue, urllib.parse, logging, shutil, urllib.error
 from contextlib import closing
-from datetime import datetime
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 from decimal import Decimal
 from archive_source import Source, BASE, safe_url
 from reports import Document, Node, ReportFormatError, normalized, parse_a1
@@ -133,7 +134,7 @@ class History:
     db.execute('INSERT INTO archive_reports(committee_key,document_id,payload) VALUES (?,?,?) ON CONFLICT(committee_key,document_id) DO UPDATE SET payload=excluded.payload',(committee['id'],row['document_id'],json.dumps(row)))
    # Publish the verified index before the more expensive financial calculation.
    db.execute('INSERT OR REPLACE INTO archive_state VALUES (?,?,?,?,?,?)',(committee['id'],time.time(),latest,1,json.dumps(payload),json.dumps(unavailable('Calculating from official reports…','loading'))))
-  try: finance=self.calculate(source,committee,rows)
+  try: finance=self.calculate(source,committee,rows,created)
   except Exception as exc:
    detail=diagnose(exc,self.audit_context.get(committee['id'],{}))
    finance=dict(unavailable(detail['reason']),diagnostic=detail)
@@ -160,16 +161,22 @@ class History:
    with closing(self.store.connect()) as db:page=[dict(r) for r in db.execute('SELECT * FROM filings WHERE committee_key=? ORDER BY seq DESC LIMIT 50',(key,))]
   status=json.loads(row['payload']) if row else dict(status='loading',message='Loading the official report history…')
   return dict(filings=page,has_more=len(records)>offset+50,next_cursor=page[-1]['seq'] if len(records)>offset+50 else None,history=status)
- def calculate(self,source,committee,rows):
+ def calculate(self,source,committee,rows,created=None):
   quarters=[r for r in rows if 'd-2 quarterly' in r['report_type'].lower()]
-  if not quarters:return dict(unavailable('No D-2 quarterly report appears in the complete official archive.'),diagnostic=dict(stage='quarter_selection',reason='No D-2 quarterly report appears in the complete official archive.'))
-  def period_end(r):
-   return datetime.strptime(r['period'].split(' to ')[-1].strip(),'%m/%d/%Y').date().isoformat()
-  quarter=max(quarters,key=lambda r:(period_end(r),r['filed_at']))
-  end=period_end(quarter)
-  self.audit_context[committee['id']]=dict(stage='quarterly_report',source_url=quarter['url'],report_type=quarter['report_type'],filed_at=quarter['filed_at'])
-  base=parse_quarter(self.document(source,quarter['url']),quarter)
-  result=dict(status='unavailable',as_of=end,cash_and_investments=base,a1_total=None,estimated_cash=None,message='A-1 totals could not be fully verified.')
+  assumed=False
+  if not quarters:
+   end=previous_quarter_end()
+   if not created or datetime.strptime(created,'%m/%d/%Y').date().isoformat()<=end:
+    return dict(unavailable('No D-2 quarterly report appears in the complete official archive.'),diagnostic=dict(stage='quarter_selection',reason='No D-2 quarterly report appears in the complete official archive.'))
+   base='0.00';assumed=True
+  else:
+   def period_end(r):
+    return datetime.strptime(r['period'].split(' to ')[-1].strip(),'%m/%d/%Y').date().isoformat()
+   quarter=max(quarters,key=lambda r:(period_end(r),r['filed_at']))
+   end=period_end(quarter)
+   self.audit_context[committee['id']]=dict(stage='quarterly_report',source_url=quarter['url'],report_type=quarter['report_type'],filed_at=quarter['filed_at'])
+   base=parse_quarter(self.document(source,quarter['url']),quarter)
+  result=dict(status='unavailable',as_of=end,cash_and_investments=base,a1_total=None,estimated_cash=None,baseline_assumed=assumed,message='A-1 totals could not be fully verified.')
   a1s=[r for r in rows if r['report_type'].lower().startswith('a-1') and r['filed_at'][:10]>end]
   if any('amend' in r['report_type'].lower() or r['clarification'] for r in a1s):
    result['message']='An A-1 amendment or clarification needs review before an estimate can be shown.'
@@ -186,9 +193,13 @@ class History:
    result['diagnostic']=diagnose(exc,dict(stage='a1_report',source_url=report['url'],filed_at=report['filed_at'],report_type=report['report_type']))
    result['message']=result['diagnostic']['reason']
    return result
-  result.update(status='ready',a1_total=format(total,'.2f'),estimated_cash=format(Decimal(base)+total,'.2f'),message='Based on the latest quarterly report and A-1 contributions received after quarter end.')
+  result.update(status='ready',a1_total=format(total,'.2f'),estimated_cash=format(Decimal(base)+total,'.2f'),message=('New committee formed '+created+'. No quarterly report yet; starting balance assumed $0. Estimate equals A-1 contributions received since formation.' if assumed else 'Based on the latest quarterly report and A-1 contributions received after quarter end.'))
   return result
 
+
+def previous_quarter_end():
+ today=datetime.now(ZoneInfo('America/Chicago')).date()
+ return (today.replace(month=((today.month-1)//3)*3+1,day=1)-timedelta(days=1)).isoformat()
 
 def parse_quarter(html,report):
  doc=Document(html)
@@ -200,6 +211,7 @@ def parse_quarter(html,report):
  values=[]
  for name in ['lblEndFundsAvail','lblTotalInvest']:
   text=field(name).text().strip()
+  if re.fullmatch(r'\(\$[\d,]+\.\d{2}\)',text):text='-'+text[1:-1]
   if not re.fullmatch(r'-?\$[\d,]+\.\d{2}',text):raise ReportFormatError('Invalid quarterly balance '+name+': '+repr(text))
   values.append(Decimal(text.replace('$','').replace(',','')))
  return format(sum(values),'.2f')
