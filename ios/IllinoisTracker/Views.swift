@@ -33,6 +33,7 @@ private struct TactileButtonStyle: ButtonStyle {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
+            .foregroundStyle(configuration.role == .destructive ? Color.red : CivicTheme.ink)
             .padding(inset)
             .frame(minHeight: 44)
             .background {
