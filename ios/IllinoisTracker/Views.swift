@@ -140,13 +140,15 @@ struct RootView: View {
         TabView(selection: $selectedTab) {
             HomeView().tabItem { Label("Home", systemImage: "house") }.tag(0)
             FeedView().tabItem { Label("Latest Reports", systemImage: "doc.text") }.tag(1)
-            DiscoverView().tabItem { Label("Discover", systemImage: "magnifyingglass") }.tag(2)
-            WatchlistView().tabItem { Label("Watchlist", systemImage: "star") }.tag(3)
+            AlertsView().tabItem { Label("Alerts", systemImage: "bell") }.tag(2)
+            DiscoverView().tabItem { Label("Search", systemImage: "magnifyingglass") }.tag(3)
             SettingsView().tabItem { Label("Settings", systemImage: "gearshape") }.tag(4)
         }
         .onAppear {
             #if DEBUG
             if ProcessInfo.processInfo.arguments.contains("--preview-reports") { selectedTab = 1 }
+            if ProcessInfo.processInfo.arguments.contains("--preview-alerts") { selectedTab = 2 }
+            if ProcessInfo.processInfo.arguments.contains("--preview-search") { selectedTab = 3 }
             #endif
         }
         .tint(accent)
@@ -540,82 +542,171 @@ private struct ContributionCard: View {
     }
 }
 
+struct AlertsView: View {
+    var body: some View { NavigationStack { AlertCenterView() } }
+}
+
+private struct AlertCenterView: View {
+    @EnvironmentObject var model: AppModel
+    var body: some View {
+        List {
+            Section {
+                HStack {
+                    Label(model.alertsEnabled && model.pushConfigured ? "Notifications on" : "Notifications paused", systemImage: "bell.badge")
+                        .font(.headline)
+                    Spacer()
+                }
+                if model.alertsEnabled {
+                    Button("Pause notifications") { Task { await model.disableAlerts() } }
+                } else {
+                    Button("Turn on notifications") { Task { await model.enableAlerts() } }
+                        .disabled(!model.pushConfigured)
+                }
+                if !model.pushConfigured {
+                    Text("Choose your alerts now. Phone notifications will be available once Apple push setup is complete.")
+                        .font(.caption).foregroundStyle(CivicTheme.secondary)
+                } else if model.notificationStatus == "Disabled in iPhone Settings", let url = URL(string: UIApplication.openSettingsURLString) {
+                    Link("Allow notifications in iPhone Settings", destination: url)
+                }
+            }
+            Section {
+                Toggle(isOn: Binding(get: { model.allReports }, set: { value in Task { await model.setAllReports(value) } })) {
+                    Label("All reports", systemImage: "globe.americas")
+                }.disabled(model.saving || model.loading)
+                Text(model.allReports ? "Every committee in the statewide filing feed. Your selections below are saved if you turn this off." : "Or choose the groups and committees you want below.")
+                    .font(.caption).foregroundStyle(CivicTheme.secondary)
+            } header: { Text("What do you want to follow?") }
+            Section {
+                NavigationLink { CaucusAlertsView() } label: {
+                    sourceLabel("Caucuses & categories", subtitle: "\(model.followedCategories.count) selected", icon: "person.3")
+                }.listRowBackground(TactileRowSurface()).listRowSeparator(.hidden)
+                NavigationLink { CommitteeSearchView(manageAlerts: true) } label: {
+                    sourceLabel("Individual committees", subtitle: "\(model.following.count) selected", icon: "person.crop.square")
+                }.listRowBackground(TactileRowSurface()).listRowSeparator(.hidden)
+                NavigationLink { MyListsView() } label: {
+                    sourceLabel("Custom lists", subtitle: "Group committees for races or topics you follow", icon: "list.bullet.rectangle")
+                }.listRowBackground(TactileRowSurface()).listRowSeparator(.hidden)
+            } footer: {
+                Text("Selections save automatically. New reports only. Overlapping selections produce one alert per report.")
+            }
+            Section {
+                NavigationLink { AlertOptionsView() } label: { Label("Report types & delivery", systemImage: "slider.horizontal.3") }
+                    .listRowBackground(TactileRowSurface()).listRowSeparator(.hidden)
+                NavigationLink { AlertInboxView() } label: { Label("Alert history", systemImage: "clock.arrow.circlepath") }
+                    .listRowBackground(TactileRowSurface()).listRowSeparator(.hidden)
+            }
+        }.civicSurface().navigationTitle("Alerts")
+            .task { await model.refreshPermission(); await model.refreshIfNeeded() }
+            .refreshable { await model.refresh() }
+    }
+    private func sourceLabel(_ title: String, subtitle: String, icon: String) -> some View {
+        Label {
+            VStack(alignment: .leading, spacing: 4) {
+                Text(title).font(.headline)
+                Text(subtitle).font(.caption).foregroundStyle(CivicTheme.secondary)
+            }
+        } icon: { Image(systemName: icon).foregroundStyle(accent) }
+        .padding(.vertical, 6)
+    }
+}
+
+private struct CaucusAlertsView: View {
+    @EnvironmentObject var model: AppModel
+    var body: some View {
+        List {
+            Section {
+                ForEach(model.categories) { category in
+                    Toggle(isOn: Binding(get: { model.followedCategories.contains(category.id) }, set: { _ in Task { await model.toggleCategory(category.id) } })) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(category.name).font(.headline)
+                            Text(category.verified == 1 ? "\(category.memberCount) committees" : "Committee list under review")
+                                .font(.caption).foregroundStyle(CivicTheme.secondary)
+                        }
+                    }.disabled(category.verified != 1 || model.saving || model.loading)
+                }
+            } footer: {
+                Text("Includes listed candidates, leaders, and caucus committees. Membership changes apply automatically.")
+            }
+            if model.allReports { Section { Text("All reports is on, so these committees are already covered. These selections are saved for later.").font(.caption) } }
+        }.civicSurface().navigationTitle("Caucuses & categories").navigationBarTitleDisplayMode(.inline)
+    }
+}
+
 struct DiscoverView: View {
+    var body: some View { NavigationStack { CommitteeSearchView(manageAlerts: false) } }
+}
+
+private struct CommitteeSearchView: View {
     @EnvironmentObject var model: AppModel
+    var manageAlerts: Bool
     @State private var query = ""
+    @State private var rows: [Committee] = []
+    @State private var cursor: String?
+    @State private var loading = false
+    @State private var failure: String?
+    @State private var generation = 0
+    private var showingSelected: Bool { manageAlerts && query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
     var body: some View {
-        NavigationStack {
-            List {
-                if query.isEmpty {
-                    Section {
-                        ForEach(model.categories) { category in
-                            HStack {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    Text(category.name)
-                                    Text(category.verified == 1 ? "\(category.memberCount) committees" : "Committee list under review").font(.caption).foregroundStyle(CivicTheme.secondary)
-                                }
-                                Spacer()
-                                if category.verified == 1 {
-                                    Button { Task { await model.toggleCategory(category.id) } } label: { Image(systemName: model.followedCategories.contains(category.id) ? "checkmark.circle.fill" : "plus.circle") }
-                                        .buttonStyle(TactileButtonStyle()).disabled(model.saving || model.loading)
-                                } else { Image(systemName: "clock").foregroundStyle(CivicTheme.secondary) }
-                            }
-                        }
-                    } header: { Text("Follow a group") } footer: { Text("Groups follow the current curated committee lists. Browse their members and candidates from Home. Lists may be revised over time.") }
-                }
+        List {
+            if showingSelected {
                 Section {
-                    ForEach(model.committees) { committee in
-                        HStack(spacing: 12) {
-                            NavigationLink { CommitteeFilingsView(committee: committee, member: "", officialURL: nil) } label: { Text(committee.name) }.listRowBackground(TactileRowSurface()).listRowSeparator(.hidden).buttonStyle(TactileButtonStyle())
-                            Spacer()
-                            Button { Task { await model.toggle(committee) } } label: { Image(systemName: model.follows(committee) ? "checkmark.circle.fill" : "plus.circle").font(.title3) }
-                                .buttonStyle(TactileButtonStyle()).disabled(model.saving || model.loading)
-                                .accessibilityLabel("\(model.follows(committee) ? "Unfollow" : "Follow") \(committee.name)")
-                        }.padding(.vertical, 4)
+                    ForEach(model.following) { committee in committeeRow(committee) }
+                    if model.following.isEmpty {
+                        ContentUnavailableView("Choose a committee", systemImage: "bell.badge", description: Text("Search by committee name above, then tap Add alert."))
                     }
-                    if model.committees.isEmpty { Text("No matching committees. Try another name.").foregroundStyle(CivicTheme.secondary) }
-                    if model.committeesHaveMore { Button("Load more committees") { Task { await model.search(query, more: true) } } }
-                } header: { Text("Committees") } footer: { Text("Includes the legislative directory and committees observed in the monitored feed. This is not the complete statewide directory.") }
+                } header: { Text("Your committee alerts") }
+            } else {
+                Section {
+                    ForEach(rows) { committee in committeeRow(committee) }
+                    if loading { ProgressView("Searching…") }
+                    if let failure {
+                        Text(failure).foregroundStyle(CivicTheme.secondary)
+                        Button("Try again") { Task { await search(more: false) } }
+                    } else if rows.isEmpty && !loading {
+                        ContentUnavailableView.search(text: query)
+                    }
+                    if cursor != nil { Button("More results") { Task { await search(more: true) } }.disabled(loading) }
+                } header: { Text(query.isEmpty ? "Browse committees" : "Results") }
+                Section {
+                    Text("Search includes the app’s directory and committees found in the filing feed.").font(.caption).foregroundStyle(CivicTheme.secondary)
+                }
             }
-            .civicSurface().navigationTitle("Discover")
-            .searchable(text: $query, prompt: "Find a committee")
+        }.civicSurface().navigationTitle(manageAlerts ? "Committee alerts" : "Search")
+            .navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $query, placement: .navigationBarDrawer(displayMode: .always), prompt: "Search committee names")
             .task(id: query) {
-                do { try await Task.sleep(for: .milliseconds(300)); await model.search(query) } catch { }
+                generation += 1; rows = []; cursor = nil; failure = nil
+                guard !showingSelected else { loading = false; return }
+                loading = true
+                do { try await Task.sleep(for: .milliseconds(300)); try Task.checkCancellation(); await search(more: false) }
+                catch { }
             }
-        }
+    }
+    private func committeeRow(_ committee: Committee) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            NavigationLink { CommitteeFilingsView(committee: committee, member: "", officialURL: nil) } label: {
+                Text(committee.name).font(.headline)
+            }.buttonStyle(TactileButtonStyle())
+            Button { Task { await model.toggle(committee) } } label: {
+                Label(model.follows(committee) ? "Remove alert" : "Add alert", systemImage: model.follows(committee) ? "bell.slash" : "bell.badge")
+            }.buttonStyle(TactileButtonStyle()).disabled(model.saving || model.loading)
+        }.padding(.vertical, 5)
+    }
+    @MainActor private func search(more: Bool) async {
+        generation += 1; let requestedGeneration = generation
+        loading = true; failure = nil
+        defer { if generation == requestedGeneration { loading = false } }
+        var parts = URLComponents(); parts.path = "/v1/committees"
+        parts.queryItems = [URLQueryItem(name: "q", value: query)]
+        if more, let cursor { parts.queryItems?.append(URLQueryItem(name: "after", value: cursor)) }
+        do {
+            let page: CommitteePage = try await model.connection().call(parts.string ?? "/v1/committees")
+            guard !Task.isCancelled, generation == requestedGeneration else { return }
+            rows = more ? rows + page.committees : page.committees; cursor = page.nextCursor
+        } catch { if !Task.isCancelled && generation == requestedGeneration { failure = error.localizedDescription } }
     }
 }
-struct WatchlistView: View {
-    @EnvironmentObject var model: AppModel
-    var body: some View {
-        NavigationStack {
-            List {
-                Section {
-                    NavigationLink("My private lists") { MyListsView() }.listRowBackground(TactileRowSurface()).listRowSeparator(.hidden).buttonStyle(TactileButtonStyle())
-                    NavigationLink("Delivered alerts & digests") { AlertInboxView() }.listRowBackground(TactileRowSurface()).listRowSeparator(.hidden).buttonStyle(TactileButtonStyle())
-                }
-                Section {
-                    Label(model.alertsEnabled && model.pushConfigured ? "Filing alerts enabled" : "Manage alerts in Settings", systemImage: model.alertsEnabled && model.pushConfigured ? "bell.badge" : "bell")
-                }
-                if model.following.isEmpty && model.followedCategories.isEmpty {
-                    ContentUnavailableView("Keep an eye on the money", systemImage: "star", description: Text("Add committees from Discover. Every report type is included."))
-                }
-                if !model.followedCategories.isEmpty {
-                    Section("Groups") {
-                        ForEach(model.categories.filter { model.followedCategories.contains($0.id) }) { category in
-                            HStack { Text(category.name); Spacer(); Button("Unfollow") { Task { await model.toggleCategory(category.id) } }.buttonStyle(TactileButtonStyle()).disabled(model.saving || model.loading) }
-                        }
-                    }
-                }
-                Section("Committees · \(model.following.count)") {
-                    ForEach(model.following) { committee in
-                        HStack { NavigationLink { CommitteeFilingsView(committee: committee, member: "", officialURL: nil) } label: { Text(committee.name) }.listRowBackground(TactileRowSurface()).listRowSeparator(.hidden).buttonStyle(TactileButtonStyle()); Spacer(); Button { Task { await model.toggle(committee) } } label: { Image(systemName: "star.fill") }.buttonStyle(TactileButtonStyle()).disabled(model.saving || model.loading).accessibilityLabel("Unfollow \(committee.name)") }
-                    }
-                }
-            }.civicSurface().navigationTitle("Watchlist").refreshable { await model.refresh() }
-        }
-    }
-}
+
 struct SettingsView: View {
     @EnvironmentObject var model: AppModel
     @State private var confirmDelete = false
@@ -633,18 +724,9 @@ struct SettingsView: View {
                 } header: { Text("Appearance") } footer: {
                     Text("Modern Civic is the default. Choose Night Ledger, Pink Mode, or switch between light and dark with your iPhone.")
                 }
-                Section("Filing alerts") {
-                    NavigationLink("Alert filters, digests & quiet hours") { AlertOptionsView() }.listRowBackground(TactileRowSurface()).listRowSeparator(.hidden).buttonStyle(TactileButtonStyle())
-                    Label(model.notificationStatus, systemImage: "bell")
-                    if !model.pushConfigured {
-                        Text("Push delivery is waiting for Apple Developer setup. You can follow committees and browse reports now.").font(.subheadline).foregroundStyle(CivicTheme.secondary)
-                    }
-                    if model.alertsEnabled {
-                        Button("Pause filing alerts") { Task { await model.disableAlerts() } }
-                    } else {
-                        Button("Enable filing alerts") { Task { await model.enableAlerts() } }.disabled(!model.pushConfigured)
-                    }
-                    if let url = URL(string: UIApplication.openSettingsURLString) { Link("Open iPhone Settings", destination: url) }
+                Section {
+                    NavigationLink { AlertCenterView() } label: { Label("Manage alerts", systemImage: "bell") }
+                        .listRowBackground(TactileRowSurface()).listRowSeparator(.hidden)
                 }
                 Section("Help") { ProblemButton(context: ["screen": "Settings"]) }
                 Section("About") {
@@ -1241,7 +1323,7 @@ private struct AlertOptionsView: View {
         Form {
             Section("Which filings?") {
                 Picker("Notify me about", selection: $options.mode) {
-                    Text("Every filing").tag("all")
+                    Text("All report types").tag("all")
                     Text("Quarterly reports only").tag("quarterly")
                     Text("A-1 contributions above an amount").tag("amount")
                 }
@@ -1264,12 +1346,12 @@ private struct AlertOptionsView: View {
                 Text("Times use \(options.timezone). Reports are grouped by committee in Notification Center. Quiet-hour alerts wait until the next allowed time.").font(.caption)
             }
             Section {
-                Text("Applies to followed committees, groups, and committees in private lists. Newly following something does not send alerts for older filings.").font(.footnote)
+                Text("Applies to your selected alert sources, including All reports when enabled. Only newly discovered filings trigger notifications.").font(.footnote)
                 if !model.pushConfigured { Text("Preferences can be saved now. Phone delivery requires Apple push setup.").foregroundStyle(CivicTheme.secondary) }
                 Button(saving ? "Saving…" : "Save alert preferences") { Task { await save() } }.disabled(!ready || saving)
                 if let message { Text(message).font(.footnote) }
             }
-        }.civicSurface().navigationTitle("Alert preferences").navigationBarTitleDisplayMode(.inline)
+        }.civicSurface().navigationTitle("Report types & delivery").navigationBarTitleDisplayMode(.inline)
             .task {
                 do { try await model.setup(); options = try await model.connection().call("/v1/me/alert-preferences"); ready = true }
                 catch { message = error.localizedDescription }
@@ -1289,11 +1371,12 @@ private struct MyListsView: View {
     @EnvironmentObject var model: AppModel
     @State private var lists: [ObserverList] = []
     @State private var name = ""
+    @State private var editingList: ObserverList?
     @State private var failure: String?
     @State private var saving = false
     var body: some View {
         List {
-            Section("Create a private list") {
+            Section("Create a custom list") {
                 TextField("For example, Lake County races", text: $name)
                 Button("Create list") { Task { await create() } }.disabled(saving || name.trimmingCharacters(in: .whitespaces).isEmpty)
             }
@@ -1307,9 +1390,10 @@ private struct MyListsView: View {
                         }
                     }.listRowBackground(TactileRowSurface()).listRowSeparator(.hidden).buttonStyle(TactileButtonStyle())
                 }.onDelete { offsets in Task { for i in offsets { await remove(lists[i]) }; await load() } }
-                if lists.isEmpty { Text("Organize committees into your own lists. List members are included in filing alerts when enabled.").foregroundStyle(CivicTheme.secondary) }
+                if lists.isEmpty { Text("Create a list, then choose its committees. Their new reports are included in your alerts. Only you can see your lists.").foregroundStyle(CivicTheme.secondary) }
             }
-        }.civicSurface().navigationTitle("My lists").task { await load() }.refreshable { await load() }
+        }.civicSurface().navigationTitle("Custom lists").task { await load() }.refreshable { await load() }
+            .sheet(item: $editingList, onDismiss: { Task { await load() } }) { list in NavigationStack { EditObserverListView(list: list) } }
     }
     private func load() async {
         do { try await model.setup(); let response: ObserverLists = try await model.connection().call("/v1/me/lists"); lists = response.lists; failure = nil }
@@ -1317,7 +1401,7 @@ private struct MyListsView: View {
     }
     private func create() async {
         saving = true; defer { saving = false }
-        do { let _: CreatedList = try await model.connection().call("/v1/me/lists", method: "POST", body: JSONSerialization.data(withJSONObject: ["name": name])); name = ""; await load() }
+        do { let created: CreatedList = try await model.connection().call("/v1/me/lists", method: "POST", body: JSONSerialization.data(withJSONObject: ["name": name])); name = ""; await load(); editingList = lists.first { $0.id == created.id } }
         catch { failure = error.localizedDescription }
     }
     private func remove(_ list: ObserverList) async {
@@ -1338,7 +1422,7 @@ private struct ObserverListView: View {
     var body: some View {
         List {
             Section {
-                Button("Edit name and committees") { editing = true }
+                Button("Manage committees & list name") { editing = true }
                 Text("\(filings.filter { $0.seq > (seen ?? list.seenSeq) }.count) loaded reports since your last visit").font(.caption)
                 Button("Mark these reports as seen") { Task {
                     do { let _: OK = try await model.connection().call("/v1/me/lists/\(list.id)/seen", method: "POST", body: JSONSerialization.data(withJSONObject: ["seq": filings.map(\.seq).max() ?? list.seenSeq])); seen = filings.map(\.seq).max() ?? list.seenSeq }
@@ -1348,7 +1432,7 @@ private struct ObserverListView: View {
             if let failure { Text(failure); Button("Try again") { Task { await load(false) } } }
             ForEach(filings) { filing in NavigationLink { FilingDetail(filing: filing) } label: { FilingRow(filing: filing) }.listRowBackground(TactileRowSurface()).listRowSeparator(.hidden).buttonStyle(TactileButtonStyle()) }
             if cursor != nil { Button("Load earlier reports") { Task { await load(true) } } }
-            if filings.isEmpty && failure == nil { Text("No collected reports in this list yet. Add committees using Edit.").foregroundStyle(CivicTheme.secondary) }
+            if filings.isEmpty && failure == nil { Text("No collected reports in this list yet. Tap Manage committees & list name to add some.").foregroundStyle(CivicTheme.secondary) }
         }.civicSurface().navigationTitle(currentName.isEmpty ? list.name : currentName).navigationBarTitleDisplayMode(.inline)
             .task { await load(false) }.refreshable { await load(false) }
             .sheet(isPresented: $editing, onDismiss: { Task { await load(false) } }) { NavigationStack { EditObserverListView(list: list) } }

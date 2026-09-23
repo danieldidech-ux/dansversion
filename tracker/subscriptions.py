@@ -35,6 +35,7 @@ def migrate(db):
         id TEXT PRIMARY KEY, credential_hash TEXT UNIQUE NOT NULL, created_at REAL NOT NULL,
         token TEXT, environment TEXT NOT NULL DEFAULT 'sandbox', enabled INTEGER NOT NULL DEFAULT 0);
       CREATE UNIQUE INDEX IF NOT EXISTS device_token ON devices(token,environment) WHERE token IS NOT NULL;
+      CREATE TABLE IF NOT EXISTS all_report_subscriptions (device_id TEXT PRIMARY KEY);
       CREATE TABLE IF NOT EXISTS subscriptions (
         device_id TEXT NOT NULL, committee_key TEXT NOT NULL, PRIMARY KEY(device_id,committee_key));
       CREATE TABLE IF NOT EXISTS categories (
@@ -60,6 +61,7 @@ def enqueue(db, seq, committee_key, now):
     # Called inside the same transaction as insertion of a genuinely new filing.
     db.execute('''INSERT OR IGNORE INTO outbox(device_id,filing_seq,created_at,next_attempt)
       SELECT id,?,?,? FROM devices WHERE enabled=1 AND token IS NOT NULL AND id IN (
+        SELECT device_id FROM all_report_subscriptions UNION
         SELECT device_id FROM subscriptions WHERE committee_key=?
         UNION
         SELECT s.device_id FROM category_subscriptions s
@@ -68,6 +70,16 @@ def enqueue(db, seq, committee_key, now):
         UNION SELECT l.device_id FROM private_lists l JOIN list_members m ON m.list_id=l.id WHERE m.committee_key=?)''',
         (seq, now, now, committee_key, committee_key,committee_key))
 
+
+def prune_unmatched(db,device):
+    if db.execute('SELECT 1 FROM all_report_subscriptions WHERE device_id=?',(device,)).fetchone():return
+    db.execute("""DELETE FROM outbox WHERE device_id=? AND state='pending' AND filing_seq NOT IN (
+                SELECT f.seq FROM filings f WHERE f.committee_key IN (
+                  SELECT committee_key FROM subscriptions WHERE device_id=? UNION
+                  SELECT m.committee_key FROM category_members m JOIN category_subscriptions s ON s.category_id=m.category_id WHERE s.device_id=? UNION
+                  SELECT m.committee_key FROM list_members m JOIN private_lists l ON l.id=m.list_id WHERE l.device_id=?)
+                UNION SELECT x.seq FROM disclosures x JOIN active_entity_follows e ON e.entity_id=x.entity_id WHERE e.device_id=?
+                UNION SELECT x.seq FROM disclosures x JOIN active_list_entities m ON m.entity_id=x.entity_id JOIN private_lists l ON l.id=m.list_id WHERE l.device_id=?)""",(device,)*6)
 
 def routes(store):
     api = Blueprint('subscriptions', __name__)
@@ -135,7 +147,25 @@ def routes(store):
         with closing(store.connect()) as db:
             committees = [dict(r) for r in db.execute('SELECT c.id,c.name FROM committees c JOIN subscriptions s ON c.id=s.committee_key WHERE s.device_id=? ORDER BY c.name', (g.device['id'],))]
             categories = [r[0] for r in db.execute('SELECT category_id FROM category_subscriptions WHERE device_id=?', (g.device['id'],))]
-        return jsonify(committees=committees, categories=categories, alerts_enabled=bool(g.device['enabled']), push_configured=configured())
+            all_reports=bool(db.execute('SELECT 1 FROM all_report_subscriptions WHERE device_id=?',(g.device['id'],)).fetchone())
+        return jsonify(all_reports=all_reports, committees=committees, categories=categories, alerts_enabled=bool(g.device['enabled']), push_configured=configured())
+
+    @api.put('/v1/me/alert-scope')
+    @authenticated
+    def alert_scope():
+        data=body()
+        if type(data.get('all_reports')) is not bool:return jsonify(error='Choose whether to receive all reports.'),400
+        with closing(store.connect()) as db,db:
+            db.execute('BEGIN IMMEDIATE')
+            if data['all_reports']:
+                db.execute('INSERT OR IGNORE INTO all_report_subscriptions VALUES (?)',(g.device['id'],))
+                from observer import preferences
+                options=preferences(db,g.device['id']);options['mode']='all'
+                db.execute('INSERT OR REPLACE INTO alert_preferences VALUES (?,?)',(g.device['id'],json.dumps(options)))
+            else:
+                db.execute('DELETE FROM all_report_subscriptions WHERE device_id=?',(g.device['id'],))
+                prune_unmatched(db,g.device['id'])
+        return jsonify(ok=True)
 
     @api.put('/v1/me/watchlist')
     @authenticated
@@ -154,13 +184,7 @@ def routes(store):
             db.execute('DELETE FROM category_subscriptions WHERE device_id=?', (g.device['id'],))
             db.executemany('INSERT INTO subscriptions VALUES (?,?)', [(g.device['id'],x) for x in set(committees)])
             db.executemany('INSERT INTO category_subscriptions VALUES (?,?)', [(g.device['id'],x) for x in set(categories)])
-            db.execute("""DELETE FROM outbox WHERE device_id=? AND state='pending' AND filing_seq NOT IN (
-                SELECT f.seq FROM filings f WHERE f.committee_key IN (
-                  SELECT committee_key FROM subscriptions WHERE device_id=? UNION
-                  SELECT m.committee_key FROM category_members m JOIN category_subscriptions s ON s.category_id=m.category_id WHERE s.device_id=? UNION
-                  SELECT m.committee_key FROM list_members m JOIN private_lists l ON l.id=m.list_id WHERE l.device_id=?)
-                UNION SELECT x.seq FROM disclosures x JOIN active_entity_follows e ON e.entity_id=x.entity_id WHERE e.device_id=?
-                UNION SELECT x.seq FROM disclosures x JOIN active_list_entities m ON m.entity_id=x.entity_id JOIN private_lists l ON l.id=m.list_id WHERE l.device_id=?)""",(g.device['id'],)*6)
+            prune_unmatched(db,g.device['id'])
         return jsonify(ok=True)
 
     @api.put('/v1/me/push')
@@ -188,7 +212,7 @@ def routes(store):
         with closing(store.connect()) as db, db:
             db.execute('DELETE FROM list_members WHERE list_id IN (SELECT id FROM private_lists WHERE device_id=?)',(g.device['id'],))
             db.execute('DELETE FROM list_entities WHERE list_id IN (SELECT id FROM private_lists WHERE device_id=?)',(g.device['id'],))
-            for table in ('problem_reports','private_lists','alert_preferences','entity_follows','subscriptions','category_subscriptions','outbox'):
+            for table in ('all_report_subscriptions','problem_reports','private_lists','alert_preferences','entity_follows','subscriptions','category_subscriptions','outbox'):
                 db.execute('DELETE FROM '+table+' WHERE device_id=?', (g.device['id'],))
             db.execute('DELETE FROM devices WHERE id=?',(g.device['id'],))
         return jsonify(ok=True)
@@ -202,14 +226,14 @@ def routes(store):
         except ValueError:
             return jsonify(error='Invalid cursor'), 400
         with closing(store.connect()) as db:
-            rows = [dict(r) for r in db.execute('''SELECT * FROM filings WHERE seq<? AND (committee_key IN (
+            rows = [dict(r) for r in db.execute('''SELECT * FROM filings WHERE seq<? AND (EXISTS (SELECT 1 FROM all_report_subscriptions WHERE device_id=?) OR committee_key IN (
               SELECT committee_key FROM subscriptions WHERE device_id=? UNION
               SELECT m.committee_key FROM category_members m JOIN category_subscriptions s ON s.category_id=m.category_id
               JOIN categories c ON c.id=m.category_id AND c.verified=1 WHERE s.device_id=? UNION
               SELECT m.committee_key FROM list_members m JOIN private_lists l ON l.id=m.list_id WHERE l.device_id=?)
               OR seq IN (SELECT x.seq FROM disclosures x JOIN active_entity_follows e ON e.entity_id=x.entity_id WHERE e.device_id=?
                 UNION SELECT x.seq FROM disclosures x JOIN active_list_entities m ON m.entity_id=x.entity_id JOIN private_lists l ON l.id=m.list_id WHERE l.device_id=?))
-              ORDER BY seq DESC LIMIT 51''', (before,)+(g.device['id'],)*5)]
+              ORDER BY seq DESC LIMIT 51''', (before,)+(g.device['id'],)*6)]
         return jsonify(filings=rows[:50],has_more=len(rows)>50,next_cursor=rows[49]['seq'] if len(rows)>50 else None)
 
     @api.get('/v1/filings/<int(signed=True):seq>')
@@ -294,7 +318,8 @@ def dispatch(store, sender, enabled=None):
             pending=db.execute("SELECT 1 FROM outbox WHERE id=? AND state='pending'",(row['id'],)).fetchone()
             if not current or current['token']!=row['token'] or not pending:continue
             device=row['device_id'];key=row['committee_key']
-            subscribed=db.execute('SELECT 1 FROM subscriptions WHERE device_id=? AND committee_key=?',(device,key)).fetchone()
+            subscribed=db.execute('SELECT 1 FROM all_report_subscriptions WHERE device_id=?',(device,)).fetchone()
+            subscribed=subscribed or db.execute('SELECT 1 FROM subscriptions WHERE device_id=? AND committee_key=?',(device,key)).fetchone()
             subscribed=subscribed or db.execute('SELECT 1 FROM category_subscriptions s JOIN category_members m ON s.category_id=m.category_id WHERE s.device_id=? AND m.committee_key=?',(device,key)).fetchone()
             subscribed=subscribed or db.execute('SELECT 1 FROM private_lists l JOIN list_members m ON l.id=m.list_id WHERE l.device_id=? AND m.committee_key=?',(device,key)).fetchone()
             subscribed=subscribed or db.execute('SELECT 1 FROM active_entity_follows f JOIN disclosures x ON f.entity_id=x.entity_id WHERE f.device_id=? AND x.seq=?',(device,row['filing_seq'])).fetchone()

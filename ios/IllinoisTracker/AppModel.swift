@@ -14,6 +14,7 @@ import UserNotifications
     @Published var saving = false
     @Published var pushConfigured = false
     @Published var alertsEnabled = false
+    @Published var allReports = false
     @Published var notificationStatus = "Not enabled"
     @Published var selectedFiling: Filing?
     @Published var showAlertInbox = false
@@ -50,7 +51,7 @@ import UserNotifications
             try await setup()
             let api = try connection()
             let profile: Profile = try await api.call("/v1/me")
-            following = profile.committees; followedCategories = profile.categories
+            following = profile.committees; followedCategories = profile.categories; allReports = profile.allReports ?? false
             alertsEnabled = profile.alertsEnabled; pushConfigured = profile.pushConfigured
             monitor = try await api.call("/v1/status")
             let categoryPage: CategoryPage = try await api.call("/v1/categories")
@@ -104,6 +105,17 @@ import UserNotifications
             committees = more ? committees + page.committees : page.committees
             committeeCursor = page.nextCursor; committeesHaveMore = page.hasMore
         } catch { if !Task.isCancelled { self.error = error.localizedDescription } }
+    }
+    func setAllReports(_ enabled: Bool) async {
+        guard !saving, !loading else { return }
+        saving = true; defer { saving = false }
+        do {
+            try await setup()
+            let _: OK = try await connection().call("/v1/me/alert-scope", method: "PUT",
+                body: JSONSerialization.data(withJSONObject: ["all_reports": enabled]))
+            allReports = enabled
+            try await refreshWatched()
+        } catch { error = error.localizedDescription }
     }
     func follows(_ committee: Committee) -> Bool { following.contains(where: { $0.id == committee.id }) }
     func toggle(_ committee: Committee) async {
@@ -177,7 +189,7 @@ import UserNotifications
         do {
             let _: OK = try await connection().call("/v1/me", method: "DELETE")
             UIApplication.shared.unregisterForRemoteNotifications()
-            following = []; followedCategories = []; watched = []; alertsEnabled = false
+            following = []; followedCategories = []; watched = []; alertsEnabled = false; allReports = false
             registered = false
             // A subsequent explicit follow/refresh registers this installation again, empty.
         } catch { self.error = error.localizedDescription }

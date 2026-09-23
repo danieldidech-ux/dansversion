@@ -76,6 +76,7 @@ struct FilingPage: Decodable { let filings: [Filing]; let hasMore: Bool; let nex
 struct CommitteePage: Decodable { let committees: [Committee]; let hasMore: Bool; let nextCursor: String? }
 struct CategoryPage: Decodable { let categories: [Category] }
 struct Profile: Decodable {
+    let allReports: Bool?
     let committees: [Committee]; let categories: [String]; let alertsEnabled: Bool; let pushConfigured: Bool
 }
 struct Monitor: Decodable {
