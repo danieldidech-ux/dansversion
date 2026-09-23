@@ -115,7 +115,7 @@ import UserNotifications
                 body: JSONSerialization.data(withJSONObject: ["all_reports": enabled]))
             allReports = enabled
             try await refreshWatched()
-        } catch { error = error.localizedDescription }
+        } catch { self.error = error.localizedDescription }
     }
     func follows(_ committee: Committee) -> Bool { following.contains(where: { $0.id == committee.id }) }
     func toggle(_ committee: Committee) async {
