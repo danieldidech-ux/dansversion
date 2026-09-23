@@ -159,8 +159,8 @@ def routes(store):
                   SELECT committee_key FROM subscriptions WHERE device_id=? UNION
                   SELECT m.committee_key FROM category_members m JOIN category_subscriptions s ON s.category_id=m.category_id WHERE s.device_id=? UNION
                   SELECT m.committee_key FROM list_members m JOIN private_lists l ON l.id=m.list_id WHERE l.device_id=?)
-                UNION SELECT x.seq FROM disclosures x JOIN entity_follows e ON e.entity_id=x.entity_id WHERE e.device_id=?
-                UNION SELECT x.seq FROM disclosures x JOIN list_entities m ON m.entity_id=x.entity_id JOIN private_lists l ON l.id=m.list_id WHERE l.device_id=?)""",(g.device['id'],)*6)
+                UNION SELECT x.seq FROM disclosures x JOIN active_entity_follows e ON e.entity_id=x.entity_id WHERE e.device_id=?
+                UNION SELECT x.seq FROM disclosures x JOIN active_list_entities m ON m.entity_id=x.entity_id JOIN private_lists l ON l.id=m.list_id WHERE l.device_id=?)""",(g.device['id'],)*6)
         return jsonify(ok=True)
 
     @api.put('/v1/me/push')
@@ -207,8 +207,8 @@ def routes(store):
               SELECT m.committee_key FROM category_members m JOIN category_subscriptions s ON s.category_id=m.category_id
               JOIN categories c ON c.id=m.category_id AND c.verified=1 WHERE s.device_id=? UNION
               SELECT m.committee_key FROM list_members m JOIN private_lists l ON l.id=m.list_id WHERE l.device_id=?)
-              OR seq IN (SELECT x.seq FROM disclosures x JOIN entity_follows e ON e.entity_id=x.entity_id WHERE e.device_id=?
-                UNION SELECT x.seq FROM disclosures x JOIN list_entities m ON m.entity_id=x.entity_id JOIN private_lists l ON l.id=m.list_id WHERE l.device_id=?))
+              OR seq IN (SELECT x.seq FROM disclosures x JOIN active_entity_follows e ON e.entity_id=x.entity_id WHERE e.device_id=?
+                UNION SELECT x.seq FROM disclosures x JOIN active_list_entities m ON m.entity_id=x.entity_id JOIN private_lists l ON l.id=m.list_id WHERE l.device_id=?))
               ORDER BY seq DESC LIMIT 51''', (before,)+(g.device['id'],)*5)]
         return jsonify(filings=rows[:50],has_more=len(rows)>50,next_cursor=rows[49]['seq'] if len(rows)>50 else None)
 
@@ -293,8 +293,8 @@ def dispatch(store, sender, enabled=None):
             subscribed=db.execute('SELECT 1 FROM subscriptions WHERE device_id=? AND committee_key=?',(device,key)).fetchone()
             subscribed=subscribed or db.execute('SELECT 1 FROM category_subscriptions s JOIN category_members m ON s.category_id=m.category_id WHERE s.device_id=? AND m.committee_key=?',(device,key)).fetchone()
             subscribed=subscribed or db.execute('SELECT 1 FROM private_lists l JOIN list_members m ON l.id=m.list_id WHERE l.device_id=? AND m.committee_key=?',(device,key)).fetchone()
-            subscribed=subscribed or db.execute('SELECT 1 FROM entity_follows f JOIN disclosures x ON f.entity_id=x.entity_id WHERE f.device_id=? AND x.seq=?',(device,row['filing_seq'])).fetchone()
-            subscribed=subscribed or db.execute('SELECT 1 FROM private_lists l JOIN list_entities m ON m.list_id=l.id JOIN disclosures x ON x.entity_id=m.entity_id WHERE l.device_id=? AND x.seq=?',(device,row['filing_seq'])).fetchone()
+            subscribed=subscribed or db.execute('SELECT 1 FROM active_entity_follows f JOIN disclosures x ON f.entity_id=x.entity_id WHERE f.device_id=? AND x.seq=?',(device,row['filing_seq'])).fetchone()
+            subscribed=subscribed or db.execute('SELECT 1 FROM private_lists l JOIN active_list_entities m ON m.list_id=l.id JOIN disclosures x ON x.entity_id=m.entity_id WHERE l.device_id=? AND x.seq=?',(device,row['filing_seq'])).fetchone()
             if not subscribed:
                 db.execute("UPDATE outbox SET state='cancelled' WHERE id=?",(row['id'],));continue
             p=preferences(db,device);allowed,body=alert_summary(db,row,p)
@@ -333,3 +333,4 @@ def lookup_filing(db,seq):
     if seq>=0: return db.execute('SELECT * FROM filings WHERE seq=?',(seq,)).fetchone()
     row=db.execute('SELECT payload FROM archive_reports WHERE seq=?',(-seq,)).fetchone()
     return dict(json.loads(row[0]),seq=seq) if row else None
+

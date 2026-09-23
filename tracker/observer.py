@@ -18,6 +18,8 @@ def migrate(db):
  CREATE TABLE IF NOT EXISTS list_entities(list_id TEXT NOT NULL,entity_id TEXT NOT NULL,created REAL NOT NULL,PRIMARY KEY(list_id,entity_id));
  CREATE TABLE IF NOT EXISTS entities(id TEXT PRIMARY KEY,name TEXT NOT NULL,address TEXT NOT NULL);
  CREATE TABLE IF NOT EXISTS entity_follows(device_id TEXT NOT NULL,entity_id TEXT NOT NULL,created REAL NOT NULL,PRIMARY KEY(device_id,entity_id));
+ CREATE VIEW IF NOT EXISTS active_entity_follows AS SELECT * FROM entity_follows WHERE 0;
+ CREATE VIEW IF NOT EXISTS active_list_entities AS SELECT * FROM list_entities WHERE 0;
  CREATE TABLE IF NOT EXISTS disclosures(id TEXT PRIMARY KEY,entity_id TEXT NOT NULL,committee_key TEXT NOT NULL,committee_name TEXT NOT NULL,seq INTEGER NOT NULL,section TEXT NOT NULL,amount TEXT NOT NULL,date TEXT NOT NULL,kind TEXT NOT NULL,source_url TEXT NOT NULL,payload TEXT NOT NULL);
  CREATE INDEX IF NOT EXISTS disclosure_entity ON disclosures(entity_id,date);
  CREATE INDEX IF NOT EXISTS disclosure_report ON disclosures(seq);
@@ -81,8 +83,7 @@ def index_tick(store):
  if not index_has_space(store):return
  with closing(store.connect()) as db,db:
   db.execute("INSERT OR IGNORE INTO index_jobs(seq) SELECT seq FROM filings WHERE lower(report_type) LIKE 'a-1%' OR lower(report_type) LIKE 'd-2 quarterly%'")
-  db.execute("INSERT OR IGNORE INTO index_jobs(seq) SELECT -seq FROM archive_reports WHERE json_extract(payload,'$.report_type') LIKE 'A-1%' OR json_extract(payload,'$.report_type') LIKE 'D-2 Quarterly%'")
-  row=db.execute("SELECT * FROM index_jobs WHERE status!='ready' AND checked<? ORDER BY (seq>0) DESC, (attempts=0) DESC, seq DESC LIMIT 1",(time.time()-300,)).fetchone()
+  row=db.execute("SELECT * FROM index_jobs WHERE seq>0 AND status!='ready' AND checked<? ORDER BY (seq>0) DESC, (attempts=0) DESC, seq DESC LIMIT 1",(time.time()-300,)).fetchone()
   if not row:return
   filing=lookup_filing(db,row['seq'])
   db.execute('UPDATE index_jobs SET checked=?,attempts=attempts+1 WHERE seq=?',(time.time(),row['seq']))
@@ -94,13 +95,6 @@ def index_tick(store):
     detail=reader.schedule(filing,section['id']);ready=ready and detail.get('status')=='ready'
  with closing(store.connect()) as db,db:
   db.execute('UPDATE index_jobs SET status=?,message=? WHERE seq=?',('ready' if ready else 'unavailable',None if ready else 'Some official details remain unavailable; will retry.',row['seq']))
-  if ready and row['seq']>0 and time.time()-filing['first_seen']<86400 and not filing.get('baseline'):
-   db.execute('''INSERT OR IGNORE INTO outbox(device_id,filing_seq,created_at,next_attempt)
-    SELECT DISTINCT d.id,?,?,? FROM devices d JOIN entity_follows f ON f.device_id=d.id
-    JOIN disclosures x ON x.entity_id=f.entity_id WHERE x.seq=? AND f.created<=? AND d.enabled=1 AND d.token IS NOT NULL''',(row['seq'],time.time(),time.time(),row['seq'],filing['first_seen']))
-   db.execute('''INSERT OR IGNORE INTO outbox(device_id,filing_seq,created_at,next_attempt)
-    SELECT DISTINCT d.id,?,?,? FROM devices d JOIN private_lists l ON l.device_id=d.id JOIN list_entities m ON m.list_id=l.id
-    JOIN disclosures x ON x.entity_id=m.entity_id WHERE x.seq=? AND m.created<=? AND d.enabled=1 AND d.token IS NOT NULL''',(row['seq'],time.time(),time.time(),row['seq'],filing['first_seen']))
 
 def preferences(db,device):
  row=db.execute('SELECT payload FROM alert_preferences WHERE device_id=?',(device,)).fetchone()
@@ -143,13 +137,18 @@ def alert_summary(db,row,p):
 
 
 def install_routes(api,store,authenticated,reader):
+ @api.before_request
+ def retired_donor_history():
+  if request.path=='/v1/entities' or request.path.startswith('/v1/entities/') or request.path=='/v1/me/donors' or request.path.startswith('/v1/me/donors/'):
+   return jsonify(error='Donor history and donor follows have been removed because coverage and identity matching were incomplete. View contributions within individual reports.'),410
+
  from subscriptions import lookup_filing
  def lists_data(db):
   rows=[]
   for r in db.execute('SELECT * FROM private_lists WHERE device_id=? ORDER BY name',(g.device['id'],)):
    item=dict(r);item['committees']=[dict(c) for c in db.execute('SELECT c.id,c.name FROM committees c JOIN list_members m ON m.committee_key=c.id WHERE m.list_id=? ORDER BY c.name',(r['id'],))]
-   item['donors']=[dict(e) for e in db.execute('SELECT e.* FROM entities e JOIN list_entities m ON m.entity_id=e.id WHERE m.list_id=? ORDER BY e.name',(r['id'],))]
-   item['new_count']=db.execute('SELECT count(*) FROM filings f WHERE f.seq>? AND (f.committee_key IN (SELECT committee_key FROM list_members WHERE list_id=?) OR f.seq IN (SELECT x.seq FROM disclosures x JOIN list_entities m ON m.entity_id=x.entity_id WHERE m.list_id=?))',(r['seen_seq'],r['id'],r['id'])).fetchone()[0];rows.append(item)
+   item['donors']=[dict(e) for e in db.execute('SELECT e.* FROM entities e JOIN active_list_entities m ON m.entity_id=e.id WHERE m.list_id=? ORDER BY e.name',(r['id'],))]
+   item['new_count']=db.execute('SELECT count(*) FROM filings f WHERE f.seq>? AND (f.committee_key IN (SELECT committee_key FROM list_members WHERE list_id=?) OR f.seq IN (SELECT x.seq FROM disclosures x JOIN active_list_entities m ON m.entity_id=x.entity_id WHERE m.list_id=?))',(r['seen_seq'],r['id'],r['id'])).fetchone()[0];rows.append(item)
   return rows
  @api.get('/v1/me/lists')
  @authenticated
@@ -169,6 +168,7 @@ def install_routes(api,store,authenticated,reader):
  @authenticated
  def edit_list(identifier):
   data=request.get_json(silent=True) or {};keys=data.get('committees');name=data.get('name');donors=data.get('donors')
+  if donors:return jsonify(error='Donor lists are no longer supported. Lists can contain committees.'),410
   with closing(store.connect()) as db,db:
    if not db.execute('SELECT 1 FROM private_lists WHERE id=? AND device_id=?',(identifier,g.device['id'])).fetchone():return jsonify(error='List not found'),404
    # Validate the whole edit before making any mutation.
@@ -208,7 +208,7 @@ def install_routes(api,store,authenticated,reader):
   with closing(store.connect()) as db:
    row=db.execute('SELECT * FROM private_lists WHERE id=? AND device_id=?',(identifier,g.device['id'])).fetchone()
    if not row:return jsonify(error='List not found'),404
-   result=[dict(r) for r in db.execute('SELECT f.* FROM filings f WHERE f.seq<? AND (f.committee_key IN (SELECT committee_key FROM list_members WHERE list_id=?) OR f.seq IN (SELECT x.seq FROM disclosures x JOIN list_entities m ON m.entity_id=x.entity_id WHERE m.list_id=?)) ORDER BY f.seq DESC LIMIT 51',(before,identifier,identifier))]
+   result=[dict(r) for r in db.execute('SELECT f.* FROM filings f WHERE f.seq<? AND (f.committee_key IN (SELECT committee_key FROM list_members WHERE list_id=?) OR f.seq IN (SELECT x.seq FROM disclosures x JOIN active_list_entities m ON m.entity_id=x.entity_id WHERE m.list_id=?)) ORDER BY f.seq DESC LIMIT 51',(before,identifier,identifier))]
    return jsonify(filings=result[:50],has_more=len(result)>50,next_cursor=result[49]['seq'] if len(result)>50 else None,seen_seq=row['seen_seq'])
  @api.post('/v1/me/lists/<identifier>/seen')
  @authenticated
@@ -265,7 +265,7 @@ def install_routes(api,store,authenticated,reader):
  @api.get('/v1/me/donors')
  @authenticated
  def followed_donors():
-  with closing(store.connect()) as db:return jsonify(entities=[dict(r) for r in db.execute('SELECT e.* FROM entities e JOIN entity_follows f ON f.entity_id=e.id WHERE f.device_id=? ORDER BY e.name',(g.device['id'],))])
+  with closing(store.connect()) as db:return jsonify(entities=[dict(r) for r in db.execute('SELECT e.* FROM entities e JOIN active_entity_follows f ON f.entity_id=e.id WHERE f.device_id=? ORDER BY e.name',(g.device['id'],))])
  @api.put('/v1/me/donors/<identifier>')
  @authenticated
  def follow_donor(identifier):
@@ -322,3 +322,4 @@ def install_routes(api,store,authenticated,reader):
 
 SHARE='''<!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{filing.committee_name}} · Illinois report</title><meta property="og:title" content="{{filing.committee_name}} · {{filing.report_type}}"><meta property="og:description" content="Filed {{filing.published_raw}}. {% if detail.total %}Reported value: ${{detail.total}}.{% endif %} View the filing and official source."><style>body{font:17px system-ui;background:#f3f6fa;color:#102a43;max-width:760px;margin:40px auto;padding:20px}article{background:white;border-radius:18px;padding:24px;margin:18px 0}h1{font-size:30px}a{color:#006078}dt{margin-top:12px}dd{margin-left:0;font-weight:bold}</style><main><small>ILLINOIS CAMPAIGN FINANCE</small><h1>{{filing.committee_name}}</h1><p>{{filing.report_type}} · Filed {{filing.published_raw}}</p><p>{{detail.period or ''}}</p>{% for r in rows %}<article><h2>${{r.amount}} from {{r.contributor}}</h2><p>{{r.contribution_type}} · Received {{r.received_date}}</p><p>{{r.description}}</p></article>{% endfor %}{% if detail.summary %}<article><dl>{% for key,value in detail.summary.items() %}<dt>{{key|replace('_',' ')|title}}</dt><dd>${{value}}</dd>{% endfor %}</dl></article>{% endif %}{% if not rows and not detail.summary %}<p>Report details have not been prepared yet. View the official filing below.</p>{% endif %}<p><a href="{{filing.url}}">View official report</a> · <a href="/share/filing/{{seq}}.csv">Download CSV</a></p><footer>Independent report viewer. Source: Illinois State Board of Elections. No app or account required. Disclosures may include amendments; amounts are not necessarily current balances.</footer></main></html>'''
 TRANSACTION='''<!doctype html><html lang="en"><meta name="viewport" content="width=device-width,initial-scale=1"><title>{{row.name}} · Illinois disclosure</title><style>body{font:18px system-ui;color:#102a43;background:#f3f6fa;max-width:680px;margin:40px auto;padding:24px}article{background:white;padding:24px;border-radius:18px}</style><article><small>ILLINOIS CAMPAIGN FINANCE</small><h1>${{row.amount}}</h1><h2>{{row.name}}</h2><p>{{row.kind}} · {{row.date}}</p><p>Reported by {{row.committee_name}}</p><a href="/share/filing/{{row.seq}}">View filing</a> · <a href="{{row.source_url}}">Official source</a><p>A reported disclosure; may also appear in other reports or amendments.</p></article></html>'''
+

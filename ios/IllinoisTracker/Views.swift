@@ -49,8 +49,7 @@ struct RootView: View {
             NavigationStack { AlertOptionsView() }
         } else if ProcessInfo.processInfo.arguments.contains("--preview-lists") {
             NavigationStack { MyListsView() }
-        } else if ProcessInfo.processInfo.arguments.contains("--preview-donors") {
-            NavigationStack { DonorSearchView() }
+
         } else if ProcessInfo.processInfo.arguments.contains("--preview-committee") {
             NavigationStack { CommitteeFilingsView(committee: Committee(id: "1b5ce79b8d1251adaf13eda719fd6d7a", name: "Daniel Didech Campaign Committee"), member: "Daniel Didech", officialURL: nil) }.tint(accent)
         } else if ProcessInfo.processInfo.arguments.contains("--preview-quarter") {
@@ -404,11 +403,7 @@ private struct ContributionCard: View {
                     .font(.largeTitle.weight(.bold)).foregroundStyle(accent)
                     .accessibilityLabel("Contribution value \(ReportContribution.currency(contribution.amount))")
                 Text("from").font(.subheadline).foregroundStyle(.secondary)
-                if let entity = contribution.entityId {
-                    NavigationLink { DonorHistoryView(identifier: entity) } label: { Text(contribution.contributor).font(.title3.weight(.semibold)) }
-                } else {
-                    NavigationLink { DonorSearchView(initialQuery: contribution.contributor) } label: { Text(contribution.contributor).font(.title3.weight(.semibold)) }
-                }
+                Text(contribution.contributor).font(.title3.weight(.semibold)).textSelection(.enabled)
                 if let id = contribution.disclosureId {
                     ShareLink("Share contribution", item: URL(string: "https://illinois-filing-tracker.onrender.com/share/transaction/\(id)")!)
                 }
@@ -446,7 +441,6 @@ struct DiscoverView: View {
     var body: some View {
         NavigationStack {
             List {
-                Section { NavigationLink("Search donors & payees") { DonorSearchView() } }
                 if query.isEmpty {
                     Section {
                         ForEach(model.categories) { category in
@@ -493,7 +487,6 @@ struct WatchlistView: View {
             List {
                 Section {
                     NavigationLink("My private lists") { MyListsView() }
-                    NavigationLink("Followed donors & payees") { FollowedDonorsView() }
                     NavigationLink("Delivered alerts & digests") { AlertInboxView() }
                 }
                 Section {
@@ -1021,11 +1014,7 @@ private struct QuarterlyScheduleView: View {
                                 if !field.value.isEmpty {
                                     VStack(alignment: .leading, spacing: 3) {
                                         Text(field.label).font(.caption).foregroundStyle(.secondary)
-                                        if let entity = entry.entityId, ["Contributed By", "Received By"].contains(field.label) {
-                                            NavigationLink { DonorHistoryView(identifier: entity) } label: { Text(field.value).font(.headline) }
-                                        } else {
-                                            Text(field.value).font(index == 0 ? .headline : .subheadline).textSelection(.enabled)
-                                        }
+                                        Text(field.value).font(index == 0 ? .headline : .subheadline).textSelection(.enabled)
                                     }
                                 }
                             }
@@ -1131,7 +1120,7 @@ private struct AlertOptionsView: View {
                 Text("Times use \(options.timezone). Reports are grouped by committee in Notification Center. Quiet-hour alerts wait until the next allowed time.").font(.caption)
             }
             Section {
-                Text("Applies to followed committees, groups, donors, and private-list members. Newly following something does not send alerts for older filings. Donor alerts follow exact name-and-address records; indexing may delay them.").font(.footnote)
+                Text("Applies to followed committees, groups, and committees in private lists. Newly following something does not send alerts for older filings.").font(.footnote)
                 if !model.pushConfigured { Text("Preferences can be saved now. Phone delivery requires Apple push setup.").foregroundStyle(.secondary) }
                 Button(saving ? "Saving…" : "Save alert preferences") { Task { await save() } }.disabled(!ready || saving)
                 if let message { Text(message).font(.footnote) }
@@ -1170,7 +1159,7 @@ private struct MyListsView: View {
                     NavigationLink { ObserverListView(list: list) } label: {
                         VStack(alignment: .leading) {
                             Text(list.name).font(.headline)
-                            Text("\(list.committees.count) committees · \(list.donors.count) donors · \(list.newCount) new reports").font(.caption).foregroundStyle(.secondary)
+                            Text("\(list.committees.count) committees · \(list.newCount) new reports").font(.caption).foregroundStyle(.secondary)
                         }
                     }
                 }.onDelete { offsets in Task { for i in offsets { await remove(lists[i]) }; await load() } }
@@ -1237,7 +1226,6 @@ private struct EditObserverListView: View {
     let list: ObserverList
     @State private var name = ""
     @State private var selected: [Committee] = []
-    @State private var selectedDonors: [Entity] = []
     @State private var results: [Committee] = []
     @State private var query = ""
     @State private var failure: String?
@@ -1249,10 +1237,7 @@ private struct EditObserverListView: View {
             Section("Selected committees") {
                 ForEach(selected) { committee in Button { selected.removeAll { $0.id == committee.id } } label: { Label(committee.name, systemImage: "checkmark.circle.fill") } }
             }
-            Section("Selected donors & payees") {
-                ForEach(selectedDonors) { entity in Button { selectedDonors.removeAll { $0.id == entity.id } } label: { Label(entity.name, systemImage: "checkmark.circle.fill") } }
-                Text("Add donors from their giving history page.").font(.caption)
-            }
+
             Section("Add committees") {
                 ForEach(results.filter { c in !selected.contains(where: { $0.id == c.id }) }) { committee in
                     Button { selected.append(committee) } label: { Label(committee.name, systemImage: "plus.circle") }
@@ -1268,7 +1253,7 @@ private struct EditObserverListView: View {
                 do {
                     let all: ObserverLists = try await model.connection().call("/v1/me/lists")
                     if let current = all.lists.first(where: { $0.id == list.id }) {
-                        name = current.name; selected = current.committees; selectedDonors = current.donors; loaded = true
+                        name = current.name; selected = current.committees; loaded = true
                     }
                 } catch { failure = error.localizedDescription }
             }
@@ -1283,7 +1268,7 @@ private struct EditObserverListView: View {
     private func save() async {
         saving = true; defer { saving = false }
         do {
-            let _: OK = try await model.connection().call("/v1/me/lists/\(list.id)", method: "PUT", body: JSONSerialization.data(withJSONObject: ["name": name, "committees": selected.map(\.id), "donors": selectedDonors.map(\.id)]))
+            let _: OK = try await model.connection().call("/v1/me/lists/\(list.id)", method: "PUT", body: JSONSerialization.data(withJSONObject: ["name": name, "committees": selected.map(\.id)]))
             dismiss()
         } catch { failure = error.localizedDescription }
     }
@@ -1318,86 +1303,6 @@ private struct AddCommitteeToList: View {
     }
 }
 
-private struct DonorSearchView: View {
-    @EnvironmentObject var model: AppModel
-    var initialQuery = ""
-    @State private var query = ""
-    @State private var entries: [Entity] = []
-    @State private var coverage = "Loading disclosure index…"
-    @State private var failure: String?
-    var body: some View {
-        List {
-            Section { Text(coverage).font(.caption).foregroundStyle(.secondary) }
-            if let failure { Text(failure) }
-            ForEach(entries) { entity in NavigationLink { DonorHistoryView(identifier: entity.id) } label: {
-                VStack(alignment: .leading, spacing: 4) { Text(entity.name).font(.headline); Text(entity.address).font(.caption).foregroundStyle(.secondary) }
-            } }
-            if entries.isEmpty { Text("No indexed matches yet. Try part of a name or return as more reports are imported.").foregroundStyle(.secondary) }
-        }.civicSurface().navigationTitle("Donors & payees").searchable(text: $query)
-            .onAppear { if query.isEmpty { query = initialQuery } }
-            .task(id: query) {
-                do {
-                    try await Task.sleep(for: .milliseconds(250))
-                    var parts = URLComponents(); parts.path = "/v1/entities"; parts.queryItems = [URLQueryItem(name: "q", value: query)]
-                    let page: EntitySearch = try await model.connection().call(parts.string!); entries = page.entities; coverage = page.coverage ?? ""; failure = nil
-                    if page.hasMore == true { coverage += " Refine your search to see more matches." }
-                } catch { if !Task.isCancelled { failure = error.localizedDescription } }
-            }
-    }
-}
-
-private struct DonorHistoryView: View {
-    @EnvironmentObject var model: AppModel
-    let identifier: String
-    @State private var page: EntityHistory?
-    @State private var rows: [Disclosure] = []
-    @State private var following = false
-    @State private var failure: String?
-    @State private var busy = false
-    var body: some View {
-        List {
-            if let page {
-                Section {
-                    Text(page.entity.name).font(.title2.bold())
-                    Text(page.entity.address).font(.caption)
-                    Button(following ? "Unfollow donor/payee" : "Follow donor/payee") { Task { await follow() } }.disabled(busy)
-                    Text("Alerts cover future indexed filings containing this exact name-and-address record.").font(.caption)
-                    if let committee = page.committee { NavigationLink("View matching committee") { CommitteeFilingsView(committee: committee, member: "", officialURL: nil) } }
-                    NavigationLink("Other records with this name") { DonorSearchView(initialQuery: page.entity.name) }
-                    NavigationLink("Add donor/payee to a private list") { AddDonorToList(entity: page.entity) }
-                    Text(page.coverage).font(.caption).foregroundStyle(.secondary)
-                }
-                ForEach(rows) { row in
-                    Section {
-                        Text(ReportContribution.currency(row.amount)).font(.title2.bold()).foregroundStyle(accent)
-                        Text(row.committeeName).font(.headline)
-                        Text("\(row.kind) · \(row.date)").font(.caption)
-                        NavigationLink("View source filing") { FilingByIDView(seq: row.seq) }
-                        NavigationLink("View recipient/reporting committee") { CommitteeFilingsView(committee: Committee(id: row.committeeKey, name: row.committeeName), member: "", officialURL: nil) }
-                        ShareLink("Share disclosure", item: URL(string: "https://illinois-filing-tracker.onrender.com/share/transaction/\(row.id)")!)
-                    }
-                }
-                if page.hasMore { Button("Load earlier disclosures") { Task { await load(true) } } }
-            }
-            if let failure { Text(failure); Button("Try again") { Task { await load(false) } } }
-        }.civicSurface().navigationTitle("Giving & payments").navigationBarTitleDisplayMode(.inline)
-            .task { await load(false) }.refreshable { await load(false) }
-    }
-    private func load(_ more: Bool) async {
-        do {
-            try await model.setup()
-            let result: EntityHistory = try await model.connection().call("/v1/entities/\(identifier)?offset=\(more ? page?.nextOffset ?? 0 : 0)")
-            page = result; rows = more ? rows + result.disclosures : result.disclosures
-            let follows: EntitySearch = try await model.connection().call("/v1/me/donors"); following = follows.entities.contains { $0.id == identifier }; failure = nil
-        } catch { failure = error.localizedDescription }
-    }
-    private func follow() async {
-        busy = true; defer { busy = false }
-        do { let _: OK = try await model.connection().call("/v1/me/donors/\(identifier)", method: "PUT", body: JSONSerialization.data(withJSONObject: ["follow": !following])); following.toggle() }
-        catch { failure = error.localizedDescription }
-    }
-}
-
 private struct FilingByIDView: View {
     @EnvironmentObject var model: AppModel
     let seq: Int
@@ -1406,54 +1311,6 @@ private struct FilingByIDView: View {
     var body: some View {
         Group { if let filing { FilingDetail(filing: filing) } else if let failure { Text(failure) } else { ProgressView("Loading filing…") } }
             .task { do { filing = try await model.connection().call("/v1/filings/\(seq)") } catch { failure = error.localizedDescription } }
-    }
-}
-
-private struct FollowedDonorsView: View {
-    @EnvironmentObject var model: AppModel
-    @State private var entries: [Entity] = []
-    @State private var failure: String?
-    var body: some View {
-        List {
-            NavigationLink("Find donors and payees") { DonorSearchView() }
-            ForEach(entries) { entry in NavigationLink(entry.name) { DonorHistoryView(identifier: entry.id) } }
-            if entries.isEmpty { Text("No followed donors yet.") }
-            if let failure { Text(failure) }
-        }.navigationTitle("Followed donors").task {
-            do { try await model.setup(); let page: EntitySearch = try await model.connection().call("/v1/me/donors"); entries = page.entities }
-            catch { failure = error.localizedDescription }
-        }
-    }
-}
-
-private struct AddDonorToList: View {
-    @EnvironmentObject var model: AppModel
-    let entity: Entity
-    @State private var lists: [ObserverList] = []
-    @State private var message: String?
-    @State private var busy = false
-    var body: some View {
-        List {
-            Text(entity.name).font(.headline)
-            NavigationLink("Create or manage lists") { MyListsView() }
-            ForEach(lists) { list in
-                Button { Task { await toggle(list) } } label: {
-                    Label(list.name, systemImage: list.donors.contains { $0.id == entity.id } ? "checkmark.circle.fill" : "plus.circle")
-                }.disabled(busy)
-            }
-            if let message { Text(message) }
-        }.navigationTitle("Add to a list").task { await load() }.refreshable { await load() }
-    }
-    private func load() async {
-        do { let page: ObserverLists = try await model.connection().call("/v1/me/lists"); lists = page.lists }
-        catch { message = error.localizedDescription }
-    }
-    private func toggle(_ list: ObserverList) async {
-        busy = true; defer { busy = false }
-        var keys = list.donors.map(\.id)
-        if keys.contains(entity.id) { keys.removeAll { $0 == entity.id } } else { keys.append(entity.id) }
-        do { let _: OK = try await model.connection().call("/v1/me/lists/\(list.id)", method: "PUT", body: JSONSerialization.data(withJSONObject: ["donors": keys])); await load() }
-        catch { message = error.localizedDescription }
     }
 }
 

@@ -33,15 +33,34 @@ class ObserverTests(unittest.TestCase):
   with closing(self.store.connect()) as db:return dict(db.execute('SELECT * FROM filings ORDER BY seq DESC LIMIT 1').fetchone())
  def entry(self,amount='5000.00',name='Example Inc'):
   return dict(contributor=name,address='1 Main St',amount=amount,received_date='2026-09-20',contribution_type='Individual Contribution',description='')
- def test_donor_identity_and_idempotent_index(self):
+ def test_donor_history_retired_but_report_disclosures_preserved(self):
   f=self.filing();entries=[self.entry()];index_entries(self.store,f,entries);index_entries(self.store,f,entries)
-  result=self.c.get('/v1/entities?q=Example').json;self.assertEqual(len(result['entities']),1)
-  eid=result['entities'][0]['id'];data=self.c.get('/v1/entities/'+eid).json;self.assertEqual(len(data['disclosures']),1)
-  self.assertNotEqual(eid,entity_id('Example Inc','2 Main St'))
-  self.assertEqual(self.c.put('/v1/me/donors/'+eid,headers=self.auth,json={'follow':True}).status_code,200)
-  self.assertEqual(self.c.get('/v1/me/donors',headers=self.other).json['entities'],[])
-  identifier=self.create();self.c.put('/v1/me/lists/'+identifier,headers=self.auth,json={'donors':[eid]})
-  self.assertEqual(len(self.c.get('/v1/me/lists/'+identifier+'/filings',headers=self.auth).json['filings']),1)
+  eid=entity_id('Example Inc','1 Main St')
+  for path in ('/v1/entities','/v1/entities/'+eid,'/v1/me/donors'):
+   self.assertEqual(self.c.get(path,headers=self.auth).status_code,410)
+  self.assertEqual(self.c.put('/v1/me/donors/'+eid,headers=self.auth,json={'follow':True}).status_code,410)
+  identifier=self.create()
+  self.assertEqual(self.c.put('/v1/me/lists/'+identifier,headers=self.auth,json={'donors':[eid]}).status_code,410)
+  with closing(self.store.connect()) as db:
+   self.assertEqual(db.execute('SELECT count(*) FROM disclosures').fetchone()[0],1)
+  self.assertEqual(self.c.get('/share/transaction/'+entries[0]['disclosure_id']).status_code,200)
+ def test_existing_donor_follows_do_not_drive_lists_feed_or_alerts(self):
+  identifier=self.create();eid=entity_id('Example Inc','1 Main St')
+  self.c.put('/v1/me/push',headers=self.auth,json={'enabled':True,'token':'f'*64})
+  self.store.ingest(parse_feed(feed(2,1)));f=self.filing();index_entries(self.store,f,[self.entry()])
+  with closing(self.store.connect()) as db,db:
+   device=db.execute('SELECT id FROM devices WHERE token IS NOT NULL').fetchone()[0]
+   db.execute('INSERT INTO entity_follows VALUES (?,?,?)',(device,eid,time.time()-60))
+   db.execute('INSERT INTO list_entities VALUES (?,?,?)',(identifier,eid,time.time()-60))
+   db.execute('INSERT INTO outbox(device_id,filing_seq,created_at,next_attempt) VALUES (?,?,?,0)',(device,f['seq'],time.time()-180))
+  self.assertEqual(self.c.get('/v1/me/filings',headers=self.auth).json['filings'],[])
+  self.assertEqual(self.c.get('/v1/me/lists/'+identifier+'/filings',headers=self.auth).json['filings'],[])
+  row=self.c.get('/v1/me/lists',headers=self.auth).json['lists'][0]
+  self.assertEqual(row['donors'],[]);self.assertEqual(row['new_count'],0)
+  sender=Mock();dispatch(self.store,sender,enabled=True);sender.send.assert_not_called()
+  self.c.put('/v1/me/lists/'+identifier,headers=self.auth,json={'committees':[self.key]})
+  self.assertEqual(len(self.c.get('/v1/me/lists/'+identifier+'/filings',headers=self.auth).json['filings']),2)
+
  def test_threshold_blocks_small_and_unread_reports(self):
   self.c.put('/v1/me/watchlist',headers=self.auth,json={'committees':[self.key]})
   self.c.put('/v1/me/push',headers=self.auth,json={'enabled':True,'token':'f'*64})
@@ -67,7 +86,7 @@ class ObserverTests(unittest.TestCase):
    self.assertEqual(db.execute('SELECT seq FROM disclosures').fetchone()[0],f['seq'])
  def test_invalid_list_edit_is_atomic_and_delete_removes_private_data(self):
   identifier=self.create();base='/v1/me/lists/'+identifier
-  self.assertEqual(self.c.put(base,headers=self.auth,json={'name':'Changed','donors':['unknown']}).status_code,400)
+  self.assertEqual(self.c.put(base,headers=self.auth,json={'name':'Changed','donors':['unknown']}).status_code,410)
   self.assertEqual(self.c.get('/v1/me/lists',headers=self.auth).json['lists'][0]['name'],'My races')
   self.c.put('/v1/me/alert-preferences',headers=self.auth,json=DEFAULTS)
   self.c.delete('/v1/me',headers=self.auth)
@@ -89,9 +108,7 @@ class ObserverTests(unittest.TestCase):
  def test_index_pauses_before_storage_exhaustion(self):
   with patch('observer.index_has_space',return_value=False):
    index_entries(self.store,self.filing(),[self.entry()])
-   result=self.c.get('/v1/entities').json
-   self.assertEqual(result['entities'],[])
-   self.assertIn('paused',result['coverage'])
+   with closing(self.store.connect()) as db:self.assertEqual(db.execute('SELECT count(*) FROM entities').fetchone()[0],0)
 
  def test_preferences_validation(self):
   for patchdata in ({'minimum':'NaN'},{'minimum':'-1'},{'timezone':'Made/up'},{'quiet':True,'quiet_start':7,'quiet_end':7}):
@@ -109,3 +126,4 @@ class ObserverTests(unittest.TestCase):
   self.assertEqual(delivery_time(DEFAULTS,now,now),now)
 
 if __name__=='__main__':unittest.main()
+
