@@ -19,6 +19,7 @@ private enum CivicTheme {
     static var background: Color { pink ? adaptive(0xFFF2F6, 0xFFF2F6) : adaptive(0xF3F6FA, 0x10191F) }
     static var surface: Color { pink ? adaptive(0xFFFFFF, 0xFFFFFF) : adaptive(0xFFFFFF, 0x19262F) }
     static var ink: Color { pink ? adaptive(0x482237, 0x482237) : adaptive(0x102A43, 0xEEF5F8) }
+    static var secondary: Color { pink ? adaptive(0x785466, 0x785466) : adaptive(0x526777, 0xAFC1CC) }
     static var accent: Color { pink ? adaptive(0x96375F, 0x96375F) : adaptive(0x006078, 0x9FE8EE) }
     static var summary: Color { pink ? adaptive(0x662740, 0x662740) : adaptive(0x082E45, 0x192C36) }
     static var summaryNumber: Color { pink ? .white : adaptive(0xFFFFFF, 0x9FE8EE) }
@@ -263,7 +264,7 @@ private enum FilingReportKind {
         case .d1: rgb = dark ? (212, 172, 255) : (113, 61, 163)
         case .quarterly: rgb = dark ? (140, 200, 255) : (21, 87, 160)
         case .finalReport: rgb = dark ? (255, 189, 128) : (154, 75, 0)
-        case .other: return .secondary
+        case .other: return CivicTheme.secondary
         }
         return Color(red: rgb.0 / 255, green: rgb.1 / 255, blue: rgb.2 / 255)
     }
@@ -298,17 +299,17 @@ struct FilingRow: View {
                 if p.kind == "a1" {
                     if let total = p.total { Text(ReportContribution.currency(total)).font(.title3.bold()).monospacedDigit().foregroundStyle(accent) }
                     if let names = p.contributors { Text(names.joined(separator: " • ") + ((p.contributorCount ?? 0) > names.count ? " + \((p.contributorCount ?? 0) - names.count) more" : "")).font(.subheadline).foregroundStyle(.primary) }
-                    Text("\(p.contributionCount ?? 0) contribution\(p.contributionCount == 1 ? "" : "s")" + (p.includesInKind == true ? " · includes in-kind" : "")).font(.caption).foregroundStyle(.secondary)
+                    Text("\(p.contributionCount ?? 0) contribution\(p.contributionCount == 1 ? "" : "s")" + (p.includesInKind == true ? " · includes in-kind" : "")).font(.caption).foregroundStyle(CivicTheme.secondary)
                 } else if p.kind == "quarterly" {
-                    if let period = p.period { Text(period).font(.subheadline).foregroundStyle(.secondary) }
+                    if let period = p.period { Text(period).font(.subheadline).foregroundStyle(CivicTheme.secondary) }
                     previewMetric("Receipts", p.receipts)
                     previewMetric("Spending", p.expenditures)
                     previewMetric("Ending cash", p.endingCash)
                 }
             } else if showPreview && (FilingReportKind(filing.reportType) == .a1 || FilingReportKind(filing.reportType) == .quarterly) {
-                Text("Summary not yet available").font(.caption).foregroundStyle(.secondary)
+                Text("Summary not yet available").font(.caption).foregroundStyle(CivicTheme.secondary)
             }
-            if !filing.displayDate.isEmpty { Text(filing.displayDate).font(.caption).foregroundStyle(.secondary) }
+            if !filing.displayDate.isEmpty { Text(filing.displayDate).font(.caption).foregroundStyle(CivicTheme.secondary) }
         }.padding(.vertical, 6)
     }
     private func previewMetric(_ label: String, _ value: String?) -> some View {
@@ -356,7 +357,7 @@ struct FilingDetail: View {
                 }.background(CivicTheme.surface, in: RoundedRectangle(cornerRadius: 16))
                 ProblemButton(context: ["screen": "Filing", "committee": filing.committeeName, "committee_id": filing.committeeKey, "filing_id": String(filing.seq), "source_url": filing.url ?? ""])
                 Text("Following applies to all report types filed by this committee. Alerts begin with newly discovered filings after you follow and enable notifications.")
-                    .font(.footnote).foregroundStyle(.secondary)
+                    .font(.footnote).foregroundStyle(CivicTheme.secondary)
             }.padding(16)
         }.background(CivicTheme.background)
             .civicSurface().navigationTitle("Filing").navigationBarTitleDisplayMode(.inline)
@@ -387,18 +388,18 @@ private struct NativeReportContents: View {
                         if let total = report.total { Text(ReportContribution.currency(total)).font(.headline) }
                     }
                     Text("Total reported value, including any in-kind contributions")
-                        .font(.caption).foregroundStyle(.secondary)
+                        .font(.caption).foregroundStyle(CivicTheme.secondary)
                 }
                 ForEach(contributions) { contribution in
                     ContributionCard(contribution: contribution)
                 }
                 Text("Source: Illinois State Board of Elections")
-                    .font(.caption).foregroundStyle(.secondary)
+                    .font(.caption).foregroundStyle(CivicTheme.secondary)
             } else {
                 VStack(alignment: .leading, spacing: 12) {
                     Label("Report details unavailable", systemImage: "doc.text.magnifyingglass").font(.headline)
                     Text(failure ?? report?.message ?? "Open the official report below to read this filing.")
-                        .font(.subheadline).foregroundStyle(.secondary)
+                        .font(.subheadline).foregroundStyle(CivicTheme.secondary)
                     if report?.status != "unsupported" {
                         Button("Try again") { attempt += 1 }.buttonStyle(.bordered)
                     }
@@ -432,7 +433,7 @@ private struct ContributionCard: View {
                 Text(ReportContribution.currency(contribution.amount))
                     .font(.largeTitle.weight(.bold)).monospacedDigit().foregroundStyle(accent)
                     .accessibilityLabel("Contribution value \(ReportContribution.currency(contribution.amount))")
-                Text("from").font(.subheadline).foregroundStyle(.secondary)
+                Text("from").font(.subheadline).foregroundStyle(CivicTheme.secondary)
                 Text(contribution.contributor).font(.title3.weight(.semibold)).textSelection(.enabled)
                 if let id = contribution.disclosureId {
                     ShareLink("Share contribution", item: URL(string: "https://illinois-filing-tracker.onrender.com/share/transaction/\(id)")!)
@@ -459,7 +460,7 @@ private struct ContributionCard: View {
     }
     private func detail(_ label: String, _ value: String) -> some View {
         VStack(alignment: .leading, spacing: 3) {
-            Text(label).font(.caption).foregroundStyle(.secondary)
+            Text(label).font(.caption).foregroundStyle(CivicTheme.secondary)
             Text(value).font(.subheadline).textSelection(.enabled)
         }
     }
@@ -477,13 +478,13 @@ struct DiscoverView: View {
                             HStack {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(category.name)
-                                    Text(category.verified == 1 ? "\(category.memberCount) committees" : "Committee list under review").font(.caption).foregroundStyle(.secondary)
+                                    Text(category.verified == 1 ? "\(category.memberCount) committees" : "Committee list under review").font(.caption).foregroundStyle(CivicTheme.secondary)
                                 }
                                 Spacer()
                                 if category.verified == 1 {
                                     Button { Task { await model.toggleCategory(category.id) } } label: { Image(systemName: model.followedCategories.contains(category.id) ? "checkmark.circle.fill" : "plus.circle") }
                                         .buttonStyle(.borderless).disabled(model.saving || model.loading)
-                                } else { Image(systemName: "clock").foregroundStyle(.secondary) }
+                                } else { Image(systemName: "clock").foregroundStyle(CivicTheme.secondary) }
                             }
                         }
                     } header: { Text("Follow a group") } footer: { Text("Groups follow the current curated committee lists. Browse their members and candidates from Home. Lists may be revised over time.") }
@@ -498,7 +499,7 @@ struct DiscoverView: View {
                                 .accessibilityLabel("\(model.follows(committee) ? "Unfollow" : "Follow") \(committee.name)")
                         }.padding(.vertical, 4)
                     }
-                    if model.committees.isEmpty { Text("No matching committees. Try another name.").foregroundStyle(.secondary) }
+                    if model.committees.isEmpty { Text("No matching committees. Try another name.").foregroundStyle(CivicTheme.secondary) }
                     if model.committeesHaveMore { Button("Load more committees") { Task { await model.search(query, more: true) } } }
                 } header: { Text("Committees") } footer: { Text("Includes the legislative directory and committees observed in the monitored feed. This is not the complete statewide directory.") }
             }
@@ -562,7 +563,7 @@ struct SettingsView: View {
                     NavigationLink("Alert filters, digests & quiet hours") { AlertOptionsView() }
                     Label(model.notificationStatus, systemImage: "bell")
                     if !model.pushConfigured {
-                        Text("Push delivery is waiting for Apple Developer setup. You can follow committees and browse reports now.").font(.subheadline).foregroundStyle(.secondary)
+                        Text("Push delivery is waiting for Apple Developer setup. You can follow committees and browse reports now.").font(.subheadline).foregroundStyle(CivicTheme.secondary)
                     }
                     if model.alertsEnabled {
                         Button("Pause filing alerts") { Task { await model.disableAlerts() } }
@@ -576,7 +577,7 @@ struct SettingsView: View {
                     Text("Illinois Filing Tracker").font(.headline)
                     Text("An independent way to follow Illinois campaign finance filings. Not affiliated with the Illinois State Board of Elections.").font(.subheadline)
                     Link("Official filing feed", destination: URL(string: "https://www.elections.il.gov/rss/LatestReportsFiled.aspx")!)
-                    Text("The service checks every minute. State publication delays, connection issues, and iPhone notification settings can affect alert timing.").font(.footnote).foregroundStyle(.secondary)
+                    Text("The service checks every minute. State publication delays, connection issues, and iPhone notification settings can affect alert timing.").font(.footnote).foregroundStyle(CivicTheme.secondary)
                 }
                 Section("Your data") {
                     Text("No email or password required. Your installation identifier, followed committees and groups, and push token are stored to deliver your alerts. Problem reports you submit are also stored for review. Your watchlist belongs to this installation and does not sync between devices.").font(.subheadline)
@@ -656,7 +657,7 @@ struct CaucusesView: View {
                 }
                 if let failure {
                     Section {
-                        Text(failure).foregroundStyle(.secondary)
+                        Text(failure).foregroundStyle(CivicTheme.secondary)
                         Button("Try again") { Task { await load() } }
                     }
                 }
@@ -722,12 +723,12 @@ struct CaucusesView: View {
                     if sortOrder == "cash" {
                         if let value = finances[committee.id]?.estimatedCash {
                             Text("Est. " + ReportContribution.currency(value)).font(.subheadline.bold()).foregroundStyle(accent)
-                        } else { Text(finances[committee.id] == nil || finances[committee.id]?.status == "loading" ? "Calculating estimate…" : "Estimate unavailable").font(.caption).foregroundStyle(.secondary) }
+                        } else { Text(finances[committee.id] == nil || finances[committee.id]?.status == "loading" ? "Calculating estimate…" : "Estimate unavailable").font(.caption).foregroundStyle(CivicTheme.secondary) }
                     }
                     if let district = entry.district {
-                        Text("District \(district)").font(.caption).foregroundStyle(.secondary)
+                        Text("District \(district)").font(.caption).foregroundStyle(CivicTheme.secondary)
                     } else if entry.role == "Leader" {
-                        Text("Chamber leader").font(.caption).foregroundStyle(.secondary)
+                        Text("Chamber leader").font(.caption).foregroundStyle(CivicTheme.secondary)
                     }
                 }.padding(.vertical, 3)
             }
@@ -735,7 +736,7 @@ struct CaucusesView: View {
             VStack(alignment: .leading, spacing: 5) {
                 Text(entry.member).font(.headline)
                 if let district = entry.district { Text("District \(district)").font(.caption) }
-                Text("Committee to be added").font(.subheadline).foregroundStyle(.secondary)
+                Text("Committee to be added").font(.subheadline).foregroundStyle(CivicTheme.secondary)
             }
         }
     }
@@ -849,11 +850,11 @@ struct CommitteeFilingsView: View {
             Section("Reports") {
                 if let history {
                     if history.status == "ready", let total = history.total {
-                        Text("\(total) reports · Since \(history.creationDate ?? "committee creation")").font(.caption).foregroundStyle(.secondary)
-                    } else { Text(history.message ?? "Loading history…").font(.caption).foregroundStyle(.secondary) }
+                        Text("\(total) reports · Since \(history.creationDate ?? "committee creation")").font(.caption).foregroundStyle(CivicTheme.secondary)
+                    } else { Text(history.message ?? "Loading history…").font(.caption).foregroundStyle(CivicTheme.secondary) }
                 }
                 if let failure {
-                    Text(failure).foregroundStyle(.secondary)
+                    Text(failure).foregroundStyle(CivicTheme.secondary)
                     Button("Try again") { Task { await load(more: false) } }
                 }
                 ForEach(filings) { filing in
@@ -861,7 +862,7 @@ struct CommitteeFilingsView: View {
                 }
                 if loading { ProgressView("Loading reports…") }
                 else if loaded && filings.isEmpty && failure == nil && history?.status == "ready" {
-                    Text("No reports from this committee have been collected yet. Follow it to track new filings.").foregroundStyle(.secondary)
+                    Text("No reports from this committee have been collected yet. Follow it to track new filings.").foregroundStyle(CivicTheme.secondary)
                 }
                 if hasMore {
                     ProgressView("Loading earlier reports…")
@@ -915,7 +916,7 @@ private struct QuarterlyReportView: View {
     }
     var body: some View {
         VStack(alignment: .leading, spacing: 20) {
-            if let period = report.period { Text(period).font(.subheadline).foregroundStyle(.secondary) }
+            if let period = report.period { Text(period).font(.subheadline).foregroundStyle(CivicTheme.secondary) }
             VStack(alignment: .leading, spacing: 14) {
                 Text("Quarter-end cash + investments").font(.subheadline)
                 Text(value("cash_and_investments")).font(.largeTitle.bold()).monospacedDigit()
@@ -959,7 +960,7 @@ private struct QuarterlyReportView: View {
                 }
             }
             Text("Tap an itemized category to read its entries. Unitemized amounts have no individual entries in this report. Source: Illinois State Board of Elections.")
-                .font(.caption).foregroundStyle(.secondary)
+                .font(.caption).foregroundStyle(CivicTheme.secondary)
         }
     }
     private func metric(_ label: String, _ key: String) -> some View {
@@ -973,10 +974,10 @@ private struct QuarterlyReportView: View {
             Text(section.title).font(.headline).foregroundStyle(CivicTheme.ink)
             Text("Itemized: " + ReportContribution.currency(section.itemized)).font(.subheadline).foregroundStyle(accent)
             if section.group != "investments" {
-                Text("Unitemized: " + ReportContribution.currency(section.unitemized)).font(.caption).foregroundStyle(.secondary)
+                Text("Unitemized: " + ReportContribution.currency(section.unitemized)).font(.caption).foregroundStyle(CivicTheme.secondary)
             }
             if !section.hasDetails && Decimal(string: section.itemized) != Decimal(0) {
-                Text("The official report does not link itemized entries.").font(.caption).foregroundStyle(.secondary)
+                Text("The official report does not link itemized entries.").font(.caption).foregroundStyle(CivicTheme.secondary)
             }
         }
     }
@@ -1028,7 +1029,7 @@ private struct QuarterlyScheduleView: View {
         List {
             Section {
                 Text(filing.committeeName).font(.headline)
-                if let period = schedule?.period { Text(period).font(.caption).foregroundStyle(.secondary) }
+                if let period = schedule?.period { Text(period).font(.caption).foregroundStyle(CivicTheme.secondary) }
                 Text("Itemized total: " + ReportContribution.currency(section.itemized)).font(.subheadline.bold()).foregroundStyle(accent)
             }
             if loading { ProgressView("Loading itemized entries…") }
@@ -1046,7 +1047,7 @@ private struct QuarterlyScheduleView: View {
                                 let field = entry.fields[index]
                                 if !field.value.isEmpty {
                                     VStack(alignment: .leading, spacing: 3) {
-                                        Text(field.label).font(.caption).foregroundStyle(.secondary)
+                                        Text(field.label).font(.caption).foregroundStyle(CivicTheme.secondary)
                                         Text(field.value).font(index == 0 ? .headline : .subheadline).textSelection(.enabled)
                                     }
                                 }
@@ -1054,10 +1055,10 @@ private struct QuarterlyScheduleView: View {
                         }.padding(.vertical, 8)
                     }
                 }
-                if entries.isEmpty { Text("No matching entries.").foregroundStyle(.secondary) }
+                if entries.isEmpty { Text("No matching entries.").foregroundStyle(CivicTheme.secondary) }
             } else {
                 Section {
-                    Text(failure ?? schedule?.message ?? "Itemized entries unavailable.").foregroundStyle(.secondary)
+                    Text(failure ?? schedule?.message ?? "Itemized entries unavailable.").foregroundStyle(CivicTheme.secondary)
                     Button("Try again") { attempt += 1 }
                 }
             }
@@ -1114,7 +1115,7 @@ private struct CacheNotice: View {
         Group {
             if checked > 0 {
                 Text((stale ? "Saved data · Last verified " : "Last checked ") + Date(timeIntervalSince1970: checked).formatted(date: .abbreviated, time: .shortened))
-                    .font(.caption).foregroundStyle(stale ? Color.orange : Color.secondary)
+                    .font(.caption).foregroundStyle(stale ? Color.orange : CivicTheme.secondary)
             }
         }.onReceive(NotificationCenter.default.publisher(for: Notification.Name("reportCacheChanged"))) { _ in updated = Date() }
     }
@@ -1154,7 +1155,7 @@ private struct AlertOptionsView: View {
             }
             Section {
                 Text("Applies to followed committees, groups, and committees in private lists. Newly following something does not send alerts for older filings.").font(.footnote)
-                if !model.pushConfigured { Text("Preferences can be saved now. Phone delivery requires Apple push setup.").foregroundStyle(.secondary) }
+                if !model.pushConfigured { Text("Preferences can be saved now. Phone delivery requires Apple push setup.").foregroundStyle(CivicTheme.secondary) }
                 Button(saving ? "Saving…" : "Save alert preferences") { Task { await save() } }.disabled(!ready || saving)
                 if let message { Text(message).font(.footnote) }
             }
@@ -1192,11 +1193,11 @@ private struct MyListsView: View {
                     NavigationLink { ObserverListView(list: list) } label: {
                         VStack(alignment: .leading) {
                             Text(list.name).font(.headline)
-                            Text("\(list.committees.count) committees · \(list.newCount) new reports").font(.caption).foregroundStyle(.secondary)
+                            Text("\(list.committees.count) committees · \(list.newCount) new reports").font(.caption).foregroundStyle(CivicTheme.secondary)
                         }
                     }
                 }.onDelete { offsets in Task { for i in offsets { await remove(lists[i]) }; await load() } }
-                if lists.isEmpty { Text("Organize committees into your own lists. List members are included in filing alerts when enabled.").foregroundStyle(.secondary) }
+                if lists.isEmpty { Text("Organize committees into your own lists. List members are included in filing alerts when enabled.").foregroundStyle(CivicTheme.secondary) }
             }
         }.civicSurface().navigationTitle("My lists").task { await load() }.refreshable { await load() }
     }
@@ -1237,7 +1238,7 @@ private struct ObserverListView: View {
             if let failure { Text(failure); Button("Try again") { Task { await load(false) } } }
             ForEach(filings) { filing in NavigationLink { FilingDetail(filing: filing) } label: { FilingRow(filing: filing) } }
             if cursor != nil { Button("Load earlier reports") { Task { await load(true) } } }
-            if filings.isEmpty && failure == nil { Text("No collected reports in this list yet. Add committees using Edit.").foregroundStyle(.secondary) }
+            if filings.isEmpty && failure == nil { Text("No collected reports in this list yet. Add committees using Edit.").foregroundStyle(CivicTheme.secondary) }
         }.civicSurface().navigationTitle(currentName.isEmpty ? list.name : currentName).navigationBarTitleDisplayMode(.inline)
             .task { await load(false) }.refreshable { await load(false) }
             .sheet(isPresented: $editing, onDismiss: { Task { await load(false) } }) { NavigationStack { EditObserverListView(list: list) } }
@@ -1457,12 +1458,12 @@ private struct InlineFilingPDF: View {
         VStack(alignment: .leading, spacing: 12) {
             if let document {
                 HStack {
-                    Text("\(document.pageCount) page\(document.pageCount == 1 ? "" : "s")").font(.caption).foregroundStyle(.secondary)
+                    Text("\(document.pageCount) page\(document.pageCount == 1 ? "" : "s")").font(.caption).foregroundStyle(CivicTheme.secondary)
                     Spacer()
                     Button { expanded = true } label: { Label("Full screen", systemImage: "arrow.up.left.and.arrow.down.right") }
                 }
                 NativePDFView(document: document).frame(height: 560).clipShape(RoundedRectangle(cornerRadius: 12))
-                Text("Scroll to read • Pinch to zoom").font(.caption).foregroundStyle(.secondary)
+                Text("Scroll to read • Pinch to zoom").font(.caption).foregroundStyle(CivicTheme.secondary)
             } else if let failure {
                 Text(failure).font(.subheadline)
                 Button("Try again") { attempt += 1 }
