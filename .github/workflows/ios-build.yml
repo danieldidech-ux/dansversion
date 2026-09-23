@@ -28,25 +28,13 @@ jobs:
           xcrun simctl boot "$DEVICE"
           xcrun simctl bootstatus "$DEVICE" -b
           xcrun simctl install "$DEVICE" build/Build/Products/Debug-iphonesimulator/IllinoisTracker.app
-          xcrun simctl launch "$DEVICE" com.danieldidech.illinoisfilings 
-          sleep 10
-          xcrun simctl io "$DEVICE" screenshot IllinoisTracker-home.png
-          xcrun simctl terminate "$DEVICE" com.danieldidech.illinoisfilings
-          xcrun simctl launch "$DEVICE" com.danieldidech.illinoisfilings --preview-alert-options
-          sleep 15
-          xcrun simctl io "$DEVICE" screenshot IllinoisTracker-alert-options.png
-          xcrun simctl terminate "$DEVICE" com.danieldidech.illinoisfilings
-          xcrun simctl launch "$DEVICE" com.danieldidech.illinoisfilings --preview-lists
-          sleep 15
-          xcrun simctl io "$DEVICE" screenshot IllinoisTracker-lists.png
-          xcrun simctl terminate "$DEVICE" com.danieldidech.illinoisfilings
-          xcrun simctl launch "$DEVICE" com.danieldidech.illinoisfilings --preview-donors
-          sleep 15
-          xcrun simctl io "$DEVICE" screenshot IllinoisTracker-donors.png
-          xcrun simctl terminate "$DEVICE" com.danieldidech.illinoisfilings
-          xcrun simctl launch "$DEVICE" com.danieldidech.illinoisfilings --preview-committee
+          xcrun simctl launch "$DEVICE" com.danieldidech.illinoisfilings --preview-caucuses --preview-cash
           sleep 25
-          xcrun simctl io "$DEVICE" screenshot IllinoisTracker-finance.png
+          xcrun simctl io "$DEVICE" screenshot IllinoisTracker-caucus-day.png
+          xcrun simctl terminate "$DEVICE" com.danieldidech.illinoisfilings
+          xcrun simctl launch "$DEVICE" com.danieldidech.illinoisfilings --preview-caucuses --preview-cash --preview-night
+          sleep 15
+          xcrun simctl io "$DEVICE" screenshot IllinoisTracker-caucus-night.png
       - uses: actions/upload-artifact@v4
         if: always()
         with:

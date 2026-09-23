@@ -574,6 +574,8 @@ struct CaucusesView: View {
     let title: String
     @AppStorage("caucusSort") private var sortOrder = "name"
     @State private var finances: [String: CommitteeFinance] = [:]
+    @State private var showInfo = false
+    @AppStorage("stale:/v1/directory") private var directoryStale = false
     @State private var loading = false
     @State private var failure: String?
     private var group: CaucusGroup? { directory?.groups.first { $0.id == groupID } }
@@ -601,17 +603,32 @@ struct CaucusesView: View {
     var body: some View {
             List {
                 Section {
-                    CacheNotice(path: "/v1/directory")
-                    if let count = directory?.skippedEntries, count > 0 {
-                        Text("\(count) malformed entries could not be loaded. Other committees remain available; pull to retry.").font(.caption).foregroundStyle(.orange)
+                    HStack(spacing: 16) {
+                        Menu {
+                            Picker("Sort by", selection: $sortOrder) {
+                                Text("Last name").tag("name")
+                                if groupID != "executive-branch" { Text("District number").tag("district") }
+                                Text("Estimated cash on hand").tag("cash")
+                            }
+                        } label: {
+                            Label(sortOrder == "cash" ? "Est. cash" : sortOrder == "district" ? "District" : "Last name", systemImage: "arrow.up.arrow.down")
+                                .font(.subheadline.weight(.semibold))
+                        }.accessibilityLabel("Sort committees")
+                        Spacer(minLength: 0)
+                        if let group {
+                            Button { Task { await model.toggleCategory(group.id) } } label: {
+                                Label(model.followedCategories.contains(group.id) ? "Following" : "Follow all", systemImage: model.followedCategories.contains(group.id) ? "star.fill" : "star")
+                                    .font(.subheadline.weight(.semibold))
+                            }.buttonStyle(.borderless).disabled(model.saving || model.loading)
+                            .accessibilityLabel(model.followedCategories.contains(group.id) ? "Unfollow all \(group.name)" : "Follow all \(group.name)")
+                        }
                     }
                 }
-                Section {
-                    Picker("Sort by", selection: $sortOrder) {
-                        Text("Last name").tag("name")
-                        if groupID != "executive-branch" { Text("District number").tag("district") }
-                        Text("Estimated cash on hand").tag("cash")
-                    }
+                if directoryStale {
+                    Section { CacheNotice(path: "/v1/directory") }
+                }
+                if let count = directory?.skippedEntries, count > 0 {
+                    Section { Text("\(count) entries unavailable. Pull to retry.").font(.caption).foregroundStyle(.orange) }
                 }
                 if let failure {
                     Section {
@@ -620,18 +637,6 @@ struct CaucusesView: View {
                     }
                 }
                 if let group {
-                    Section {
-                        Button {
-                            Task { await model.toggleCategory(group.id) }
-                        } label: {
-                            Label(model.followedCategories.contains(group.id) ? "Following \(group.name)" : "Follow \(group.name)", systemImage: model.followedCategories.contains(group.id) ? "star.fill" : "star")
-                        }.disabled(model.saving || model.loading)
-                    } footer: { Text(groupID == "executive-branch" ? "Follow all five listed committees. Membership updates apply automatically." : "Follow all listed committees, including the leader and caucus funds. Membership updates apply automatically.") }
-                    if sortOrder == "cash" {
-                        Section {
-                            Text("Highest estimates first. Unavailable estimates appear last. Balances may use different quarter-end dates; pull to refresh as summaries finish loading.").font(.caption).foregroundStyle(.secondary)
-                        }
-                    }
                     if !group.pinned.isEmpty {
                         Section("Leader & caucus committees") {
                             ForEach(group.pinned) { entry in directoryRow(entry) }
@@ -640,11 +645,30 @@ struct CaucusesView: View {
                     Section {
                         ForEach(members) { entry in directoryRow(entry) }
                     } header: { Text(groupID == "executive-branch" ? "Statewide officials & candidates" : "Members & candidates") }
-                    footer: { Text("The directory includes selected current-cycle candidates as well as current officeholders. Committee lists may be revised.") }
+
                 } else if loading { ProgressView("Loading committees…") }
             }
+            .listSectionSpacing(.compact)
+            .contentMargins(.top, 0, for: .scrollContent)
             .civicSurface().navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button { showInfo = true } label: { Image(systemName: "info.circle") }
+                        .accessibilityLabel("About this committee list")
+                }
+            }
+            .sheet(isPresented: $showInfo) {
+                NavigationStack {
+                    List {
+                        Section("Data freshness") { CacheNotice(path: "/v1/directory") }
+                        Section("Following") { Text("Follow all includes the listed committees, leaders and caucus funds. Membership updates apply automatically.") }
+                        Section("Cash estimates") { Text("Highest estimates appear first; unavailable estimates appear last. Leaders and caucus funds stay pinned. Balances may use different quarter-end dates and exclude unreported spending. Pull to refresh.") }
+                        Section("Directory") { Text("Includes selected current-cycle candidates and current officeholders. Committee lists may be revised.") }
+                    }.navigationTitle("About this list").navigationBarTitleDisplayMode(.inline)
+                    .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { showInfo = false } } }
+                }.presentationDetents([.medium, .large])
+            }
             .onAppear {
                 if groupID == "executive-branch", sortOrder == "district" { sortOrder = "name" }
                 #if DEBUG
