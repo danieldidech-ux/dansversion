@@ -10,7 +10,14 @@ def inspect():
   try:
    req=urllib.request.Request(URL,headers={'User-Agent':'IllinoisFilingTracker/0.3 (public campaign filing reader)'})
    with urllib.request.urlopen(req,timeout=12) as r: html=r.read(3000000).decode('utf-8')
+   from archive_source import Source
+   source=Source()
+   html=source.all_rows(URL,html,'gvFiledDocs')
    result={'html':html}
+   doc=Document(html)
+   for kind in ['D-2 Quarterly','A-1']:
+    link=next((n for n in doc.root.all('a') if kind in n.text() and not n.attrs.get('href','').startswith('javascript')),None)
+    if link: result[kind]=source.read(urllib.parse.urljoin(URL,link.attrs['href']))
   except Exception as e: result={'error':str(e)}
   _cache.update(expires=time.time()+300,result=result)
   return result
