@@ -1,0 +1,20 @@
+name: Archive integration probe
+on:
+  push:
+    branches: [illinois-filing-tracker]
+    paths: ['tracker/scripts/archive_probe.py', '.github/workflows/archive-probe.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: PYTHONPATH=tracker python tracker/scripts/archive_probe.py
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: archive-probe
+          path: archive-probe/
