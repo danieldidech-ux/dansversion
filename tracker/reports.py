@@ -177,7 +177,8 @@ class ReportReader:
                 cached = db.execute('SELECT payload FROM report_cache WHERE seq=? AND source_url=? AND expires>?',
                     (filing['seq'],filing['url'],time.time())).fetchone()
             if cached:
-                return json.loads(cached[0])
+                result=json.loads(cached[0])
+                return self.index(filing,result)
             if not self.slots.acquire(blocking=False):
                 return dict(status='unavailable',message='Reports are busy loading. Please try again shortly.')
             try:
@@ -191,9 +192,15 @@ class ReportReader:
                     db.execute('DELETE FROM report_cache WHERE expires<?',(time.time(),))
                     db.execute('INSERT OR REPLACE INTO report_cache VALUES (?,?,?,?)',
                         (filing['seq'],filing['url'],time.time()+ttl,json.dumps(result)))
-                return result
+                return self.index(filing,result)
             finally:
                 self.slots.release()
+
+    def index(self,filing,result):
+        if result.get('status')=='ready' and result.get('contributions'):
+            from observer import index_entries
+            index_entries(self.store,filing,result['contributions'])
+        return result
 
     def schedule(self,filing,key):
         from quarterly import fetch_schedule
@@ -206,7 +213,11 @@ class ReportReader:
         with self.locks[filing['seq'] % len(self.locks)]:
             with closing(self.store.connect()) as db:
                 row=db.execute('SELECT payload FROM schedule_cache WHERE url=? AND expires>?',(url,time.time())).fetchone()
-            if row:return json.loads(row[0])
+            if row:
+                result=json.loads(row[0])
+                from observer import index_schedule
+                index_schedule(self.store,filing,key,result)
+                return result
             if not self.slots.acquire(blocking=False):return dict(status='unavailable',message='Reports are busy loading. Please try again shortly.')
             try:
                 try:result=fetch_schedule(filing,section,parent['period'])
@@ -217,5 +228,7 @@ class ReportReader:
                 with closing(self.store.connect()) as db,db:
                     db.execute('DELETE FROM schedule_cache WHERE expires<?',(time.time(),))
                     db.execute('INSERT OR REPLACE INTO schedule_cache VALUES (?,?,?)',(url,time.time()+(3600 if result['status']=='ready' else 30),json.dumps(result)))
+                from observer import index_schedule
+                index_schedule(self.store,filing,key,result)
                 return result
             finally:self.slots.release()

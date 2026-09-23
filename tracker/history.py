@@ -44,7 +44,7 @@ def parse_archive(html, committee):
 
 
 def unavailable(message,status='unavailable'):
- return dict(status=status,message=message,as_of=None,cash_and_investments=None,a1_total=None,estimated_cash=None)
+ return dict(status=status,message=message,as_of=None,cash_and_investments=None,a1_total=None,monetary_receipts=None,in_kind_total=None,estimated_cash=None,calculation_version=2)
 
 
 class History:
@@ -77,7 +77,7 @@ class History:
    state=db.execute('SELECT * FROM archive_state WHERE committee_key=?',(key,)).fetchone()
    latest=db.execute('SELECT COALESCE(MAX(seq),0) FROM filings WHERE committee_key=?',(key,)).fetchone()[0]
   if not committee:return False
-  if state and json.loads(state['finance']).get('status')!='loading' and state['checked']>time.time()- (900 if state['complete'] and json.loads(state['finance']).get('status')=='ready' else 300) and state['source_seq']==latest:return True
+  if state and json.loads(state['finance']).get('calculation_version')==2 and json.loads(state['finance']).get('status')!='loading' and state['checked']>time.time()- (900 if state['complete'] and json.loads(state['finance']).get('status')=='ready' else 300) and state['source_seq']==latest:return True
   with self.lock:
    if key not in self.pending:
     self.pending.add(key);self.counter+=1;self.tasks.put((priority,self.counter,dict(committee),latest))
@@ -97,11 +97,15 @@ class History:
    except Exception as e:
     logging.getLogger('gunicorn.error').warning('Archive unavailable for %s: %s',committee['id'],type(e).__name__)
     with closing(self.store.connect()) as db,db:
-     old=db.execute('SELECT complete,payload FROM archive_state WHERE committee_key=?',(committee['id'],)).fetchone()
+     old=db.execute('SELECT complete,payload,finance FROM archive_state WHERE committee_key=?',(committee['id'],)).fetchone()
      payload=json.loads(old['payload']) if old else {}
      detail=diagnose(e,self.audit_context.get(committee['id'],{}))
      payload.update(status='unavailable',message=detail['reason'],diagnostic=detail)
-     db.execute('INSERT OR REPLACE INTO archive_state VALUES (?,?,?,?,?,?)',(committee['id'],time.time(),latest,0,json.dumps(payload),json.dumps(dict(unavailable(detail['reason']),diagnostic=detail))))
+     previous=json.loads(old['finance']) if old else {}
+     finance=dict(unavailable(detail['reason']),diagnostic=detail)
+     if previous.get('status')=='ready' and previous.get('calculation_version')==2:
+      finance=dict(previous,stale=True,message='Saved verified balance; refresh failed: '+detail['reason'])
+     db.execute('INSERT OR REPLACE INTO archive_state VALUES (?,?,?,?,?,?)',(committee['id'],time.time(),latest,0,json.dumps(payload),json.dumps(finance)))
    finally:
     with self.lock:
      self.pending.discard(committee['id']);self.promoted.discard(committee['id']);self.active=None
@@ -148,7 +152,10 @@ class History:
   return dict(row) if row else None
  def finance(self,key):
   row=self.state(key)
-  return json.loads(row['finance']) if row else unavailable('Loading official reports…','loading')
+  result=json.loads(row['finance']) if row else unavailable('Loading official reports…','loading')
+  if result.get('calculation_version')!=2:return unavailable('Recalculating monetary receipts separately from in-kind support…','loading')
+  result['checked_at']=row['checked'] if row else None
+  return result
  def page(self,key,before=None):
   row=self.state(key)
   with closing(self.store.connect()) as db:
@@ -179,7 +186,7 @@ class History:
    end=period_end(quarter)
    self.audit_context[committee['id']]=dict(stage='quarterly_report',source_url=quarter['url'],report_type=quarter['report_type'],filed_at=quarter['filed_at'])
    base=parse_quarter(self.document(source,quarter['url']),quarter)
-  result=dict(status='unavailable',as_of=end,cash_and_investments=base,a1_total=None,estimated_cash=None,baseline_assumed=assumed,message='A-1 totals could not be fully verified.')
+  result=dict(status='unavailable',as_of=end,cash_and_investments=base,a1_total=None,estimated_cash=None,baseline_assumed=assumed,calculation_version=2,monetary_receipts=None,in_kind_total=None,message='A-1 totals could not be fully verified.')
   unknown=[r for r in rows if r['report_type']=='Unlabeled official record' and r['filed_at'][:10]>end]
   if unknown:
    result['message']='An unlabeled official record filed after the baseline needs review.'
@@ -190,18 +197,33 @@ class History:
    result['message']='An A-1 amendment or clarification needs review before an estimate can be shown.'
    result['diagnostic']=dict(stage='a1_amendment',reason=result['message'],reports=[dict(url=r['url'],report_type=r['report_type'],filed_at=r['filed_at'],clarification=r['clarification']) for r in a1s if 'amend' in r['report_type'].lower() or r['clarification']])
    return result
-  total=Decimal(0)
+  total=Decimal(0);monetary=Decimal(0);in_kind=Decimal(0);seen_docs=set();seen_entries=set()
   try:
    for report in a1s:
+    doc_id=report.get('document_id') or identity(report['url'])
+    if doc_id in seen_docs:continue
+    seen_docs.add(doc_id)
     html=self.document(source,report['url'],'gvA1List')
     detail=parse_a1(html,report)
-    total+=sum((Decimal(e['amount']) for e in detail['contributions'] if e['received_date']>end),Decimal(0))
+    current=set()
+    for e in detail['contributions']:
+     if e['received_date']<=end:continue
+     fingerprint=tuple(normalized(str(e.get(k,''))) for k in ('contributor','address','amount','received_date','contribution_type','description','vendor'))
+     if fingerprint in seen_entries:
+      raise ReportFormatError('Matching contributions appear in separate A-1 filings; possible duplicate or amendment requires review.')
+     current.add(fingerprint)
+     amount=Decimal(e['amount']);kind=normalized(e['contribution_type']).replace('–','-')
+     if 'in-kind' in kind or 'in kind' in kind:in_kind+=amount
+     elif kind in ('individual contribution','transfer in','transfers in','loan','loan received','loans received','other receipt','other receipts','monetary contribution'):monetary+=amount
+     else:raise ReportFormatError('Unrecognized contribution type: '+e['contribution_type'])
+     total+=amount
+    seen_entries.update(current)
   except Exception as exc:
    logging.getLogger('gunicorn.error').warning('A1 estimate incomplete for %s report %s: %s %s',committee['id'],report['document_id'],type(exc).__name__,str(exc))
    result['diagnostic']=diagnose(exc,dict(stage='a1_report',source_url=report['url'],filed_at=report['filed_at'],report_type=report['report_type']))
    result['message']=result['diagnostic']['reason']
    return result
-  result.update(status='ready',a1_total=format(total,'.2f'),estimated_cash=format(Decimal(base)+total,'.2f'),message=('New committee formed '+created+'. No quarterly report yet; starting balance assumed $0. Estimate equals A-1 contributions received since formation.' if assumed else 'Based on the latest quarterly report and A-1 contributions received after quarter end.'))
+  result.update(status='ready',a1_total=format(total,'.2f'),monetary_receipts=format(monetary,'.2f'),in_kind_total=format(in_kind,'.2f'),estimated_cash=format(Decimal(base)+monetary,'.2f'),message=('New committee formed '+created+'. Starting balance assumed $0. ' if assumed else '')+'Reported cash and investments plus monetary A-1 receipts after quarter end. In-kind support is excluded. Spending and receipts not yet disclosed are unknown; this is not a current bank balance.')
   return result
 
 

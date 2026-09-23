@@ -16,6 +16,7 @@ import UserNotifications
     @Published var alertsEnabled = false
     @Published var notificationStatus = "Not enabled"
     @Published var selectedFiling: Filing?
+    @Published var showAlertInbox = false
     @Published var allHasMore = false
     @Published var watchedHasMore = false
     @Published var committeesHaveMore = false
@@ -60,7 +61,14 @@ import UserNotifications
             if committees.isEmpty { await search("") }
             lastRefresh = Date()
             await refreshPermission()
-        } catch { self.error = error.localizedDescription }
+        } catch {
+            self.error = error.localizedDescription
+            let decoder = JSONDecoder(); decoder.keyDecodingStrategy = .convertFromSnakeCase
+            if filings.isEmpty, let data = ResponseCache.read("/v1/filings"), let saved = try? decoder.decode(FilingPage.self, from: data) {
+                filings = saved.filings; allCursor = saved.nextCursor; allHasMore = saved.hasMore
+                ResponseCache.setStale("/v1/filings", true)
+            }
+        }
     }
     func refreshIfNeeded() async {
         if Date().timeIntervalSince(lastRefresh) >= 60 { await refresh() }

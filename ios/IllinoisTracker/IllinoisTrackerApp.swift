@@ -4,9 +4,11 @@ import UserNotifications
 @MainActor final class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     weak var model: AppModel?
     private var pendingSequence: Int?
+    private var pendingDigest = false
     private var pendingToken: String?
     func attach(_ model: AppModel) {
         self.model = model
+        if pendingDigest { model.showAlertInbox = true; pendingDigest = false }
         if let pendingToken { Task { await model.registerPush(pendingToken) }; self.pendingToken = nil }
         if let pendingSequence { Task { await model.openNotification(pendingSequence) }; self.pendingSequence = nil }
     }
@@ -26,8 +28,11 @@ import UserNotifications
     }
     nonisolated func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
         let seq = response.notification.request.content.userInfo["filing_seq"] as? Int
+        let digest = response.notification.request.content.userInfo["digest"] as? Bool ?? false
         Task { @MainActor in
-            if let seq {
+            if digest {
+                if let model = self.model { model.showAlertInbox = true } else { self.pendingDigest = true }
+            } else if let seq {
                 if let model = self.model { await model.openNotification(seq) } else { self.pendingSequence = seq }
             }
             completionHandler()

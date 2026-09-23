@@ -2,7 +2,7 @@ name: iPhone build
 on:
   push:
     branches: [illinois-filing-tracker]
-    paths: ['ios/**', '.github/workflows/ios-build.yml']
+    paths: ['ios/**', 'tracker/directory.json', '.github/workflows/ios-build.yml']
   workflow_dispatch:
 concurrency:
   group: iphone-prototype-check
@@ -15,6 +15,11 @@ jobs:
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+      - name: Validate native directory decoding
+        run: |
+          curl --fail --retry 3 --max-time 30 https://illinois-filing-tracker.onrender.com/v1/directory -o /tmp/live-directory.json
+          cat ios/IllinoisTracker/Models.swift ios/Checks/DirectoryCheck.swift > /tmp/DirectoryCheck.swift
+          swift /tmp/DirectoryCheck.swift tracker/directory.json /tmp/live-directory.json
       - name: Build iPhone simulator app
         run: xcodebuild -project ios/IllinoisTracker.xcodeproj -scheme IllinoisTracker -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -configuration Debug -derivedDataPath build CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- build
       - name: Launch simulator and capture live app

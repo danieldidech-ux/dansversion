@@ -28,7 +28,7 @@ class DirectoryTests(unittest.TestCase):
                 client = app.test_client()
                 self.assertEqual(client.get('/healthz').status_code, 200)
                 self.assertEqual(client.get('/v1/directory').status_code, 200)
-                self.assertEqual(thread.return_value.start.call_count, 2)
+                self.assertEqual(thread.return_value.start.call_count, 3)
             finally:
                 if app.config.get('COLLECTOR_LOCK'):
                     app.config['COLLECTOR_LOCK'].close()

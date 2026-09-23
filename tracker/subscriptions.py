@@ -52,6 +52,8 @@ def migrate(db):
       CREATE TABLE IF NOT EXISTS request_limits (bucket TEXT PRIMARY KEY, count INTEGER NOT NULL, expires REAL NOT NULL);
     ''')
     db.executemany('INSERT OR IGNORE INTO categories(id,name) VALUES (?,?)', CATEGORIES)
+    from observer import migrate as observer_migrate
+    observer_migrate(db)
 
 
 def enqueue(db, seq, committee_key, now):
@@ -62,8 +64,9 @@ def enqueue(db, seq, committee_key, now):
         UNION
         SELECT s.device_id FROM category_subscriptions s
           JOIN categories c ON c.id=s.category_id AND c.verified=1
-          JOIN category_members m ON m.category_id=c.id WHERE m.committee_key=?)''',
-        (seq, now, now, committee_key, committee_key))
+          JOIN category_members m ON m.category_id=c.id WHERE m.committee_key=?
+        UNION SELECT l.device_id FROM private_lists l JOIN list_members m ON m.list_id=l.id WHERE m.committee_key=?)''',
+        (seq, now, now, committee_key, committee_key,committee_key))
 
 
 def routes(store):
@@ -151,12 +154,13 @@ def routes(store):
             db.execute('DELETE FROM category_subscriptions WHERE device_id=?', (g.device['id'],))
             db.executemany('INSERT INTO subscriptions VALUES (?,?)', [(g.device['id'],x) for x in set(committees)])
             db.executemany('INSERT INTO category_subscriptions VALUES (?,?)', [(g.device['id'],x) for x in set(categories)])
-            # Cancel queued alerts after an unfollow, including category membership.
-            db.execute('''DELETE FROM outbox WHERE device_id=? AND state='pending' AND filing_seq NOT IN (
-              SELECT f.seq FROM filings f WHERE f.committee_key IN (
-                SELECT committee_key FROM subscriptions WHERE device_id=? UNION
-                SELECT m.committee_key FROM category_members m JOIN category_subscriptions s ON s.category_id=m.category_id
-                  JOIN categories c ON c.id=m.category_id AND c.verified=1 WHERE s.device_id=?))''', (g.device['id'],)*3)
+            db.execute("""DELETE FROM outbox WHERE device_id=? AND state='pending' AND filing_seq NOT IN (
+                SELECT f.seq FROM filings f WHERE f.committee_key IN (
+                  SELECT committee_key FROM subscriptions WHERE device_id=? UNION
+                  SELECT m.committee_key FROM category_members m JOIN category_subscriptions s ON s.category_id=m.category_id WHERE s.device_id=? UNION
+                  SELECT m.committee_key FROM list_members m JOIN private_lists l ON l.id=m.list_id WHERE l.device_id=?)
+                UNION SELECT x.seq FROM disclosures x JOIN entity_follows e ON e.entity_id=x.entity_id WHERE e.device_id=?
+                UNION SELECT x.seq FROM disclosures x JOIN list_entities m ON m.entity_id=x.entity_id JOIN private_lists l ON l.id=m.list_id WHERE l.device_id=?)""",(g.device['id'],)*6)
         return jsonify(ok=True)
 
     @api.put('/v1/me/push')
@@ -182,7 +186,9 @@ def routes(store):
     @authenticated
     def delete():
         with closing(store.connect()) as db, db:
-            for table in ('subscriptions','category_subscriptions','outbox'):
+            db.execute('DELETE FROM list_members WHERE list_id IN (SELECT id FROM private_lists WHERE device_id=?)',(g.device['id'],))
+            db.execute('DELETE FROM list_entities WHERE list_id IN (SELECT id FROM private_lists WHERE device_id=?)',(g.device['id'],))
+            for table in ('private_lists','alert_preferences','entity_follows','subscriptions','category_subscriptions','outbox'):
                 db.execute('DELETE FROM '+table+' WHERE device_id=?', (g.device['id'],))
             db.execute('DELETE FROM devices WHERE id=?',(g.device['id'],))
         return jsonify(ok=True)
@@ -228,6 +234,8 @@ def routes(store):
         if row is None:return jsonify(error='Not found'),404
         return jsonify(report_reader.schedule(dict(row),key))
 
+    from observer import install_routes
+    install_routes(api,store,authenticated,report_reader)
     return api
 
 
@@ -249,10 +257,11 @@ class ApplePush:
             self.tokens[environment] = (token, generated)
         if self.client is None: self.client=httpx.Client(http2=True,timeout=15)
         host='api.sandbox.push.apple.com' if row['environment']=='sandbox' else 'api.push.apple.com'
-        payload={'aps':{'alert':{'title':row['committee_name'][:200],'body':row['report_type'][:200]},'sound':'default'},'filing_seq':row['filing_seq']}
+        payload={'aps':{'alert':{'title':row.get('alert_title',row['committee_name'])[:200],'body':row.get('alert_body',row['report_type'])[:500]},'sound':'default','thread-id':row.get('thread_id','committee-'+str(row.get('committee_key','')))},'filing_seq':row['filing_seq']}
+        if row.get('digest_count'):payload['digest']=True
         response=self.client.post('https://'+host+'/3/device/'+row['token'],json=payload,headers={
           'authorization':'bearer '+token,'apns-topic':os.environ['APNS_TOPIC'],'apns-push-type':'alert',
-          'apns-priority':'10','apns-expiration':str(int(row['created_at']+86400)),
+          'apns-priority':'10','apns-expiration':str(int(row['created_at']+3*86400)),
           'apns-collapse-id':'filing-'+str(row['filing_seq'])})
         try: reason=response.json().get('reason','')
         except ValueError: reason=''
@@ -263,25 +272,55 @@ def dispatch(store, sender, enabled=None):
     if not (configured() if enabled is None else enabled): return
     now=time.time()
     with closing(store.connect()) as db, db:
-        db.execute("UPDATE outbox SET state='expired' WHERE state='pending' AND created_at<?",(now-86400,))
+        db.execute("UPDATE outbox SET state='expired' WHERE state='pending' AND created_at<?",(now-3*86400,))
         db.execute("DELETE FROM outbox WHERE state!='pending' AND created_at<?",(now-30*86400,))
-        rows=[dict(r) for r in db.execute('''SELECT o.*, d.token,d.environment,f.committee_name,f.report_type
+        rows=[dict(r) for r in db.execute('''SELECT o.*, d.token,d.environment,f.committee_name,f.committee_key,f.report_type
           FROM outbox o JOIN devices d ON d.id=o.device_id JOIN filings f ON f.seq=o.filing_seq
-          WHERE o.state='pending' AND o.next_attempt<=? AND d.enabled=1 AND d.token IS NOT NULL ORDER BY o.id LIMIT 20''',(now,))]
+          WHERE o.state='pending' AND o.next_attempt<=? AND d.enabled=1 AND d.token IS NOT NULL ORDER BY o.id LIMIT 200''',(now,))]
+    from observer import preferences, delivery_time, alert_summary
+    eligible=[]
     for row in rows:
         if enabled is None and not configured(row['environment']): continue
-        # Recheck opt-out/token changes immediately before sending.
-        with closing(store.connect()) as db:
+        with closing(store.connect()) as db, db:
             current=db.execute('SELECT token FROM devices WHERE id=? AND enabled=1',(row['device_id'],)).fetchone()
             pending=db.execute("SELECT 1 FROM outbox WHERE id=? AND state='pending'",(row['id'],)).fetchone()
-        if not current or current['token']!=row['token'] or not pending: continue
+            if not current or current['token']!=row['token'] or not pending:continue
+            device=row['device_id'];key=row['committee_key']
+            subscribed=db.execute('SELECT 1 FROM subscriptions WHERE device_id=? AND committee_key=?',(device,key)).fetchone()
+            subscribed=subscribed or db.execute('SELECT 1 FROM category_subscriptions s JOIN category_members m ON s.category_id=m.category_id WHERE s.device_id=? AND m.committee_key=?',(device,key)).fetchone()
+            subscribed=subscribed or db.execute('SELECT 1 FROM private_lists l JOIN list_members m ON l.id=m.list_id WHERE l.device_id=? AND m.committee_key=?',(device,key)).fetchone()
+            subscribed=subscribed or db.execute('SELECT 1 FROM entity_follows f JOIN disclosures x ON f.entity_id=x.entity_id WHERE f.device_id=? AND x.seq=?',(device,row['filing_seq'])).fetchone()
+            subscribed=subscribed or db.execute('SELECT 1 FROM private_lists l JOIN list_entities m ON m.list_id=l.id JOIN disclosures x ON x.entity_id=m.entity_id WHERE l.device_id=? AND x.seq=?',(device,row['filing_seq'])).fetchone()
+            if not subscribed:
+                db.execute("UPDATE outbox SET state='cancelled' WHERE id=?",(row['id'],));continue
+            p=preferences(db,device);allowed,body=alert_summary(db,row,p)
+            if allowed is False:
+                db.execute("UPDATE outbox SET state='filtered' WHERE id=?",(row['id'],));continue
+            if allowed is None:
+                db.execute('UPDATE outbox SET next_attempt=? WHERE id=?',(now+60,row['id']));continue
+            due=delivery_time(p,row['created_at'],now)
+            if due>now:
+                db.execute('UPDATE outbox SET next_attempt=? WHERE id=?',(due,row['id']));continue
+            row['alert_body']=body;row['delivery']=p['delivery'];eligible.append(row)
+    groups={}
+    for row in eligible:
+        # Bundle digests; instant reports use iOS thread grouping without dropping any filing.
+        key=(row['device_id'],row['delivery']) if row['delivery']!='instant' else (row['id'],)
+        groups.setdefault(key,[]).append(row)
+    for group in groups.values():
+        row=group[-1]
+        if row['delivery']!='instant':
+            row['digest_count']=len(group);row['alert_title']='Your Illinois filing digest'
+            row['alert_body']=f"{len(group)} new reports: "+'; '.join(dict.fromkeys(r['committee_name'] for r in group))
+            row['thread_id']='filing-digest'
         try: status,reason=sender.send(row)
         except Exception: status,reason=0,'Transport error'
         state='sent' if status==200 else ('failed' if status in (400,404,405,410,413) else 'pending')
         delay=max(60,min(3600,60*2**min(row['attempts'],6)))
         with closing(store.connect()) as db, db:
-            db.execute('UPDATE outbox SET state=?,attempts=attempts+1,next_attempt=?,last_error=? WHERE id=?',
-                (state,time.time()+delay,None if status==200 else str(status)+': '+reason[:100],row['id']))
+            for item in group:
+                db.execute('UPDATE outbox SET state=?,attempts=attempts+1,next_attempt=?,last_error=? WHERE id=?',
+                    (state,time.time()+delay,None if status==200 else str(status)+': '+reason[:100],item['id']))
             if status==410 or reason=='BadDeviceToken':
                 db.execute('UPDATE devices SET enabled=0,token=NULL WHERE id=? AND token=?',(row['device_id'],row['token']))
 

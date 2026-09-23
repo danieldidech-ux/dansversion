@@ -246,6 +246,14 @@ def notification_loop(store):
         time.sleep(5)
 
 
+def observer_loop(store):
+    from observer import index_tick
+    while True:
+        try:index_tick(store)
+        except Exception:LOG.exception('Disclosure indexing failed; retrying')
+        time.sleep(5)
+
+
 def create_app(directory=None, poll=True):
     directory = directory or os.environ.get('DATA_DIR', './data')
     if os.environ.get('REQUIRE_PERSISTENT_DISK') == '1' and not os.path.ismount(directory):
@@ -281,6 +289,9 @@ def create_app(directory=None, poll=True):
                 notifications = threading.Thread(target=notification_loop, args=(store,), daemon=True)
                 app.config['NOTIFICATION_WORKER'] = notifications
                 notifications.start()
+                indexing=threading.Thread(target=observer_loop,args=(store,),daemon=True)
+                app.config['INDEX_WORKER']=indexing
+                indexing.start()
 
     @app.after_request
     def security(response):

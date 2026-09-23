@@ -13,6 +13,22 @@ class HistoryTests(unittest.TestCase):
   self.tmp=tempfile.TemporaryDirectory();self.addCleanup(self.tmp.cleanup)
   self.store=Store(self.tmp.name);self.history=History(self.store)
   self.rows,self.created,self.official=parse_archive((FIX/'committee-34241.html').read_text(),COM)
+ def test_cash_excludes_in_kind_and_ambiguous_duplicates(self):
+  report=self.rows[0]
+  detail=parse_a1((FIX/'a1-34241.html').read_text(),report)
+  cash=detail['contributions'][0]
+  ink=dict(cash,contributor='A party committee',amount='39223.24',contribution_type='In-kind Contribution')
+  with patch('history.previous_quarter_end',return_value='2026-06-30'),patch.object(self.history,'document',return_value='html'),patch('history.parse_a1',return_value=dict(contributions=[cash,ink])):
+   result=self.history.calculate(None,COM,[report],'7/11/2026')
+   self.assertEqual(result['estimated_cash'],'1500.00')
+   self.assertEqual(result['in_kind_total'],'39223.24')
+   self.assertEqual(result['a1_total'],'40723.24')
+   repeated=self.history.calculate(None,COM,[report,report],'7/11/2026')
+   self.assertEqual(repeated['estimated_cash'],'1500.00')
+   ambiguous=self.history.calculate(None,COM,[report,dict(report,document_id='another-document')],'7/11/2026')
+   self.assertIsNone(ambiguous['estimated_cash'])
+   self.assertIn('possible duplicate',ambiguous['message'])
+
  def test_complete_archive_and_identity(self):
   self.assertEqual(len(self.rows),359);self.assertEqual(self.created,'11/10/2017');self.assertEqual(self.official,'34241')
   self.assertEqual(self.rows[-1]['filed_at'][:10],'2017-11-13')
