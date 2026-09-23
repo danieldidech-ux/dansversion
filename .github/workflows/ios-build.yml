@@ -12,9 +12,16 @@ permissions:
 jobs:
   build:
     runs-on: macos-15
-    timeout-minutes: 10
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+      - name: Wait for matching backend release
+        run: |
+          for attempt in $(seq 1 30); do
+            if curl --fail --silent --max-time 15 https://illinois-filing-tracker.onrender.com/downloads/IllinoisTracker-v16.zip -o /tmp/live-release.zip && cmp -s /tmp/live-release.zip releases/IllinoisTracker-iPhone-Source-v16.zip; then break; fi
+            sleep 10
+          done
+          cmp /tmp/live-release.zip releases/IllinoisTracker-iPhone-Source-v16.zip
       - name: Validate native directory decoding
         run: |
           curl --fail --retry 3 --max-time 30 https://illinois-filing-tracker.onrender.com/v1/directory -o /tmp/live-directory.json
@@ -28,29 +35,13 @@ jobs:
           xcrun simctl boot "$DEVICE"
           xcrun simctl bootstatus "$DEVICE" -b
           xcrun simctl install "$DEVICE" build/Build/Products/Debug-iphonesimulator/IllinoisTracker.app
-          xcrun simctl launch "$DEVICE" com.danieldidech.illinoisfilings --preview-reports
-          sleep 12
-          xcrun simctl io "$DEVICE" screenshot IllinoisTracker-reports-day.png
-          xcrun simctl terminate "$DEVICE" com.danieldidech.illinoisfilings
-          xcrun simctl launch "$DEVICE" com.danieldidech.illinoisfilings --preview-reports --preview-night
-          sleep 12
-          xcrun simctl io "$DEVICE" screenshot IllinoisTracker-reports-night.png
-          xcrun simctl terminate "$DEVICE" com.danieldidech.illinoisfilings
-          xcrun simctl launch "$DEVICE" com.danieldidech.illinoisfilings --preview-reports --preview-pink
-          sleep 12
-          xcrun simctl io "$DEVICE" screenshot IllinoisTracker-reports-pink.png
-          xcrun simctl terminate "$DEVICE" com.danieldidech.illinoisfilings
-          xcrun simctl launch "$DEVICE" com.danieldidech.illinoisfilings --preview-reports --preview-large
-          sleep 12
-          xcrun simctl io "$DEVICE" screenshot IllinoisTracker-reports-large.png
-          xcrun simctl terminate "$DEVICE" com.danieldidech.illinoisfilings
-          xcrun simctl launch "$DEVICE" com.danieldidech.illinoisfilings --preview-problem
-          sleep 12
-          xcrun simctl io "$DEVICE" screenshot IllinoisTracker-problem.png
-          xcrun simctl terminate "$DEVICE" com.danieldidech.illinoisfilings
           xcrun simctl launch "$DEVICE" com.danieldidech.illinoisfilings --preview-pdf
-          sleep 30
+          sleep 40
           xcrun simctl io "$DEVICE" screenshot IllinoisTracker-pdf.png
+          xcrun simctl terminate "$DEVICE" com.danieldidech.illinoisfilings
+          xcrun simctl launch "$DEVICE" com.danieldidech.illinoisfilings --preview-reports
+          sleep 15
+          xcrun simctl io "$DEVICE" screenshot IllinoisTracker-reports.png
       - uses: actions/upload-artifact@v4
         if: always()
         with:

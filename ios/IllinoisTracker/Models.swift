@@ -293,6 +293,7 @@ enum ResponseCache {
 struct FilingPreview: Codable, Hashable {
     let kind: String
     let total: String?
+    let includesInKind: Bool?
     let contributionCount: Int?
     let contributors: [String]?
     let contributorCount: Int?

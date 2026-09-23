@@ -1,5 +1,5 @@
 """Verified feed previews and private, authenticated problem reports."""
-import json,time,uuid
+import json,time,uuid,re
 from contextlib import closing
 from flask import request,jsonify,g,current_app
 
@@ -10,8 +10,8 @@ def preview(report):
   return dict(kind='quarterly',period=report.get('period'),receipts=summary.get('receipts'),expenditures=summary.get('expenditures'),ending_cash=summary.get('ending_cash'))
  contributions=report.get('contributions') or []
  if contributions:
-  names=list(dict.fromkeys(x['contributor'] for x in contributions))
-  return dict(kind='a1',total=report.get('total'),contribution_count=len(contributions),contributors=names[:2],contributor_count=len(names))
+  names=list(dict.fromkeys(re.split(r'\s+(?:Occupation|Employer):',x['contributor'],maxsplit=1)[0].strip() for x in contributions))
+  return dict(kind='a1',includes_in_kind=any('in-kind' in x.get('contribution_type','').lower() for x in contributions),total=report.get('total'),contribution_count=len(contributions),contributors=names[:2],contributor_count=len(names))
  return None
 
 def install(app,store,authenticated):

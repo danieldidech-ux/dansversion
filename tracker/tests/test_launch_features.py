@@ -14,6 +14,11 @@ class LaunchTests(unittest.TestCase):
   self.assertIsNone(preview({'status':'unavailable','total':'999'}))
   self.assertEqual(preview({'status':'ready','kind':'quarterly','summary':{'ending_cash':'0.00'}})['ending_cash'],'0.00')
   self.assertIsNone(preview({'status':'ready','kind':'quarterly','summary':{}})['receipts'])
+ def test_preview_cleans_metadata_without_rewriting_disclosure(self):
+  report={'status':'ready','total':'1000','contributions':[{'contributor':'Smith, Jane Occupation: Director Employer: Example','contribution_type':'In-kind Contribution'}]}
+  result=preview(report)
+  self.assertEqual(result['contributors'],['Smith, Jane']);self.assertTrue(result['includes_in_kind'])
+  self.assertIn('Occupation:',report['contributions'][0]['contributor'])
  def test_feed_previews_use_only_verified_source_report(self):
   self.store.ingest(parse_feed(feed(2,1)))
   with closing(self.store.connect()) as db,db:

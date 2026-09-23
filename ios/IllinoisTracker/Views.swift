@@ -298,7 +298,7 @@ struct FilingRow: View {
                 if p.kind == "a1" {
                     if let total = p.total { Text(ReportContribution.currency(total)).font(.title3.bold()).monospacedDigit().foregroundStyle(accent) }
                     if let names = p.contributors { Text(names.joined(separator: " • ") + ((p.contributorCount ?? 0) > names.count ? " + \((p.contributorCount ?? 0) - names.count) more" : "")).font(.subheadline).foregroundStyle(.primary) }
-                    Text("\(p.contributionCount ?? 0) contributions · includes reported in-kind value").font(.caption).foregroundStyle(.secondary)
+                    Text("\(p.contributionCount ?? 0) contribution\(p.contributionCount == 1 ? "" : "s")" + (p.includesInKind == true ? " · includes in-kind" : "")).font(.caption).foregroundStyle(.secondary)
                 } else if p.kind == "quarterly" {
                     if let period = p.period { Text(period).font(.subheadline).foregroundStyle(.secondary) }
                     previewMetric("Receipts", p.receipts)
@@ -1341,9 +1341,17 @@ private struct FilingByIDView: View {
     let seq: Int
     @State private var filing: Filing?
     @State private var failure: String?
+    @State private var attempt = 0
     var body: some View {
-        Group { if let filing { FilingDetail(filing: filing) } else if let failure { Text(failure) } else { ProgressView("Loading filing…") } }
-            .task { do { filing = try await model.connection().call("/v1/filings/\(seq)") } catch { failure = error.localizedDescription } }
+        Group {
+            if let filing { FilingDetail(filing: filing) }
+            else if let failure { ContentUnavailableView { Label("Report unavailable", systemImage: "doc.text") } description: { Text(failure) } actions: { Button("Try again") { attempt += 1 } } }
+            else { ProgressView("Loading filing…") }
+        }.task(id: attempt) {
+            failure = nil
+            do { filing = try await model.connection().call("/v1/filings/\(seq)") }
+            catch { if !Task.isCancelled { failure = "The report could not be loaded. Please try again." } }
+        }
     }
 }
 
