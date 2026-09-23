@@ -157,13 +157,37 @@ def install_routes(api,store,authenticated,reader):
  @api.post('/v1/me/lists')
  @authenticated
  def create_list():
-  data=request.get_json(silent=True) or {};name=data.get('name','')
+  data=request.get_json(silent=True)
+  if not isinstance(data,dict):return jsonify(error='Invalid list request'),400
+  name=data.get('name','');keys=data.get('committees',[])
   if not isinstance(name,str) or not 1<=len(name.strip())<=80:return jsonify(error='Use a list name of 1–80 characters.'),400
+  if not isinstance(keys,list) or len(keys)>1000 or any(not isinstance(k,str) for k in keys):return jsonify(error='Invalid committees'),400
   with closing(store.connect()) as db,db:
+   db.execute('BEGIN IMMEDIATE')
+   if not set(keys)<={r[0] for r in db.execute('SELECT id FROM committees')}:return jsonify(error='Unknown committee'),400
    if db.execute('SELECT count(*) FROM private_lists WHERE device_id=?',(g.device['id'],)).fetchone()[0]>=30:return jsonify(error='Maximum 30 lists.'),400
    identifier=uuid.uuid4().hex;latest=db.execute('SELECT coalesce(max(seq),0) FROM filings').fetchone()[0]
    db.execute('INSERT INTO private_lists VALUES (?,?,?,?,?)',(identifier,g.device['id'],name.strip(),latest,time.time()))
+   db.executemany('INSERT INTO list_members VALUES (?,?)',[(identifier,k) for k in set(keys)])
   return jsonify(id=identifier)
+ @api.put('/v1/me/lists/<identifier>/committees/<committee>')
+ @authenticated
+ def set_list_committee(identifier,committee):
+  data=request.get_json(silent=True) or {}
+  if not isinstance(data,dict) or type(data.get('included')) is not bool:return jsonify(error='Choose whether to include this committee.'),400
+  with closing(store.connect()) as db,db:
+   db.execute('BEGIN IMMEDIATE')
+   if not db.execute('SELECT 1 FROM private_lists WHERE id=? AND device_id=?',(identifier,g.device['id'])).fetchone():return jsonify(error='List not found'),404
+   if not db.execute('SELECT 1 FROM committees WHERE id=?',(committee,)).fetchone():return jsonify(error='Committee not found'),404
+   if data['included']:
+    existing=db.execute('SELECT 1 FROM list_members WHERE list_id=? AND committee_key=?',(identifier,committee)).fetchone()
+    if not existing and db.execute('SELECT count(*) FROM list_members WHERE list_id=?',(identifier,)).fetchone()[0]>=1000:return jsonify(error='Maximum 1,000 committees per list.'),400
+    db.execute('INSERT OR IGNORE INTO list_members VALUES (?,?)',(identifier,committee))
+   else:
+    db.execute('DELETE FROM list_members WHERE list_id=? AND committee_key=?',(identifier,committee))
+    from subscriptions import prune_unmatched
+    prune_unmatched(db,g.device['id'])
+  return jsonify(ok=True)
  @api.put('/v1/me/lists/<identifier>')
  @authenticated
  def edit_list(identifier):

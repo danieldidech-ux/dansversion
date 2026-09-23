@@ -323,6 +323,12 @@ def create_app(directory=None, poll=True):
         for key in sorted(keys): history.schedule(key,priority=1)
         return jsonify(committees={key:history.finance(key) for key in keys})
 
+    @app.get('/downloads/IllinoisTracker-v20.zip')
+    def download20_observer_iphone_project():
+        archive = Path(__file__).resolve().parent.parent / 'releases' / 'IllinoisTracker-iPhone-Source-v20.zip'
+        return send_file(archive, mimetype='application/zip', as_attachment=True,
+                         download_name='IllinoisTracker-iPhone-Source-v20.zip', conditional=True)
+
     @app.get('/downloads/IllinoisTracker-v19.zip')
     def download19_observer_iphone_project():
         archive = Path(__file__).resolve().parent.parent / 'releases' / 'IllinoisTracker-iPhone-Source-v19.zip'

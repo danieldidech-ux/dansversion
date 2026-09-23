@@ -108,7 +108,9 @@ struct RootView: View {
     var body: some View {
         Group {
         #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("--preview-pdf") {
+        if ProcessInfo.processInfo.arguments.contains("--preview-add-list") {
+            NavigationStack { AddCommitteeToList(committee: Committee(id: "1b5ce79b8d1251adaf13eda719fd6d7a", name: "Daniel Didech Campaign Committee")) }
+        } else if ProcessInfo.processInfo.arguments.contains("--preview-pdf") {
             NavigationStack { FilingByIDView(seq: 2001000) }
         } else if ProcessInfo.processInfo.arguments.contains("--preview-problem") {
             NavigationStack { ProblemForm(context: ["screen": "Filing", "committee": "Example committee"]) }
@@ -276,14 +278,14 @@ struct FeedView: View {
                     if model.monitor?.stale == true { Label("Feed delayed · showing saved reports", systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.orange) }
                     if (model.monitor?.unresolvedGaps ?? 0) > 0 { Text("A possible gap in filing history is under review.").font(.caption).foregroundStyle(.orange) }
                     Picker("Filings", selection: $watchOnly) {
-                        Text("All filings").tag(false); Text("Following").tag(true)
+                        Text("All filings").tag(false); Text("My alerts").tag(true)
                     }.pickerStyle(.segmented)
                 }
                 Section {
                     let rows = watchOnly ? model.watched : model.filings
                     if model.loading && rows.isEmpty { ProgressView("Loading filings…") }
                     else if rows.isEmpty {
-                        ContentUnavailableView(watchOnly ? "Your watch starts here" : "No filings loaded", systemImage: watchOnly ? "star" : "doc.text", description: Text(watchOnly ? "Follow committees in Discover to see their reports here." : "Pull down to try again."))
+                        ContentUnavailableView(watchOnly ? "Choose your alerts" : "No filings loaded", systemImage: watchOnly ? "bell" : "doc.text", description: Text(watchOnly ? "Choose committees, categories, or custom lists in Alerts to see their reports here." : "Pull down to try again."))
                     }
                     ForEach(rows) { filing in NavigationLink { FilingDetail(filing: filing) } label: { FilingRow(filing: filing) }.listRowBackground(TactileRowSurface()).listRowSeparator(.hidden).buttonStyle(TactileButtonStyle()) }
                     if watchOnly ? model.watchedHasMore : model.allHasMore {
@@ -415,14 +417,10 @@ struct FilingDetail: View {
                 CacheNotice(path: "/v1/filings/\(filing.seq)/contents")
                 ShareLink("Share report", item: URL(string: "https://illinois-filing-tracker.onrender.com/share/filing/\(filing.seq)")!)
                 Link("Export report CSV", destination: URL(string: "https://illinois-filing-tracker.onrender.com/share/filing/\(filing.seq).csv")!)
-                NavigationLink("Add committee to a private list") { AddCommitteeToList(committee: committee) }.listRowBackground(TactileRowSurface()).listRowSeparator(.hidden).buttonStyle(TactileButtonStyle())
+                CommitteeListLink(committee: committee)
 
                 VStack(spacing: 0) {
-                    Button { Task { await model.toggle(committee) } } label: {
-                        Label(model.follows(committee) ? "Unfollow committee" : "Follow committee",
-                              systemImage: model.follows(committee) ? "star.fill" : "star")
-                            .frame(maxWidth: .infinity, alignment: .leading).padding(18)
-                    }.disabled(model.saving || model.loading)
+                    CommitteeAlertButton(committee: committee, explain: true).padding(18)
                     if let url = filing.reportURL {
                         Divider().padding(.leading, 18)
                         Link(destination: url) {
@@ -432,7 +430,7 @@ struct FilingDetail: View {
                     }
                 }.background(CivicTheme.surface, in: RoundedRectangle(cornerRadius: 16))
                 ProblemButton(context: ["screen": "Filing", "committee": filing.committeeName, "committee_id": filing.committeeKey, "filing_id": String(filing.seq), "source_url": filing.url ?? ""])
-                Text("Following applies to all report types filed by this committee. Alerts begin with newly discovered filings after you follow and enable notifications.")
+                Text("Committee and custom-list selections apply to new reports. Report-type filters and phone delivery are managed in Alerts.")
                     .font(.footnote).foregroundStyle(CivicTheme.secondary)
             }.padding(16)
         }.background(CivicTheme.background)
@@ -552,7 +550,7 @@ private struct AlertCenterView: View {
         List {
             Section {
                 HStack {
-                    Label(model.alertsEnabled && model.pushConfigured ? "Notifications on" : "Notifications paused", systemImage: "bell.badge")
+                    Label(model.alertsEnabled && model.pushConfigured && model.notificationStatus == "Allowed on this iPhone" ? "Notifications on" : "Notifications paused", systemImage: "bell.badge")
                         .font(.headline)
                     Spacer()
                 }
@@ -652,7 +650,7 @@ private struct CommitteeSearchView: View {
                 Section {
                     ForEach(model.following) { committee in committeeRow(committee) }
                     if model.following.isEmpty {
-                        ContentUnavailableView("Choose a committee", systemImage: "bell.badge", description: Text("Search by committee name above, then tap Add alert."))
+                        ContentUnavailableView("Choose a committee", systemImage: "bell.badge", description: Text("Search by committee name above, then tap Add committee alert."))
                     }
                 } header: { Text("Your committee alerts") }
             } else {
@@ -687,9 +685,7 @@ private struct CommitteeSearchView: View {
             NavigationLink { CommitteeFilingsView(committee: committee, member: "", officialURL: nil) } label: {
                 Text(committee.name).font(.headline)
             }.buttonStyle(TactileButtonStyle())
-            Button { Task { await model.toggle(committee) } } label: {
-                Label(model.follows(committee) ? "Remove alert" : "Add alert", systemImage: model.follows(committee) ? "bell.slash" : "bell.badge")
-            }.buttonStyle(TactileButtonStyle()).disabled(model.saving || model.loading)
+            CommitteeAlertButton(committee: committee)
         }.padding(.vertical, 5)
     }
     @MainActor private func search(more: Bool) async {
@@ -736,12 +732,12 @@ struct SettingsView: View {
                     Text("The service checks every minute. State publication delays, connection issues, and iPhone notification settings can affect alert timing.").font(.footnote).foregroundStyle(CivicTheme.secondary)
                 }
                 Section("Your data") {
-                    Text("No email or password required. Your installation identifier, followed committees and groups, and push token are stored to deliver your alerts. Problem reports you submit are also stored for review. Your watchlist belongs to this installation and does not sync between devices.").font(.subheadline)
+                    Text("No email or password required. Your installation identifier, selected committees and categories, and push token are stored to deliver your alerts. Problem reports you submit are also stored for review. Your alert selections belong to this installation and does not sync between devices.").font(.subheadline)
                     Button("Delete my saved data", role: .destructive) { confirmDelete = true }.disabled(model.saving || model.loading)
                 }
             }
             .civicSurface().navigationTitle("Settings")
-            .confirmationDialog("Delete your saved watchlist and disable alerts?", isPresented: $confirmDelete, titleVisibility: .visible) {
+            .confirmationDialog("Delete your alert selections and custom lists, and disable notifications?", isPresented: $confirmDelete, titleVisibility: .visible) {
                 Button("Delete my data", role: .destructive) { Task { await model.deleteData() } }
             }
         }
@@ -798,10 +794,10 @@ struct CaucusesView: View {
                         Spacer(minLength: 0)
                         if let group {
                             Button { Task { await model.toggleCategory(group.id) } } label: {
-                                Label(model.followedCategories.contains(group.id) ? "Following" : "Follow all", systemImage: model.followedCategories.contains(group.id) ? "star.fill" : "star")
+                                Label(model.followedCategories.contains(group.id) ? "Remove category alerts" : "Add category alerts", systemImage: model.followedCategories.contains(group.id) ? "bell.slash" : "bell.badge")
                                     .font(.subheadline.weight(.semibold))
                             }.buttonStyle(TactileButtonStyle()).disabled(model.saving || model.loading)
-                            .accessibilityLabel(model.followedCategories.contains(group.id) ? "Unfollow all \(group.name)" : "Follow all \(group.name)")
+                            .accessibilityLabel(model.followedCategories.contains(group.id) ? "Remove category alerts for \(group.name)" : "Add category alerts for \(group.name)")
                         }
                     }
                 }
@@ -843,7 +839,7 @@ struct CaucusesView: View {
                 NavigationStack {
                     List {
                         Section("Data freshness") { CacheNotice(path: "/v1/directory") }
-                        Section("Following") { Text("Follow all includes the listed committees, leaders and caucus funds. Membership updates apply automatically.") }
+                        Section("Category alerts") { Text("Adds new reports from the listed committees, leaders, and caucus funds to your alerts. Membership updates apply automatically.") }
                         Section("Cash estimates") { Text("Highest estimates appear first; unavailable estimates appear last. Leaders and caucus funds stay pinned. Balances may use different quarter-end dates and exclude unreported spending. Pull to refresh.") }
                         Section("Directory") { Text("During the general election, lists include ballot candidates and sitting senators whose seats are not up this cycle, excluding primary losers and retiring incumbents. After officials are sworn in in January, lists should show sitting officeholders. After petition filing closes, add candidates who filed. Filing petitions does not guarantee ballot access. Roster changes are reviewed against official records.") }
                         Section { ProblemButton(context: ["screen": "Committee directory", "group": groupID]) }
@@ -992,13 +988,9 @@ struct CommitteeFilingsView: View {
             Section {
                 if !member.isEmpty { Text(member).font(.subheadline.weight(.medium)).foregroundStyle(accent) }
                 Text(committee.name).font(.title2.bold()).foregroundStyle(CivicTheme.ink)
-                NavigationLink("Add to a private list") { AddCommitteeToList(committee: committee) }.listRowBackground(TactileRowSurface()).listRowSeparator(.hidden).buttonStyle(TactileButtonStyle())
+                CommitteeListLink(committee: committee)
                 CacheNotice(path: "/v1/committees/\(committee.id)/history")
-                Button {
-                    Task { await model.toggle(committee) }
-                } label: {
-                    Label(model.follows(committee) ? "Following committee" : "Follow committee", systemImage: model.follows(committee) ? "star.fill" : "star")
-                }.disabled(model.saving || model.loading)
+                CommitteeAlertButton(committee: committee, explain: true)
             }
             Section {
                 CommitteeFinanceCard(finance: finance)
@@ -1023,7 +1015,7 @@ struct CommitteeFilingsView: View {
                 }
                 if loading { ProgressView("Loading reports…") }
                 else if loaded && filings.isEmpty && failure == nil && history?.status == "ready" {
-                    Text("No reports from this committee have been collected yet. Follow it to track new filings.").foregroundStyle(CivicTheme.secondary)
+                    Text("No reports from this committee have been collected yet. Add a committee alert for new filings.").foregroundStyle(CivicTheme.secondary)
                 }
                 if hasMore {
                     ProgressView("Loading earlier reports…")
@@ -1378,7 +1370,7 @@ private struct MyListsView: View {
         List {
             Section("Create a custom list") {
                 TextField("For example, Lake County races", text: $name)
-                Button("Create list") { Task { await create() } }.disabled(saving || name.trimmingCharacters(in: .whitespaces).isEmpty)
+                Button("Create list & choose committees") { Task { await create() } }.disabled(saving || name.trimmingCharacters(in: .whitespaces).isEmpty)
             }
             if let failure { Section { Text(failure); Button("Try again") { Task { await load() } } } }
             Section("Your lists") {
@@ -1461,21 +1453,21 @@ private struct EditObserverListView: View {
     @State private var loaded = false
     var body: some View {
         List {
-            Section("Name") { TextField("List name", text: $name) }
+            Section("Name") { TextField("List name", text: $name); Text("Listed committees are included in your alerts. Changes take effect when you tap Save list.").font(.caption).foregroundStyle(CivicTheme.secondary) }
             Section("Selected committees") {
-                ForEach(selected) { committee in Button { selected.removeAll { $0.id == committee.id } } label: { Label(committee.name, systemImage: "checkmark.circle.fill") } }
+                ForEach(selected) { committee in Button { selected.removeAll { $0.id == committee.id } } label: { VStack(alignment: .leading) { Text(committee.name); Label("Remove from list", systemImage: "minus.circle").font(.caption) } } }
             }
 
             Section("Add committees") {
                 ForEach(results.filter { c in !selected.contains(where: { $0.id == c.id }) }) { committee in
-                    Button { selected.append(committee) } label: { Label(committee.name, systemImage: "plus.circle") }
+                    Button { selected.append(committee) } label: { VStack(alignment: .leading) { Text(committee.name); Label("Add to list", systemImage: "text.badge.plus").font(.caption) } }
                 }
             }
             if let failure { Text(failure) }
         }.navigationTitle("Edit list").searchable(text: $query, prompt: "Search committees")
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
-                ToolbarItem(placement: .confirmationAction) { Button("Save") { Task { await save() } }.disabled(!loaded || saving || name.isEmpty) }
+                ToolbarItem(placement: .confirmationAction) { Button("Save list") { Task { await save() } }.disabled(!loaded || saving || name.isEmpty) }
             }
             .task {
                 do {
@@ -1502,32 +1494,118 @@ private struct EditObserverListView: View {
     }
 }
 
+private struct CommitteeAlertButton: View {
+    @EnvironmentObject var model: AppModel
+    let committee: Committee
+    var explain = false
+    @State private var busy = false
+    @State private var confirmation: String?
+    var body: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Button {
+                Task {
+                    busy = true
+                    let previouslySelected = model.follows(committee)
+                    await model.toggle(committee)
+                    if model.follows(committee) != previouslySelected {
+                        confirmation = previouslySelected ? "Individual alert removed. Category and custom-list alerts are unchanged." : "Committee alert added. Delivery follows your settings in Alerts."
+                    }
+                    busy = false
+                }
+            } label: {
+                Label(busy ? "Saving…" : (model.follows(committee) ? "Remove committee alert" : "Add committee alert"),
+                      systemImage: model.follows(committee) ? "bell.slash" : "bell.badge")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }.buttonStyle(TactileButtonStyle()).disabled(busy || model.saving || model.loading)
+            if let confirmation {
+                Text(confirmation).font(.caption).foregroundStyle(CivicTheme.secondary).accessibilityAddTraits(.updatesFrequently)
+            } else if explain {
+                Text(model.follows(committee) ? "Individual committee alert selected." : "Add new reports from this committee to your alerts.")
+                    .font(.caption).foregroundStyle(CivicTheme.secondary)
+            }
+            if explain && (!model.alertsEnabled || !model.pushConfigured) {
+                Text("Phone notifications are paused. Manage delivery in Alerts.").font(.caption).foregroundStyle(CivicTheme.secondary)
+            }
+        }
+    }
+}
+private struct CommitteeListLink: View {
+    let committee: Committee
+    var body: some View {
+        NavigationLink { AddCommitteeToList(committee: committee) } label: {
+            Label {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Add to a custom list")
+                    Text("Choose a list, or create one with this committee.").font(.caption).foregroundStyle(CivicTheme.secondary)
+                }
+            } icon: { Image(systemName: "text.badge.plus") }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }.buttonStyle(TactileButtonStyle())
+            .listRowBackground(TactileRowSurface()).listRowSeparator(.hidden)
+    }
+}
+
 private struct AddCommitteeToList: View {
     @EnvironmentObject var model: AppModel
     let committee: Committee
     @State private var lists: [ObserverList] = []
+    @State private var name = ""
     @State private var message: String?
+    @State private var failure: String?
     @State private var busy = false
+    @State private var loading = true
     var body: some View {
         List {
-            Section { Text(committee.name).font(.headline); NavigationLink("Create or manage lists") { MyListsView() }.listRowBackground(TactileRowSurface()).listRowSeparator(.hidden).buttonStyle(TactileButtonStyle()) }
-            ForEach(lists) { list in
-                let includes = list.committees.contains { $0.id == committee.id }
-                Button { Task { await toggle(list) } } label: { Label(list.name, systemImage: includes ? "checkmark.circle.fill" : "plus.circle") }.disabled(busy)
+            Section {
+                Text(committee.name).font(.headline)
+                Text("Custom lists include their committees’ new reports in your alerts. Only you can see your lists.")
+                    .font(.caption).foregroundStyle(CivicTheme.secondary)
+                if let message { Label(message, systemImage: "checkmark.circle.fill").font(.subheadline).foregroundStyle(accent) }
             }
-            if let message { Text(message) }
-        }.navigationTitle("Add to a list").task { await load() }.refreshable { await load() }
+            Section("Choose an existing list") {
+                if loading { ProgressView("Loading your lists…") }
+                ForEach(lists) { list in
+                    let included = list.committees.contains { $0.id == committee.id }
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(list.name).font(.headline)
+                        if included { Label("Committee is in this list", systemImage: "checkmark.circle.fill").font(.caption).foregroundStyle(accent) }
+                        Button { Task { await setMembership(list, included: !included) } } label: {
+                            Label(included ? "Remove from this list" : "Add to this list", systemImage: included ? "minus.circle" : "text.badge.plus")
+                        }.buttonStyle(TactileButtonStyle()).disabled(busy || loading)
+                    }.padding(.vertical, 4)
+                }
+                if !loading && lists.isEmpty && failure == nil { Text("No custom lists yet. Create one below.").foregroundStyle(CivicTheme.secondary) }
+            }
+            Section {
+                TextField("List name, e.g. Lake County races", text: $name)
+                Button { Task { await createAndAdd() } } label: { Label("Create list & add committee", systemImage: "plus.rectangle.on.folder") }
+                    .disabled(busy || loading || name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || name.count > 80)
+            } header: { Text("Create a new custom list") } footer: { Text("Creates the list with this committee already included.") }
+            if let failure { Section { Text(failure).foregroundStyle(CivicTheme.secondary); Button("Reload lists") { Task { await load() } }.disabled(busy) } }
+        }.civicSurface().navigationTitle("Add to a custom list").navigationBarTitleDisplayMode(.inline)
+            .task { await load() }.refreshable { await load() }
     }
-    private func load() async {
-        do { try await model.setup(); let page: ObserverLists = try await model.connection().call("/v1/me/lists"); lists = page.lists }
-        catch { message = error.localizedDescription }
+    @MainActor private func load() async {
+        loading = true; defer { loading = false }
+        do { try await model.setup(); let page: ObserverLists = try await model.connection().call("/v1/me/lists"); lists = page.lists; failure = nil }
+        catch { failure = error.localizedDescription }
     }
-    private func toggle(_ list: ObserverList) async {
-        busy = true; defer { busy = false }
-        var keys = list.committees.map(\.id)
-        if keys.contains(committee.id) { keys.removeAll { $0 == committee.id } } else { keys.append(committee.id) }
-        do { let _: OK = try await model.connection().call("/v1/me/lists/\(list.id)", method: "PUT", body: JSONSerialization.data(withJSONObject: ["committees": keys])); await load() }
-        catch { message = error.localizedDescription }
+    @MainActor private func setMembership(_ list: ObserverList, included: Bool) async {
+        busy = true; defer { busy = false }; failure = nil; message = nil
+        do {
+            let _: OK = try await model.connection().call("/v1/me/lists/\(list.id)/committees/\(committee.id)", method: "PUT", body: JSONSerialization.data(withJSONObject: ["included": included]))
+            message = included ? "Added to \(list.name). Reports are included in your alert selections." : "Removed from \(list.name). Other alert selections are unchanged."
+            await load(); try? await model.refreshWatched()
+        } catch { failure = error.localizedDescription }
+    }
+    @MainActor private func createAndAdd() async {
+        busy = true; defer { busy = false }; failure = nil; message = nil
+        let listName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        do {
+            let _: CreatedList = try await model.connection().call("/v1/me/lists", method: "POST", body: JSONSerialization.data(withJSONObject: ["name": listName, "committees": [committee.id]]))
+            name = ""; message = "Created \(listName) with this committee. Reports are included in your alert selections."
+            await load(); try? await model.refreshWatched()
+        } catch { failure = error.localizedDescription }
     }
 }
 
