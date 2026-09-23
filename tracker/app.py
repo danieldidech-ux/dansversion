@@ -317,6 +317,20 @@ def create_app(directory=None, poll=True):
         return send_file(archive, mimetype='application/zip', as_attachment=True,
                          download_name='IllinoisTracker-iPhone-Source-v6.zip', conditional=True)
 
+    @app.get('/v1/coverage')
+    def committee_coverage():
+        entries=[]
+        for group in store.directory_data['groups']:
+            for entry in group['pinned']+group['members']:
+                committee=entry['committee']
+                if not committee:
+                    entries.append(dict(group=group['name'],member=entry['member'],district=entry['district'],committee=None,finance=dict(status='unmapped',message='No committee assigned in directory')))
+                    continue
+                state=history.state(committee['id'])
+                entries.append(dict(group=group['name'],member=entry['member'],district=entry['district'],committee=committee,official_url=entry.get('official_url'),
+                    finance=history.finance(committee['id']),history=json.loads(state['payload']) if state else None,checked_at=state['checked'] if state else None))
+        return jsonify(revision=store.directory_data['revision'],entries=entries,queued=len(history.pending),active=history.active)
+
     @app.get('/v1/directory')
     def caucus_directory():
         return jsonify(store.directory_data)

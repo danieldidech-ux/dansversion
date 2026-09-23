@@ -1,5 +1,5 @@
 """Cached historical reports; never inserted into the live notification stream."""
-import json, re, threading, time, queue, urllib.parse, logging, shutil
+import json, re, threading, time, queue, urllib.parse, logging, shutil, urllib.error
 from contextlib import closing
 from datetime import datetime
 from decimal import Decimal
@@ -40,6 +40,7 @@ def unavailable(message,status='unavailable'):
 
 class History:
  def __init__(self,store):
+  self.audit_context={}
   self.store=store;self.tasks=queue.PriorityQueue();self.lock=threading.Lock();self.pending=set();self.promoted=set();self.active=None;self.worker=None;self.counter=0
   self.urls={e['committee']['id']:e['official_url'] for g in store.directory_data['groups'] for e in g['members']+g['pinned'] if e.get('committee') and e.get('official_url')}
   self.urls['1b5ce79b8d1251adaf13eda719fd6d7a']=BASE+'CommitteeDetail.aspx?ID=PFWS3Q4VBrJwLQhAj5bRtQ%3D%3D'
@@ -88,8 +89,9 @@ class History:
     with closing(self.store.connect()) as db,db:
      old=db.execute('SELECT complete,payload FROM archive_state WHERE committee_key=?',(committee['id'],)).fetchone()
      payload=json.loads(old['payload']) if old else {}
-     payload.update(status='unavailable',message='The official archive could not be fully refreshed. Pull to refresh later.')
-     db.execute('INSERT OR REPLACE INTO archive_state VALUES (?,?,?,?,?,?)',(committee['id'],time.time(),latest,0,json.dumps(payload),json.dumps(unavailable('The financial summary is unavailable until the official reports can be verified.'))))
+     detail=diagnose(e,self.audit_context.get(committee['id'],{}))
+     payload.update(status='unavailable',message=detail['reason'],diagnostic=detail)
+     db.execute('INSERT OR REPLACE INTO archive_state VALUES (?,?,?,?,?,?)',(committee['id'],time.time(),latest,0,json.dumps(payload),json.dumps(dict(unavailable(detail['reason']),diagnostic=detail))))
    finally:
     with self.lock:
      self.pending.discard(committee['id']);self.promoted.discard(committee['id']);self.active=None
@@ -104,7 +106,8 @@ class History:
   with closing(self.store.connect()) as db:
    urls=[r[0] for r in db.execute('SELECT url FROM filings WHERE committee_key=? AND url IS NOT NULL ORDER BY seq DESC LIMIT 3',(committee['id'],))]
   for url in urls:
-   doc=Document(self.document(source,url))
+   try:doc=Document(self.document(source,url))
+   except Exception:continue
    links=[urllib.parse.urljoin(url,n.attrs['href']) for n in doc.root.all('a') if 'committeedetail.aspx' in n.attrs.get('href','').lower() and normalized(n.text())==normalized(committee['name'])]
    if len(set(links))==1:
     self.urls[committee['id']]=safe_url(links[0]);return links[0]
@@ -113,7 +116,9 @@ class History:
   return url
  def refresh(self,committee,latest):
   if shutil.disk_usage(self.store.directory).free<128*1024*1024:raise ReportFormatError('Insufficient archive storage headroom')
+  self.audit_context[committee['id']]=dict(stage='committee_lookup')
   source=Source();url=self.resolve(source,committee)
+  self.audit_context[committee['id']]=dict(stage='archive_index',source_url=url)
   html=source.all_rows(url,source.read(url),'gvFiledDocs')
   rows,created,official_id=parse_archive(html,committee)
   payload=dict(status='ready',total=len(rows),creation_date=created,official_id=official_id,official_url=url,message='Complete official report index loaded.')
@@ -123,7 +128,9 @@ class History:
    # Publish the verified index before the more expensive financial calculation.
    db.execute('INSERT OR REPLACE INTO archive_state VALUES (?,?,?,?,?,?)',(committee['id'],time.time(),latest,1,json.dumps(payload),json.dumps(unavailable('Calculating from official reports…','loading'))))
   try: finance=self.calculate(source,committee,rows)
-  except Exception: finance=unavailable('Some financial entries or amendments could not be verified; no estimate is shown.')
+  except Exception as exc:
+   detail=diagnose(exc,self.audit_context.get(committee['id'],{}))
+   finance=dict(unavailable(detail['reason']),diagnostic=detail)
   with closing(self.store.connect()) as db,db:
    db.execute('UPDATE archive_state SET finance=? WHERE committee_key=?',(json.dumps(finance),committee['id']))
  def state(self,key):
@@ -149,16 +156,18 @@ class History:
   return dict(filings=page,has_more=len(records)>offset+50,next_cursor=page[-1]['seq'] if len(records)>offset+50 else None,history=status)
  def calculate(self,source,committee,rows):
   quarters=[r for r in rows if 'd-2 quarterly' in r['report_type'].lower()]
-  if not quarters:return unavailable('No quarterly report is available yet.')
+  if not quarters:return dict(unavailable('No D-2 quarterly report appears in the complete official archive.'),diagnostic=dict(stage='quarter_selection',reason='No D-2 quarterly report appears in the complete official archive.'))
   def period_end(r):
    return datetime.strptime(r['period'].split(' to ')[-1].strip(),'%m/%d/%Y').date().isoformat()
   quarter=max(quarters,key=lambda r:(period_end(r),r['filed_at']))
   end=period_end(quarter)
+  self.audit_context[committee['id']]=dict(stage='quarterly_report',source_url=quarter['url'],report_type=quarter['report_type'],filed_at=quarter['filed_at'])
   base=parse_quarter(self.document(source,quarter['url']),quarter)
   result=dict(status='unavailable',as_of=end,cash_and_investments=base,a1_total=None,estimated_cash=None,message='A-1 totals could not be fully verified.')
   a1s=[r for r in rows if r['report_type'].lower().startswith('a-1') and r['filed_at'][:10]>end]
   if any('amend' in r['report_type'].lower() or r['clarification'] for r in a1s):
    result['message']='An A-1 amendment or clarification needs review before an estimate can be shown.'
+   result['diagnostic']=dict(stage='a1_amendment',reason=result['message'],reports=[dict(url=r['url'],report_type=r['report_type'],filed_at=r['filed_at'],clarification=r['clarification']) for r in a1s if 'amend' in r['report_type'].lower() or r['clarification']])
    return result
   total=Decimal(0)
   try:
@@ -168,6 +177,8 @@ class History:
     total+=sum((Decimal(e['amount']) for e in detail['contributions'] if e['received_date']>end),Decimal(0))
   except Exception as exc:
    logging.getLogger('gunicorn.error').warning('A1 estimate incomplete for %s report %s: %s %s',committee['id'],report['document_id'],type(exc).__name__,str(exc))
+   result['diagnostic']=diagnose(exc,dict(stage='a1_report',source_url=report['url'],filed_at=report['filed_at'],report_type=report['report_type']))
+   result['message']=result['diagnostic']['reason']
    return result
   result.update(status='ready',a1_total=format(total,'.2f'),estimated_cash=format(Decimal(base)+total,'.2f'),message='Based on the latest quarterly report and A-1 contributions received after quarter end.')
   return result
@@ -186,3 +197,13 @@ def parse_quarter(html,report):
   if not re.fullmatch(r'-?\$[\d,]+\.\d{2}',text):raise ReportFormatError('Invalid quarterly balance')
   values.append(Decimal(text.replace('$','').replace(',','')))
  return format(sum(values),'.2f')
+
+
+def diagnose(exc,context):
+ if isinstance(exc,ReportFormatError):reason=str(exc)
+ elif isinstance(exc,urllib.error.HTTPError):reason='Official source returned HTTP '+str(exc.code)
+ elif isinstance(exc,UnicodeDecodeError):reason='Official document encoding could not be read'
+ elif isinstance(exc,(TimeoutError,urllib.error.URLError)):reason='Official source request timed out or failed'
+ elif isinstance(exc,ValueError):reason='Unrecognized report date or number: '+str(exc)[:160]
+ else:reason='Reader error: '+type(exc).__name__
+ return dict(context,reason=reason,error_type=type(exc).__name__)

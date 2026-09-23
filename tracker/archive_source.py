@@ -17,12 +17,14 @@ class Source:
   self.opener=urllib.request.build_opener(OfficialRedirect(),urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
  def read(self,url,fields=None):
   safe_url(url)
+  self.last_url=url
   data=urllib.parse.urlencode(fields).encode() if fields is not None else None
   req=urllib.request.Request(url,data=data,headers={'User-Agent':'IllinoisFilingTracker/0.3 (public campaign filing reader)','Accept':'text/html'})
   with self.opener.open(req,timeout=20) as r:
    safe_url(r.url)
    raw=r.read(20_000_001)
    if len(raw)>20_000_000: raise ReportFormatError('Archive exceeds reader limit')
+   if raw.startswith(b'%PDF'):raise ReportFormatError('Official document is a scanned PDF, not an electronic report')
    return raw.decode(r.headers.get_content_charset() or 'utf-8')
  def all_rows(self,url,html,table_id):
   doc=Document(html)
