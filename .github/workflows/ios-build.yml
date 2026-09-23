@@ -23,7 +23,7 @@ jobs:
           xcrun simctl boot "$DEVICE"
           xcrun simctl bootstatus "$DEVICE" -b
           xcrun simctl install "$DEVICE" build/Build/Products/Debug-iphonesimulator/IllinoisTracker.app
-          xcrun simctl launch "$DEVICE" com.danieldidech.illinoisfilings --preview-caucuses
+          xcrun simctl launch "$DEVICE" com.danieldidech.illinoisfilings --preview-caucuses --preview-cash
           sleep 35
           xcrun simctl io "$DEVICE" screenshot IllinoisTracker-live.png
           xcrun simctl terminate "$DEVICE" com.danieldidech.illinoisfilings

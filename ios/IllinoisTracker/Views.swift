@@ -4,8 +4,16 @@ private let accent = Color(red: 0.12, green: 0.46, blue: 0.62)
 struct RootView: View {
     @EnvironmentObject var model: AppModel
     @State private var selectedTab = 0
-    @State private var previewCommittee = false
     var body: some View {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("--preview-committee") {
+            NavigationStack { CommitteeFilingsView(committee: Committee(id: "1b5ce79b8d1251adaf13eda719fd6d7a", name: "Daniel Didech Campaign Committee"), member: "Daniel Didech", officialURL: nil) }.tint(accent)
+        } else { mainTabs }
+        #else
+        mainTabs
+        #endif
+    }
+    private var mainTabs: some View {
         TabView(selection: $selectedTab) {
             FeedView().tabItem { Label("Filings", systemImage: "doc.text") }.tag(0)
             CaucusesView().tabItem { Label("Caucuses", systemImage: "person.3") }.tag(1)
@@ -16,16 +24,12 @@ struct RootView: View {
         .onAppear {
             #if DEBUG
             if ProcessInfo.processInfo.arguments.contains("--preview-caucuses") { selectedTab = 1 }
-            if ProcessInfo.processInfo.arguments.contains("--preview-committee") { previewCommittee = true }
             #endif
         }
         .tint(accent)
         .alert("Couldn't finish that", isPresented: Binding(get: { model.error != nil }, set: { if !$0 { model.error = nil } })) {
             Button("OK") { model.error = nil }
         } message: { Text(model.error ?? "Please try again.") }
-        .sheet(isPresented: $previewCommittee) {
-            NavigationStack { CommitteeFilingsView(committee: Committee(id: "1b5ce79b8d1251adaf13eda719fd6d7a", name: "Daniel Didech Campaign Committee"), member: "Daniel Didech", officialURL: nil) }
-        }
         .sheet(item: $model.selectedFiling) { filing in NavigationStack { FilingDetail(filing: filing) } }
     }
 }
@@ -446,6 +450,11 @@ struct CaucusesView: View {
             }
             .navigationTitle(group?.name ?? "Caucuses")
             .navigationBarTitleDisplayMode(.inline)
+            .onAppear {
+                #if DEBUG
+                if ProcessInfo.processInfo.arguments.contains("--preview-cash") { sortOrder = "cash" }
+                #endif
+            }
             .task { if directory == nil { await load() } }
             .task(id: groupID) {
                 while !Task.isCancelled {
