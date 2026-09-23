@@ -1,5 +1,5 @@
 {
-  "revision": "2026-09-22-approved-1",
+  "revision": "2026-09-23-approved-2",
   "groups": [
     {
       "id": "house-democrats",
@@ -1784,20 +1784,6 @@
           "role": "Caucus",
           "evidence": "Approved list",
           "review_note": "Confirm current Senate Democratic fund and any additional caucus committees."
-        },
-        {
-          "id": "42a08da4697d6db064694e0596c61d5f",
-          "member": "",
-          "last_name": "",
-          "district": null,
-          "committee": {
-            "id": "4ed192ecfae2260da19bcfc249463be6",
-            "name": "Senate Democratic Victory Fund"
-          },
-          "official_url": null,
-          "role": "Historical fund \u2014 review",
-          "evidence": "Approved list",
-          "review_note": "2017 registry only: Elect Democrats candidates to the Illinois State Senate Verify current status/name and whether still associated before pinning."
         }
       ],
       "members": [

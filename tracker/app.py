@@ -286,6 +286,11 @@ def create_app(directory=None, poll=True):
         response.headers['Content-Security-Policy'] = "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'; base-uri 'none'"
         return response
 
+    @app.get('/v1/archive-diagnostic')
+    def archive_diagnostic():
+        from archive_diagnostic import inspect
+        return jsonify(inspect())
+
     @app.get('/v1/directory')
     def caucus_directory():
         return jsonify(store.directory_data)
