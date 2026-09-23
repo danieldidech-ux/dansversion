@@ -40,12 +40,21 @@ struct RootView: View {
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("--preview-committee") {
             NavigationStack { CommitteeFilingsView(committee: Committee(id: "1b5ce79b8d1251adaf13eda719fd6d7a", name: "Daniel Didech Campaign Committee"), member: "Daniel Didech", officialURL: nil) }.tint(accent)
+        } else if ProcessInfo.processInfo.arguments.contains("--preview-quarter") {
+            NavigationStack { FilingDetail(filing: previewQuarter) }
+        } else if ProcessInfo.processInfo.arguments.contains("--preview-schedule") {
+            NavigationStack { QuarterlySchedulePreview(filing: previewQuarter) }
         } else { mainTabs }
         #else
         mainTabs
         #endif
         }.preferredColorScheme(preferredScheme).tint(accent)
     }
+    #if DEBUG
+    private var previewQuarter: Filing {
+        Filing(seq: -19, committeeKey: "1b5ce79b8d1251adaf13eda719fd6d7a", committeeName: "Daniel Didech Campaign Committee", reportType: "D-2 Quarterly Report", publishedRaw: "July 15, 2026", url: nil)
+    }
+    #endif
     private var mainTabs: some View {
         TabView(selection: $selectedTab) {
             FeedView().tabItem { Label("Filings", systemImage: "doc.text") }.tag(0)
@@ -211,8 +220,10 @@ private struct NativeReportContents: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Report contents").font(.headline)
             if loading {
-                ProgressView("Loading contributions…")
+                ProgressView("Loading report…")
                     .frame(maxWidth: .infinity).padding(24)
+            } else if let report, report.status == "ready", report.kind == "quarterly" {
+                QuarterlyReportView(filing: filing, report: report)
             } else if let report, report.status == "ready", let contributions = report.contributions, !contributions.isEmpty {
                 if contributions.count > 1 {
                     HStack(alignment: .firstTextBaseline) {
@@ -700,3 +711,156 @@ struct CommitteeFilingsView: View {
         }
     }
 }
+
+private struct QuarterlyReportView: View {
+    let filing: Filing
+    let report: ReportContents
+    private func value(_ key: String) -> String {
+        report.summary?[key].map { ReportContribution.currency($0) } ?? "Unavailable"
+    }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            if let period = report.period { Text(period).font(.subheadline).foregroundStyle(.secondary) }
+            VStack(alignment: .leading, spacing: 14) {
+                Text("Quarter-end cash + investments").font(.subheadline)
+                Text(value("cash_and_investments")).font(.largeTitle.bold()).monospacedDigit()
+                    .foregroundStyle(CivicTheme.summaryNumber).minimumScaleFactor(0.7).lineLimit(1)
+                Divider().overlay(.white.opacity(0.2))
+                metric("Ending cash", "ending_cash")
+                metric("Investments", "investments")
+            }.padding(20).foregroundStyle(.white)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(CivicTheme.summary, in: RoundedRectangle(cornerRadius: 18))
+            VStack(spacing: 12) {
+                metric("Beginning cash", "beginning_cash")
+                metric("Total receipts", "receipts")
+                metric("Total expenditures", "expenditures")
+                metric("In-kind contributions", "in_kind")
+                metric("Debts and obligations", "debts")
+            }.padding(18).background(CivicTheme.surface, in: RoundedRectangle(cornerRadius: 16))
+            ForEach(["receipts", "expenditures", "in_kind", "debts", "investments"], id: \.self) { group in
+                let sections = (report.sections ?? []).filter { $0.group == group }
+                if !sections.isEmpty {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(group.replacingOccurrences(of: "_", with: " ").capitalized).font(.title3.bold())
+                        ForEach(sections) { section in
+                            if section.hasDetails {
+                                NavigationLink {
+                                    QuarterlyScheduleView(filing: filing, section: section)
+                                } label: {
+                                    HStack(spacing: 12) {
+                                        scheduleLabel(section)
+                                        Spacer(minLength: 4)
+                                        Image(systemName: "chevron.right").font(.caption.weight(.semibold)).foregroundStyle(accent)
+                                    }.padding(16)
+                                        .background(CivicTheme.surface, in: RoundedRectangle(cornerRadius: 14))
+                                }.buttonStyle(.plain)
+                            } else {
+                                scheduleLabel(section).padding(16).frame(maxWidth: .infinity, alignment: .leading)
+                                    .background(CivicTheme.surface, in: RoundedRectangle(cornerRadius: 14))
+                            }
+                        }
+                    }
+                }
+            }
+            Text("Tap an itemized category to read its entries. Unitemized amounts have no individual entries in this report. Source: Illinois State Board of Elections.")
+                .font(.caption).foregroundStyle(.secondary)
+        }
+    }
+    private func metric(_ label: String, _ key: String) -> some View {
+        ViewThatFits(in: .horizontal) {
+            HStack { Text(label); Spacer(minLength: 12); Text(value(key)).bold().monospacedDigit() }
+            VStack(alignment: .leading, spacing: 4) { Text(label); Text(value(key)).bold().monospacedDigit() }
+        }.font(.subheadline)
+    }
+    private func scheduleLabel(_ section: QuarterlySection) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(section.title).font(.headline).foregroundStyle(CivicTheme.ink)
+            Text("Itemized: " + ReportContribution.currency(section.itemized)).font(.subheadline).foregroundStyle(accent)
+            if section.group != "investments" {
+                Text("Unitemized: " + ReportContribution.currency(section.unitemized)).font(.caption).foregroundStyle(.secondary)
+            }
+            if !section.hasDetails && Decimal(string: section.itemized) != Decimal(0) {
+                Text("The official report does not link itemized entries.").font(.caption).foregroundStyle(.secondary)
+            }
+        }
+    }
+}
+
+private struct QuarterlyScheduleView: View {
+    @EnvironmentObject var model: AppModel
+    let filing: Filing
+    let section: QuarterlySection
+    @State private var schedule: ItemizedSchedule?
+    @State private var loading = true
+    @State private var failure: String?
+    @State private var query = ""
+    @State private var attempt = 0
+    private var entries: [ScheduleEntry] {
+        (schedule?.entries ?? []).filter { query.isEmpty || $0.fields.contains { $0.value.localizedCaseInsensitiveContains(query) } }
+    }
+    var body: some View {
+        List {
+            Section {
+                Text(filing.committeeName).font(.headline)
+                if let period = schedule?.period { Text(period).font(.caption).foregroundStyle(.secondary) }
+                Text("Itemized total: " + ReportContribution.currency(section.itemized)).font(.subheadline.bold()).foregroundStyle(accent)
+            }
+            if loading { ProgressView("Loading itemized entries…") }
+            else if let schedule, schedule.status == "ready" {
+                Section("\(entries.count) of \(schedule.total ?? 0) entries") {
+                    ForEach(entries) { entry in
+                        VStack(alignment: .leading, spacing: 12) {
+                            ForEach(entry.fields.indices, id: \.self) { index in
+                                let field = entry.fields[index]
+                                if !field.value.isEmpty {
+                                    VStack(alignment: .leading, spacing: 3) {
+                                        Text(field.label).font(.caption).foregroundStyle(.secondary)
+                                        Text(field.value).font(index == 0 ? .headline : .subheadline)
+                                            .textSelection(.enabled)
+                                    }
+                                }
+                            }
+                        }.padding(.vertical, 8)
+                    }
+                }
+                if entries.isEmpty { Text("No matching entries.").foregroundStyle(.secondary) }
+            } else {
+                Section {
+                    Text(failure ?? schedule?.message ?? "Itemized entries unavailable.").foregroundStyle(.secondary)
+                    Button("Try again") { attempt += 1 }
+                }
+            }
+            if let text = section.sourceUrl, let url = URL(string: text) {
+                Section { Link("Open official itemized schedule", destination: url) }
+            }
+        }.civicSurface().navigationTitle(section.title).navigationBarTitleDisplayMode(.inline)
+            .searchable(text: $query, prompt: "Search names, descriptions, amounts")
+            .task(id: attempt) {
+                loading = true; failure = nil
+                do {
+                    try await model.setup()
+                    schedule = try await model.connection().call("/v1/filings/\(filing.seq)/schedules/\(section.id)")
+                } catch { if !Task.isCancelled { failure = error.localizedDescription } }
+                loading = false
+            }
+    }
+}
+
+#if DEBUG
+private struct QuarterlySchedulePreview: View {
+    @EnvironmentObject var model: AppModel
+    let filing: Filing
+    @State private var section: QuarterlySection?
+    var body: some View {
+        Group {
+            if let section { QuarterlyScheduleView(filing: filing, section: section) }
+            else { ProgressView("Loading preview…") }
+        }.task {
+            try? await model.setup()
+            let report: ReportContents? = try? await model.connection().call("/v1/filings/\(filing.seq)/contents")
+            section = report?.sections?.first { $0.id == "expenditures" }
+        }
+    }
+}
+#endif

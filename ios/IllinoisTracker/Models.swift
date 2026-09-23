@@ -99,6 +99,9 @@ struct API {
 struct ReportContents: Decodable {
     let status: String
     let message: String?
+    let kind: String?
+    let summary: [String: String]?
+    let sections: [QuarterlySection]?
     let contributions: [ReportContribution]?
     let total: String?
     let period: String?
@@ -149,4 +152,30 @@ struct HistoryStatus: Decodable {
     let message: String?
     let total: Int?
     let creationDate: String?
+}
+
+struct QuarterlySection: Decodable, Identifiable {
+    let id: String
+    let title: String
+    let group: String
+    let itemized: String
+    let unitemized: String
+    let hasDetails: Bool
+    let sourceUrl: String?
+}
+struct ItemizedSchedule: Decodable {
+    let status: String
+    let message: String?
+    let title: String?
+    let period: String?
+    let entries: [ScheduleEntry]?
+    let total: Int?
+}
+struct ScheduleEntry: Decodable, Identifiable {
+    let id: Int
+    let fields: [ScheduleField]
+}
+struct ScheduleField: Decodable {
+    let label: String
+    let value: String
 }

@@ -113,6 +113,11 @@ def parse_schedule(html,filing,section,period):
     if totals and len(entries)!=int(totals[-1].replace(',','')):raise ReportFormatError('Incomplete itemized schedule')
     if not totals and any('Page$' in n.attrs.get('href','') for n in table.all('a')):raise ReportFormatError('Incomplete paginated schedule')
     if not entries:raise ReportFormatError('No verified itemized records')
+    amount_label='Current Value' if section['id']=='investments' else 'Amount'
+    if amount_label in headings:
+        index=headings.index(amount_label)
+        total=sum((Decimal(money(entry['fields'][index]['value'].split('\n')[0])) for entry in entries),Decimal(0))
+        if total!=Decimal(section['itemized']):raise ReportFormatError('Itemized entries do not match the quarterly total')
     return dict(status='ready',title=section['title'],period=period,entries=entries,total=len(entries),source_url=section['source_url'])
 
 
