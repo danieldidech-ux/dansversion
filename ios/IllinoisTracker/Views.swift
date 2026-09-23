@@ -64,15 +64,15 @@ struct RootView: View {
     #endif
     private var mainTabs: some View {
         TabView(selection: $selectedTab) {
-            FeedView().tabItem { Label("Filings", systemImage: "doc.text") }.tag(0)
-            CaucusesView().tabItem { Label("Caucuses", systemImage: "person.3") }.tag(1)
+            HomeView().tabItem { Label("Home", systemImage: "house") }.tag(0)
+            FeedView().tabItem { Label("Latest Reports", systemImage: "doc.text") }.tag(1)
             DiscoverView().tabItem { Label("Discover", systemImage: "magnifyingglass") }.tag(2)
             WatchlistView().tabItem { Label("Watchlist", systemImage: "star") }.tag(3)
             SettingsView().tabItem { Label("Settings", systemImage: "gearshape") }.tag(4)
         }
         .onAppear {
             #if DEBUG
-            if ProcessInfo.processInfo.arguments.contains("--preview-caucuses") { selectedTab = 1 }
+            if ProcessInfo.processInfo.arguments.contains("--preview-reports") { selectedTab = 1 }
             #endif
         }
         .tint(accent)
@@ -82,6 +82,72 @@ struct RootView: View {
         .sheet(item: $model.selectedFiling) { filing in NavigationStack { FilingDetail(filing: filing) } }
     }
 }
+private enum HomeCaucus: String, CaseIterable, Identifiable {
+    case houseDemocrats = "house-democrats"
+    case senateDemocrats = "senate-democrats"
+    case houseRepublicans = "house-republicans"
+    case senateRepublicans = "senate-republicans"
+    var id: String { rawValue }
+    var title: String {
+        switch self {
+        case .houseDemocrats: return "House Democrats"
+        case .senateDemocrats: return "Senate Democrats"
+        case .houseRepublicans: return "House Republicans"
+        case .senateRepublicans: return "Senate Republicans"
+        }
+    }
+    var symbol: String {
+        switch self {
+        case .houseDemocrats, .houseRepublicans: return "building.2"
+        case .senateDemocrats, .senateRepublicans: return "building.columns"
+        }
+    }
+}
+
+struct HomeView: View {
+    @State private var path: [HomeCaucus] = []
+    var body: some View {
+        NavigationStack(path: $path) {
+            ScrollView {
+                VStack(spacing: 16) {
+                    ForEach(HomeCaucus.allCases) { caucus in
+                        NavigationLink(value: caucus) {
+                            HStack(spacing: 18) {
+                                Image(systemName: caucus.symbol)
+                                    .font(.title2).frame(width: 32)
+                                Text(caucus.title)
+                                    .font(.title2.weight(.semibold))
+                                    .multilineTextAlignment(.leading)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                Spacer(minLength: 0)
+                                Image(systemName: "chevron.right").font(.subheadline.bold())
+                            }
+                            .foregroundStyle(CivicTheme.ink)
+                            .padding(24).frame(maxWidth: .infinity, minHeight: 112, alignment: .leading)
+                            .background(CivicTheme.surface, in: RoundedRectangle(cornerRadius: 24))
+                            .overlay(alignment: .leading) {
+                                Capsule().fill(accent).frame(width: 4, height: 40).padding(.leading, 1)
+                            }
+                        }.buttonStyle(.plain)
+                    }
+                }.padding(.horizontal, 20).padding(.vertical, 16)
+            }
+            .background(CivicTheme.background)
+            .navigationTitle("Home")
+            .navigationDestination(for: HomeCaucus.self) { caucus in
+                CaucusesView(groupID: caucus.rawValue, title: caucus.title)
+            }
+            .onAppear {
+                #if DEBUG
+                if ProcessInfo.processInfo.arguments.contains("--preview-caucuses"), path.isEmpty {
+                    path = [.houseDemocrats]
+                }
+                #endif
+            }
+        }
+    }
+}
+
 struct FeedView: View {
     @EnvironmentObject var model: AppModel
     @State private var watchOnly = false
@@ -114,7 +180,7 @@ struct FeedView: View {
                     }
                 } header: { Text("Latest discoveries") } footer: { Text("Reports and filing dates come from the Illinois State Board of Elections. Dates are displayed as published by the state.") }
             }
-            .civicSurface().navigationTitle("Illinois Filings")
+            .civicSurface().navigationTitle("Latest Reports")
             .refreshable { await model.refresh() }
             .toolbar { if model.loading { ProgressView() } }
         }
@@ -437,13 +503,12 @@ struct SettingsView: View {
 struct CaucusesView: View {
     @EnvironmentObject var model: AppModel
     @State private var directory: CaucusDirectory?
-    @State private var chamber = "house"
-    @State private var party = "democrats"
+    let groupID: String
+    let title: String
     @AppStorage("caucusSort") private var sortOrder = "name"
     @State private var finances: [String: CommitteeFinance] = [:]
     @State private var loading = false
     @State private var failure: String?
-    private var groupID: String { "\(chamber)-\(party)" }
     private var group: CaucusGroup? { directory?.groups.first { $0.id == groupID } }
     private var members: [DirectoryEntry] {
         guard let group else { return [] }
@@ -467,15 +532,8 @@ struct CaucusesView: View {
         }
     }
     var body: some View {
-        NavigationStack {
             List {
                 Section {
-                    Picker("Chamber", selection: $chamber) {
-                        Text("House").tag("house"); Text("Senate").tag("senate")
-                    }.pickerStyle(.segmented)
-                    Picker("Party", selection: $party) {
-                        Text("Democrats").tag("democrats"); Text("Republicans").tag("republicans")
-                    }.pickerStyle(.segmented)
                     Picker("Sort by", selection: $sortOrder) {
                         Text("Last name").tag("name")
                         Text("District number").tag("district")
@@ -510,7 +568,7 @@ struct CaucusesView: View {
                     footer: { Text("The directory includes selected current-cycle candidates as well as sitting members. Committee lists may be revised.") }
                 } else if loading { ProgressView("Loading committees…") }
             }
-            .civicSurface().navigationTitle(group?.name ?? "Caucuses")
+            .civicSurface().navigationTitle(title)
             .navigationBarTitleDisplayMode(.inline)
             .onAppear {
                 #if DEBUG
@@ -525,7 +583,6 @@ struct CaucusesView: View {
                 }
             }
             .refreshable { await load(); await loadFinances() }
-        }
     }
     @ViewBuilder private func directoryRow(_ entry: DirectoryEntry) -> some View {
         if let committee = entry.committee {

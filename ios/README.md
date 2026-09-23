@@ -1,3 +1,7 @@
+## Version 8 navigation
+
+Home opens with four large caucus buttons. Each opens its committee list with a back button and the existing sorting options. Latest Reports is the second tab. Modern Civic, Night Ledger, and Pink Mode are supported.
+
 # Illinois Filing Tracker — iPhone prototype
 
 Working title; final name is undecided. Native SwiftUI, iPhone, iOS 17+. No third-party iOS dependencies.
