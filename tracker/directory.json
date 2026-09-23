@@ -1,5 +1,5 @@
 {
-  "revision": "2026-09-23-approved-3",
+  "revision": "2026-09-23-approved-4",
   "groups": [
     {
       "id": "house-democrats",
@@ -2031,13 +2031,13 @@
           "last_name": "Cunningham",
           "district": 18,
           "committee": {
-            "id": "291d2538b8852ae016aeffc25fd14de5",
-            "name": "Cunningham Campaign Committee"
+            "id": "cd95de3036313cf6f5ab56f8c5a60f86",
+            "name": "Friends of Bill Cunningham"
           },
-          "official_url": null,
+          "official_url": "https://www.elections.il.gov/campaigndisclosure/CommitteeDetail.aspx?ID=E7GYDTC13lcI%2btZ5pMtArw%3d%3d",
           "role": "",
-          "evidence": "Name observed; link unverified",
-          "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
+          "evidence": "Confirmed by user",
+          "review_note": "Committee name, member association and official URL confirmed by Daniel Didech on 2026-09-23."
         },
         {
           "id": "752ce6c5898cd7d0ece30a98fba0ba72",
