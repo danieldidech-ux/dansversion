@@ -58,3 +58,11 @@ class HistoryTests(unittest.TestCase):
    self.assertEqual(client.get('/v1/filings/-9999999999999999999999999999').status_code,404)
    self.assertIsNone(client.get('/v1/committees/'+COM['id']+'/finance').get_json()['estimated_cash'])
 if __name__=='__main__':unittest.main()
+
+class LookupTests(unittest.TestCase):
+ def test_exact_name_only(self):
+  from archive_source import exact_committee_link
+  html='<a href="CommitteeDetail.aspx?ID=a">Other Committee</a><a href="CommitteeDetail.aspx?ID=b">Daniel Didech Campaign Committee</a>'
+  self.assertTrue(exact_committee_link(Document(html),COM['name']).endswith('ID=b'))
+  with self.assertRaises(ReportFormatError):exact_committee_link(Document(html+'<a href="CommitteeDetail.aspx?ID=c">Daniel Didech Campaign Committee</a>'),COM['name'])
+  with self.assertRaises(ReportFormatError):exact_committee_link(Document(html),'Didech')

@@ -74,3 +74,13 @@ The real public fixture in `tests/fixtures/rezin-a1.html` is filing 1020512, ret
 September 22, 2026, with navigation and ASP.NET state removed.
 
 Run verification with `PYTHONPATH=tracker python -m unittest discover -s tracker/tests -v`.
+
+## Historical reports and financial summaries (v6)
+
+`GET /v1/committees/<key>/history` queues a bounded official archive lookup, returns status and a dated report list, and accepts `before=<negative archive record id>` for older pages. The importer uses the official page-size All control and verifies the returned total, name, and stable document identities. `archive_reports` is separate from `filings` and never enters the APNs outbox or live RSS cursors. Recent feed rows remain visible while the initial archive loads. Paper reports stay linked to their official documents.
+
+`GET /v1/committees/<key>/finance` returns cash plus investments from the latest reporting period (latest amendment wins within that period), plus A-1 amounts received after that quarter end. All relevant A-1s must be readable; ambiguous A-1 amendments/clarifications or missing quarterly data leave the estimate null. The UI explicitly describes the estimate, including omitted spending and possible noncash A-1s. Never substitute zero for missing data. `GET /v1/committee-finances?group=house-democrats` populates directory rankings in the background; individual page requests take priority.
+
+Archive requests use one background worker, cached report documents (one hour, capped at 120MB), bounded responses, exact-name official committee resolution, and retries no more than every five minutes after failure. Verified archive indexes refresh every fifteen minutes or when a new RSS filing appears. Financial estimates can take time to populate when a group is first browsed. The diagnostic endpoints used for initial verification are removed from the release.
+
+Verified live source: committee 34241 has 359 reports through September 22, 2026, ending with its November 13, 2017 D-1; creation November 10, 2017. June 30, 2026 cash $189,762.56 plus investments $219,989.43 = $409,751.99. Captured official fixtures cover archive completeness, period/amendment selection, and contribution parsing.

@@ -37,3 +37,23 @@ class Source:
    if selected and n.attrs.get('name'): fields[n.attrs['name']]=selected.attrs.get('value','')
   fields.update({select.attrs['name']:options[0].attrs['value'],'__EVENTTARGET':select.attrs['name'],'__EVENTARGUMENT':''})
   return self.read(url,fields)
+
+ def find_committee(self,name):
+  url=BASE+'CommitteeSearch.aspx'
+  doc=Document(self.read(url))
+  fields={n.attrs['name']:n.attrs.get('value','') for n in doc.root.all('input') if n.attrs.get('name') and n.attrs.get('type') in {'hidden','text'}}
+  for n in doc.root.all('select'):
+   selected=next((o for o in n.all('option') if 'selected' in o.attrs),next(n.all('option'),None))
+   if selected and n.attrs.get('name'):fields[n.attrs['name']]=selected.attrs.get('value','')
+  name_field=doc.by_id('ContentPlaceHolder1_txtName')
+  submit=doc.by_id('ContentPlaceHolder1_btnSubmit')
+  fields[name_field.attrs['name']]=name
+  fields[submit.attrs['name']]=submit.attrs['value']
+  result=Document(self.read(url,fields))
+  return exact_committee_link(result,name,url)
+
+
+def exact_committee_link(doc,name,base=BASE):
+ links={safe_url(urllib.parse.urljoin(base,n.attrs['href'])) for n in doc.root.all('a') if 'committeedetail.aspx' in n.attrs.get('href','').lower() and normalized(n.text())==normalized(name)}
+ if len(links)!=1:raise ReportFormatError('No unambiguous official committee match')
+ return links.pop()

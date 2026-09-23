@@ -1,5 +1,5 @@
 """Cached historical reports; never inserted into the live notification stream."""
-import json, re, threading, time, queue, urllib.parse
+import json, re, threading, time, queue, urllib.parse, logging, shutil
 from contextlib import closing
 from datetime import datetime
 from decimal import Decimal
@@ -40,7 +40,7 @@ def unavailable(message,status='unavailable'):
 
 class History:
  def __init__(self,store):
-  self.store=store;self.tasks=queue.PriorityQueue();self.lock=threading.Lock();self.pending=set();self.worker=None;self.counter=0
+  self.store=store;self.tasks=queue.PriorityQueue();self.lock=threading.Lock();self.pending=set();self.promoted=set();self.active=None;self.worker=None;self.counter=0
   self.urls={e['committee']['id']:e['official_url'] for g in store.directory_data['groups'] for e in g['members']+g['pinned'] if e.get('committee') and e.get('official_url')}
   self.urls['1b5ce79b8d1251adaf13eda719fd6d7a']=BASE+'CommitteeDetail.aspx?ID=PFWS3Q4VBrJwLQhAj5bRtQ%3D%3D'
   with closing(store.connect()) as db,db:
@@ -57,6 +57,8 @@ class History:
   with closing(self.store.connect()) as db,db:
    db.execute('INSERT OR REPLACE INTO archive_documents VALUES (?,?,?)',(url,time.time(),html))
    db.execute('DELETE FROM archive_documents WHERE checked<?',(time.time()-7*86400,))
+   while db.execute('SELECT COALESCE(SUM(length(html)),0) FROM archive_documents').fetchone()[0]>120_000_000:
+    db.execute('DELETE FROM archive_documents WHERE url=(SELECT url FROM archive_documents ORDER BY checked LIMIT 1)')
   return html
  def schedule(self,key,priority=0):
   with closing(self.store.connect()) as db:
@@ -68,25 +70,37 @@ class History:
   with self.lock:
    if key not in self.pending:
     self.pending.add(key);self.counter+=1;self.tasks.put((priority,self.counter,dict(committee),latest))
+   elif priority==0 and key!=self.active and key not in self.promoted:
+    self.promoted.add(key);self.counter+=1;self.tasks.put((0,self.counter,dict(committee),latest))
    if self.worker is None or not self.worker.is_alive():
     self.worker=threading.Thread(target=self.run,daemon=True);self.worker.start()
   return True
  def run(self):
   while True:
    _,_,committee,latest=self.tasks.get()
+   with self.lock:
+    if committee['id'] not in self.pending:
+     self.tasks.task_done();continue
+    self.active=committee['id']
    try:self.refresh(committee,latest)
    except Exception as e:
+    logging.getLogger('gunicorn.error').warning('Archive unavailable for %s: %s',committee['id'],type(e).__name__)
     with closing(self.store.connect()) as db,db:
      old=db.execute('SELECT complete,payload FROM archive_state WHERE committee_key=?',(committee['id'],)).fetchone()
      payload=json.loads(old['payload']) if old else {}
      payload.update(status='unavailable',message='The official archive could not be fully refreshed. Pull to refresh later.')
      db.execute('INSERT OR REPLACE INTO archive_state VALUES (?,?,?,?,?,?)',(committee['id'],time.time(),latest,0,json.dumps(payload),json.dumps(unavailable('The financial summary is unavailable until the official reports can be verified.'))))
    finally:
-    with self.lock:self.pending.discard(committee['id'])
+    with self.lock:
+     self.pending.discard(committee['id']);self.promoted.discard(committee['id']);self.active=None
     self.tasks.task_done()
    time.sleep(.5)
  def resolve(self,source,committee):
   if committee['id'] in self.urls:return self.urls[committee['id']]
+  state=self.state(committee['id'])
+  if state:
+   saved=json.loads(state['payload']).get('official_url')
+   if saved:return safe_url(saved)
   with closing(self.store.connect()) as db:
    urls=[r[0] for r in db.execute('SELECT url FROM filings WHERE committee_key=? AND url IS NOT NULL ORDER BY seq DESC LIMIT 3',(committee['id'],))]
   for url in urls:
@@ -94,8 +108,11 @@ class History:
    links=[urllib.parse.urljoin(url,n.attrs['href']) for n in doc.root.all('a') if 'committeedetail.aspx' in n.attrs.get('href','').lower() and normalized(n.text())==normalized(committee['name'])]
    if len(set(links))==1:
     self.urls[committee['id']]=safe_url(links[0]);return links[0]
-  raise ReportFormatError('Official committee link is not resolved')
+  url=source.find_committee(committee['name'])
+  self.urls[committee['id']]=url
+  return url
  def refresh(self,committee,latest):
+  if shutil.disk_usage(self.store.directory).free<128*1024*1024:raise ReportFormatError('Insufficient archive storage headroom')
   source=Source();url=self.resolve(source,committee)
   html=source.all_rows(url,source.read(url),'gvFiledDocs')
   rows,created,official_id=parse_archive(html,committee)
@@ -126,6 +143,8 @@ class History:
    positions=[i for i,r in enumerate(records) if r['seq']==before]
    if positions:offset=positions[0]+1
   page=records[offset:offset+50]
+  if not records:
+   with closing(self.store.connect()) as db:page=[dict(r) for r in db.execute('SELECT * FROM filings WHERE committee_key=? ORDER BY seq DESC LIMIT 50',(key,))]
   status=json.loads(row['payload']) if row else dict(status='loading',message='Loading the official report history…')
   return dict(filings=page,has_more=len(records)>offset+50,next_cursor=page[-1]['seq'] if len(records)>offset+50 else None,history=status)
  def calculate(self,source,committee,rows):
@@ -147,7 +166,9 @@ class History:
     html=self.document(source,report['url'],'gvA1List')
     detail=parse_a1(html,report)
     total+=sum((Decimal(e['amount']) for e in detail['contributions'] if e['received_date']>end),Decimal(0))
-  except Exception:return result
+  except Exception as exc:
+   logging.getLogger('gunicorn.error').warning('A1 estimate incomplete for %s report %s: %s %s',committee['id'],report['document_id'],type(exc).__name__,str(exc))
+   return result
   result.update(status='ready',a1_total=format(total,'.2f'),estimated_cash=format(Decimal(base)+total,'.2f'),message='Based on the latest quarterly report and A-1 contributions received after quarter end.')
   return result
 

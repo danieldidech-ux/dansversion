@@ -289,11 +289,6 @@ def create_app(directory=None, poll=True):
         response.headers['Content-Security-Policy'] = "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'; base-uri 'none'"
         return response
 
-    @app.get('/v1/archive-diagnostic')
-    def archive_diagnostic():
-        from archive_diagnostic import inspect
-        return jsonify(inspect())
-
     @app.get('/v1/committees/<key>/history')
     def committee_history(key):
         if not history.schedule(key): return jsonify(error='Unknown committee'),404
@@ -313,7 +308,7 @@ def create_app(directory=None, poll=True):
         group=request.args.get('group')
         groups=[g for g in store.directory_data['groups'] if g['id']==group] if group else store.directory_data['groups']
         keys={e['committee']['id'] for g in groups for e in g['pinned']+g['members'] if e['committee']}
-        for key in keys: history.schedule(key,priority=1)
+        for key in sorted(keys): history.schedule(key,priority=1)
         return jsonify(committees={key:history.finance(key) for key in keys})
 
     @app.get('/downloads/IllinoisTracker-v6.zip')
@@ -321,6 +316,21 @@ def create_app(directory=None, poll=True):
         archive = Path(__file__).resolve().parent.parent / 'releases' / 'IllinoisTracker-iPhone-Source-v6.zip'
         return send_file(archive, mimetype='application/zip', as_attachment=True,
                          download_name='IllinoisTracker-iPhone-Source-v6.zip', conditional=True)
+
+    @app.get('/v1/archive-diagnostic')
+    def archive_diagnostic():
+        from reports import parse_a1
+        issues=[]; ready=0
+        with closing(store.connect()) as db:
+            for r in db.execute("SELECT payload FROM archive_reports WHERE committee_key='1b5ce79b8d1251adaf13eda719fd6d7a'"):
+                report=json.loads(r[0])
+                if not report['report_type'].startswith('A-1') or report['filed_at']<'2026-07-01': continue
+                cached=db.execute('SELECT html FROM archive_documents WHERE url=?',(report['url'],)).fetchone()
+                if not cached:
+                    issues.append(dict(report=report,error='not cached'));continue
+                try: parse_a1(cached[0],report);ready+=1
+                except Exception as exc: issues.append(dict(report=report,error=str(exc),html=cached[0]))
+        return jsonify(ready=ready,issues=issues)
 
     @app.get('/v1/directory')
     def caucus_directory():
