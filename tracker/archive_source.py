@@ -3,6 +3,9 @@ import http.cookiejar, re, urllib.parse, urllib.request
 from reports import Document, Node, ReportFormatError, normalized
 BASE='https://www.elections.il.gov/CampaignDisclosure/'
 
+class OfficialPDFError(ReportFormatError):
+ """The official response is PDF-only, rather than an electronic report."""
+
 def safe_url(url):
  p=urllib.parse.urlsplit(url)
  if p.scheme!='https' or p.hostname not in {'www.elections.il.gov','elections.il.gov'} or p.username or p.password or p.port not in (None,443) or not p.path.lower().startswith('/campaigndisclosure/'):
@@ -24,7 +27,7 @@ class Source:
    safe_url(r.url)
    raw=r.read(20_000_001)
    if len(raw)>20_000_000: raise ReportFormatError('Archive exceeds reader limit')
-   if raw.startswith(b'%PDF'):raise ReportFormatError('Official document is a PDF; this reader requires an electronic HTML report')
+   if raw.startswith(b'%PDF'):raise OfficialPDFError('Official document is a PDF; this reader requires an electronic HTML report')
    return raw.decode(r.headers.get_content_charset() or 'utf-8')
  def all_rows(self,url,html,table_id):
   doc=Document(html)

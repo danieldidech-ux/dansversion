@@ -5,7 +5,7 @@ from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
 from decimal import Decimal
 from itertools import zip_longest
-from archive_source import Source, BASE, safe_url
+from archive_source import Source, BASE, safe_url, OfficialPDFError
 from reports import Document, Node, ReportFormatError, normalized, parse_a1
 
 
@@ -109,7 +109,8 @@ class History:
    latest=db.execute('SELECT COALESCE(MAX(seq),0) FROM filings WHERE committee_key=?',(key,)).fetchone()[0]
   if not committee:return False
   finance=json.loads(state['finance']) if state else {}
-  if state and finance.get('calculation_version')==2 and finance.get('status')!='loading' and not finance.get('refreshing') and state['checked']>time.time()- (900 if state['complete'] and self.verified(finance) and not finance.get('stale') else 300) and state['source_seq']==latest:return True
+  old_pdf_failure=finance.get('status')=='unavailable' and finance.get('message')=='Official document is a PDF; this reader requires an electronic HTML report'
+  if state and not old_pdf_failure and finance.get('calculation_version')==2 and finance.get('status')!='loading' and not finance.get('refreshing') and state['checked']>time.time()- (900 if state['complete'] and self.verified(finance) and not finance.get('stale') else 300) and state['source_seq']==latest:return True
   with self.lock:
    if key not in self.pending:
     self.pending.add(key);self.counter+=1;self.tickets[key]=self.counter;self.tasks.put((priority,self.counter,dict(committee),latest))
@@ -219,7 +220,7 @@ class History:
   return dict(filings=page,has_more=len(records)>offset+50,next_cursor=page[-1]['seq'] if len(records)>offset+50 else None,history=status)
  def calculate(self,source,committee,rows,created=None):
   quarters=[r for r in rows if 'd-2 quarterly' in r['report_type'].lower()]
-  assumed=False
+  assumed=False;excluded=[]
   if not quarters:
    end=previous_quarter_end()
    if not created or datetime.strptime(created,'%m/%d/%Y').date().isoformat()<=end:
@@ -228,10 +229,13 @@ class History:
   else:
    def period_end(r):
     return datetime.strptime(r['period'].split(' to ')[-1].strip(),'%m/%d/%Y').date().isoformat()
-   quarter=max(quarters,key=lambda r:(period_end(r),r['filed_at']))
-   end=period_end(quarter)
-   self.audit_context[committee['id']]=dict(stage='quarterly_report',source_url=quarter['url'],report_type=quarter['report_type'],filed_at=quarter['filed_at'])
-   base=self.part(source,quarter,quarter=True)
+   for quarter in sorted(quarters,key=lambda r:(period_end(r),r['filed_at']),reverse=True):
+    end=period_end(quarter)
+    self.audit_context[committee['id']]=dict(stage='quarterly_report',source_url=quarter['url'],report_type=quarter['report_type'],filed_at=quarter['filed_at'])
+    try:base=self.part(source,quarter,quarter=True);break
+    except OfficialPDFError:excluded.append(quarter)
+   else:
+    return dict(unavailable('Quarterly reports are PDF-only; no readable opening balance is available.'),excluded_pdf_count=len(excluded),excluded_pdf_reports=excluded)
   result=dict(status='unavailable',as_of=end,cash_and_investments=base,a1_total=None,estimated_cash=None,baseline_assumed=assumed,calculation_version=2,monetary_receipts=None,in_kind_total=None,message='A-1 totals could not be fully verified.')
   unknown=[r for r in rows if r['report_type']=='Unlabeled official record' and r['filed_at'][:10]>end]
   if unknown:
@@ -239,17 +243,19 @@ class History:
    result['diagnostic']=dict(stage='unlabeled_record',reason=result['message'],reports=unknown)
    return result
   a1s=[r for r in rows if r['report_type'].lower().startswith('a-1') and r['filed_at'][:10]>end]
-  if any('amend' in r['report_type'].lower() or r['clarification'] for r in a1s):
-   result['message']='An A-1 amendment or clarification needs review before an estimate can be shown.'
-   result['diagnostic']=dict(stage='a1_amendment',reason=result['message'],reports=[dict(url=r['url'],report_type=r['report_type'],filed_at=r['filed_at'],clarification=r['clarification']) for r in a1s if 'amend' in r['report_type'].lower() or r['clarification']])
-   return result
   total=Decimal(0);monetary=Decimal(0);in_kind=Decimal(0);seen_docs=set();seen_entries=set()
   try:
    for report in a1s:
     doc_id=report.get('document_id') or identity(report['url'])
     if doc_id in seen_docs:continue
     seen_docs.add(doc_id)
-    detail=self.part(source,report)
+    try:detail=self.part(source,report)
+    except OfficialPDFError:
+     excluded.append(report);continue
+    if 'amend' in report['report_type'].lower() or report['clarification']:
+     result['message']='An A-1 amendment or clarification needs review before an estimate can be shown.'
+     result['diagnostic']=dict(stage='a1_amendment',reason=result['message'],reports=[report])
+     return result
     current=set()
     for e in detail['contributions']:
      if e['received_date']<=end:continue
@@ -269,6 +275,8 @@ class History:
    result['message']=result['diagnostic']['reason']
    return result
   result.update(status='ready',a1_total=format(total,'.2f'),monetary_receipts=format(monetary,'.2f'),in_kind_total=format(in_kind,'.2f'),estimated_cash=format(Decimal(base)+monetary,'.2f'),message=('New committee formed '+created+'. Starting balance assumed $0. ' if assumed else '')+'Reported cash and investments plus monetary A-1 receipts after quarter end. In-kind support is excluded. Spending and receipts not yet disclosed are unknown; this is not a current bank balance.')
+  result.update(excluded_pdf_count=len(excluded),excluded_pdf_reports=excluded)
+  if excluded:result['message']='Excludes '+str(len(excluded))+' PDF-only filing(s). Amounts in those filings are not included. '+result['message']
   return result
 
 
