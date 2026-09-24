@@ -1,0 +1,36 @@
+name: Inspect public campaign sources
+on:
+  push:
+    branches: [illinois-filing-tracker]
+    paths: ['.github/workflows/source-inspection.yml']
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - run: |
+          mkdir source-inspection
+          python - <<'PY'
+          import urllib.request,pathlib
+          urls={
+           'committee-search':'https://www.elections.il.gov/CampaignDisclosure/CommitteeSearch.aspx',
+           'totals':'https://www.elections.il.gov/CampaignDisclosure/LatestCommitteeTotalsByLatest.aspx',
+           'bulk':'https://www.elections.il.gov/campaigndisclosuredatafiles/',
+           'sunshine':'https://www.illinoissunshine.org/',
+           'house-races':'https://www.illinoissunshine.org/contested-races/',
+           'senate-races':'https://www.illinoissunshine.org/contested-races/?branch=S'
+          }
+          for name,url in urls.items():
+           try:
+            raw=urllib.request.urlopen(url,timeout=25).read(20000000)
+            pathlib.Path('source-inspection/'+name+'.html').write_bytes(raw)
+            print(name,len(raw))
+           except Exception as e: print(name,type(e).__name__,str(e))
+          PY
+      - uses: actions/upload-artifact@v4
+        with:
+          name: public-source-inspection
+          path: source-inspection
