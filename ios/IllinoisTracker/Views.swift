@@ -143,15 +143,16 @@ struct RootView: View {
         TabView(selection: $selectedTab) {
             HomeView().tabItem { Label("Home", systemImage: "house") }.tag(0)
             FeedView().tabItem { Label("Latest Reports", systemImage: "doc.text") }.tag(1)
+                        HotRacesView().tabItem { Label("Hot Races", systemImage: "flame") }.tag(3)
+            TopPACsView().tabItem { Label("Top PACs", systemImage: "chart.bar.xaxis") }.tag(4)
             AlertsView().tabItem { Label("Alerts", systemImage: "bell") }.tag(2)
-            DiscoverView().tabItem { Label("Search", systemImage: "magnifyingglass") }.tag(3)
-            SettingsView().tabItem { Label("Settings", systemImage: "gearshape") }.tag(4)
         }
         .onAppear {
             #if DEBUG
             if ProcessInfo.processInfo.arguments.contains("--preview-reports") { selectedTab = 1 }
             if ProcessInfo.processInfo.arguments.contains("--preview-alerts") { selectedTab = 2 }
-            if ProcessInfo.processInfo.arguments.contains("--preview-search") { selectedTab = 3 }
+            if ProcessInfo.processInfo.arguments.contains("--preview-hot-races") { selectedTab = 3 }
+            if ProcessInfo.processInfo.arguments.contains("--preview-top-pacs") { selectedTab = 4 }
             #endif
         }
         .tint(accent)
@@ -254,6 +255,7 @@ struct HomeView: View {
             }
             .background(CivicTheme.background)
             .navigationTitle("Illinois Committees")
+            .toolbar { AppUtilities() }
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: HomeCaucus.self) { caucus in
                 CaucusesView(groupID: caucus.rawValue, title: caucus.title)
@@ -297,7 +299,7 @@ struct FeedView: View {
             .listSectionSpacing(.compact).contentMargins(.top, 0, for: .scrollContent)
             .civicSurface().navigationTitle("Latest Reports").navigationBarTitleDisplayMode(.inline)
             .refreshable { await model.refresh() }
-            .toolbar { if model.loading { ProgressView() } }
+            .toolbar { AppUtilities(); if model.loading { ToolbarItem { ProgressView() } } }
         }
     }
 }
@@ -594,7 +596,7 @@ private struct AlertCenterView: View {
                 NavigationLink { AlertInboxView() } label: { Label("Alert history", systemImage: "clock.arrow.circlepath") }
                     .listRowBackground(TactileRowSurface()).listRowSeparator(.hidden)
             }
-        }.civicSurface().navigationTitle("Alerts")
+        }.civicSurface().navigationTitle("Alerts").toolbar { AppUtilities() }
             .task { await model.refreshPermission(); await model.refreshIfNeeded() }
             .refreshable { await model.refresh() }
     }
@@ -705,6 +707,8 @@ private struct CommitteeSearchView: View {
 }
 
 struct SettingsView: View {
+    var presented = false
+    @Environment(\.dismiss) private var dismiss
     @EnvironmentObject var model: AppModel
     @State private var confirmDelete = false
     @AppStorage("appearance") private var appearance = "light"
@@ -738,6 +742,7 @@ struct SettingsView: View {
                 }
             }
             .civicSurface().navigationTitle("Settings")
+            .toolbar { if presented { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } } }
             .confirmationDialog("Delete your alert selections and custom lists, and disable notifications?", isPresented: $confirmDelete, titleVisibility: .visible) {
                 Button("Delete my data", role: .destructive) { Task { await model.deleteData() } }
             }
@@ -1766,3 +1771,164 @@ private struct InlineFilingPDF: View {
     }
 }
 
+
+private struct AppUtilities: ToolbarContent {
+    @State private var settings = false
+    var body: some ToolbarContent {
+        ToolbarItemGroup(placement: .topBarTrailing) {
+            NavigationLink { CommitteeSearchView(manageAlerts: false) } label: { Image(systemName: "magnifyingglass") }.accessibilityLabel("Search committees")
+            Button { settings = true } label: { Image(systemName: "gearshape") }.accessibilityLabel("Settings")
+                .sheet(isPresented: $settings) { SettingsView(presented: true) }
+        }
+    }
+}
+
+struct HotRacesView: View {
+    @EnvironmentObject var model: AppModel
+    @Environment(\.scenePhase) private var phase
+    @State private var page: HotRacePage?
+    @State private var filter = "All"
+    @State private var failure: String?
+    @State private var about = false
+    private var races: [HotRace] { (page?.races ?? []).filter { filter == "All" || $0.chamber == filter } }
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    Picker("Chamber", selection: $filter) {
+                        Text("All").tag("All"); Text("House").tag("House"); Text("Senate").tag("Senate")
+                    }.pickerStyle(.segmented)
+                }
+                if let failure { Section { Text(failure).font(.caption); Button("Try again") { Task { await load() } } } }
+                if page == nil && failure == nil { ProgressView("Loading races…") }
+                ForEach(races) { race in
+                    Section {
+                        RaceComparison(race: race)
+                    } header: { Text(race.title).font(.headline).foregroundStyle(CivicTheme.ink).textCase(nil) }
+                }
+            }.civicSurface().navigationTitle("Hot Races").navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) { Button { about = true } label: { Image(systemName: "info.circle") }.accessibilityLabel("About Hot Races") }
+                    AppUtilities()
+                }
+                .sheet(isPresented: $about) {
+                    NavigationStack { List { Text(page?.note ?? "A curated watchlist of competitive Illinois legislative races."); Text("Cash and investments are reported balances. Estimates add subsequent monetary A-1 receipts and do not subtract unreported spending. Each candidate’s quarter-end date is shown. PDF-only filings are excluded from estimates; see committee calculation details.") }.navigationTitle("About Hot Races").navigationBarTitleDisplayMode(.inline).toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { about = false } } } }
+                }
+                .refreshable { await load() }
+                .task(id: phase) {
+                    guard phase == .active else { return }
+                    while !Task.isCancelled { await load(); do { try await Task.sleep(for: .seconds(15)) } catch { return } }
+                }
+        }
+    }
+    @MainActor private func load() async {
+        do { page = try await model.connection().call("/v1/hot-races"); failure = nil }
+        catch { if !Task.isCancelled { failure = error.localizedDescription } }
+    }
+}
+
+private struct RaceComparison: View {
+    let race: HotRace
+    private func partyColor(_ party: String) -> Color { party == "Democratic" ? .blue : party == "Republican" ? .red : .purple }
+    var body: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top, spacing: 14) {
+                ForEach(race.candidates) { candidate in
+                    VStack(alignment: .leading, spacing: 7) {
+                        Text(candidate.party).font(.caption.bold()).foregroundStyle(partyColor(candidate.party))
+                        if let committee = candidate.committee {
+                            NavigationLink { CommitteeFilingsView(committee: committee, member: candidate.name, officialURL: nil) } label: {
+                                HStack(alignment: .top, spacing: 4) { Text(candidate.name).font(.headline); Image(systemName: "chevron.right").font(.caption.bold()) }
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                            }.buttonStyle(TactileButtonStyle(inset: 8))
+                        } else { Text(candidate.name).font(.headline); Text("Committee being verified").font(.caption).foregroundStyle(CivicTheme.secondary) }
+                    }.frame(maxWidth: .infinity, alignment: .topLeading)
+                }
+            }
+            comparison("Reported cash + investments", field: { $0.cashAndInvestments })
+            HStack(alignment: .top, spacing: 14) {
+                ForEach(race.candidates) { candidate in
+                    Text(candidate.finance?.asOf.map { "As of \($0)" } ?? "Date pending")
+                        .font(.caption2).foregroundStyle(CivicTheme.secondary).frame(maxWidth: .infinity, alignment: .leading)
+                }
+            }
+            comparison("Monetary A-1s since quarter end", field: { $0.monetaryReceipts })
+            Divider()
+            comparison("Estimated balance before unreported spending", field: { $0.estimatedCash }, prominent: true)
+            if race.candidates.contains(where: { $0.finance?.stale == true }) { Text("A saved estimate is shown while its source is refreshed.").font(.caption).foregroundStyle(CivicTheme.secondary) }
+            DisclosureGroup("Committee alerts") {
+                ForEach(race.candidates) { candidate in
+                    if let committee = candidate.committee {
+                        VStack(alignment: .leading, spacing: 5) { Text(candidate.name).font(.subheadline.bold()); CommitteeAlertButton(committee: committee, explain: true) }.padding(.vertical, 5)
+                    }
+                }
+            }.font(.subheadline)
+        }.padding(.vertical, 8)
+    }
+    private func comparison(_ label: String, field: @escaping (CommitteeFinance) -> String?, prominent: Bool = false) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(label).font(.caption).foregroundStyle(CivicTheme.secondary)
+            HStack(alignment: .top, spacing: 14) {
+                ForEach(race.candidates) { candidate in
+                    Text(candidate.finance.flatMap(field).map(ReportContribution.currency) ?? (candidate.finance?.status == "unavailable" ? "Unavailable" : "Calculating…"))
+                        .font(prominent ? .headline : .subheadline).fontWeight(.semibold).monospacedDigit()
+                        .foregroundStyle(prominent ? CivicTheme.accent : CivicTheme.ink)
+                        .frame(maxWidth: .infinity, alignment: .leading).minimumScaleFactor(0.7).lineLimit(1)
+                        .accessibilityLabel("\(candidate.name), \(label), \(candidate.finance.flatMap(field).map(ReportContribution.currency) ?? "unavailable")")
+                }
+            }
+        }
+    }
+}
+
+struct TopPACsView: View {
+    @EnvironmentObject var model: AppModel
+    @Environment(\.scenePhase) private var phase
+    @State private var page: TopPACPage?
+    @State private var query = ""
+    @State private var failure: String?
+    @State private var about = false
+    private var rows: [RankedPAC] { (page?.committees ?? []).filter { query.isEmpty || $0.committee.name.localizedCaseInsensitiveContains(query) } }
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    Text("Reported cash + investments").font(.subheadline.bold())
+                    if let date = page?.checkedAt { Text("Updated \(Date(timeIntervalSince1970: date).formatted(date: .abbreviated, time: .shortened))").font(.caption).foregroundStyle(CivicTheme.secondary) }
+                    if page?.status == "partial" { Text("Building ranking: \(page?.processed ?? 0) of \(page?.reportCount ?? 0) reports checked. Order may change.").font(.caption).foregroundStyle(CivicTheme.secondary) }
+                    if page?.status == "stale" { Text("Saved ranking · Source refresh delayed").font(.caption).foregroundStyle(CivicTheme.secondary) }
+                }
+                if let failure { Section { Text(failure).font(.caption); Button("Try again") { Task { await load() } } } }
+                if page == nil || (page?.status == "loading" && rows.isEmpty) { ProgressView("Loading PAC balances…") }
+                ForEach(rows) { pac in
+                    NavigationLink { CommitteeFilingsView(committee: pac.committee, member: "", officialURL: nil) } label: {
+                        HStack(alignment: .top, spacing: 12) {
+                            Text("\(pac.rank)").font(.title3.bold()).foregroundStyle(CivicTheme.accent).frame(width: 30)
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(pac.committee.name).font(.headline)
+                                Text(ReportContribution.currency(pac.balance)).font(.title3.bold()).monospacedDigit().foregroundStyle(CivicTheme.accent)
+                                Text("\(pac.committeeType) · \(pac.asOf)").font(.caption).foregroundStyle(CivicTheme.secondary)
+                            }
+                        }.padding(.vertical, 7)
+                    }.listRowBackground(TactileRowSurface()).listRowSeparator(.hidden)
+                }
+                if rows.isEmpty && page?.status == "ready" { ContentUnavailableView.search(text: query) }
+            }.civicSurface().navigationTitle("Top PACs").navigationBarTitleDisplayMode(.inline)
+                .searchable(text: $query, prompt: "Search ranked PACs")
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) { Button { about = true } label: { Image(systemName: "info.circle") }.accessibilityLabel("About PAC rankings") }
+                    AppUtilities()
+                }
+                .sheet(isPresented: $about) { NavigationStack { List { Text(page?.note ?? "Ranked using official reported balances."); Text("\(page?.total ?? 0) committees with verified balances. Showing up to 100. \(page?.excluded ?? 0) active committees without a verified balance in this ranking.") }.navigationTitle("About Top PACs").navigationBarTitleDisplayMode(.inline).toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { about = false } } } } }
+                .refreshable { await load() }
+                .task(id: phase) {
+                    guard phase == .active else { return }
+                    while !Task.isCancelled { await load(); do { try await Task.sleep(for: .seconds(30)) } catch { return } }
+                }
+        }
+    }
+    @MainActor private func load() async {
+        do { page = try await model.connection().call("/v1/top-pacs"); failure = nil }
+        catch { if !Task.isCancelled { failure = error.localizedDescription } }
+    }
+}

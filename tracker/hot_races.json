@@ -1,0 +1,379 @@
+{
+  "revision": "2026-09-24",
+  "note": "Draft editorial watchlist for review, not a prediction or a complete list of contested races. Selection considers competitive district history and current matchups. Candidate names and committee references were cross-checked against Illinois Sunshine; financial figures come from official Illinois State Board of Elections reports. The publisher can revise this list.",
+  "sources": [
+    "https://www.ilcapitolgroup.com/Home/Elections",
+    "https://www.illinoissunshine.org/contested-races/",
+    "https://www.illinoissunshine.org/contested-races/?branch=S"
+  ],
+  "races": [
+    {
+      "id": "house-47",
+      "chamber": "House",
+      "district": 47,
+      "candidates": [
+        {
+          "id": "house-47-democratic",
+          "name": "Erica Bray-Parker",
+          "party": "Democratic",
+          "official_id": "40729"
+        },
+        {
+          "id": "house-47-republican",
+          "name": "Robert Vrankovich",
+          "party": "Republican",
+          "official_id": "40895"
+        }
+      ]
+    },
+    {
+      "id": "house-48",
+      "chamber": "House",
+      "district": 48,
+      "candidates": [
+        {
+          "id": "house-48-democratic",
+          "name": "Amanda Zahorak",
+          "party": "Democratic",
+          "official_id": "41068"
+        },
+        {
+          "id": "house-48-republican",
+          "name": "Jennifer Sanalitro",
+          "party": "Republican",
+          "committee": {
+            "id": "8f7433ba5748c3347cbd6e6a245b0ca3",
+            "name": "Citizens for Sanalitro"
+          },
+          "official_url": null
+        }
+      ]
+    },
+    {
+      "id": "house-51",
+      "chamber": "House",
+      "district": 51,
+      "candidates": [
+        {
+          "id": "house-51-democratic",
+          "name": "Jenny Levin",
+          "party": "Democratic",
+          "committee": {
+            "id": "852e1ac74d44248662a09557d8dca692",
+            "name": "Supporters of Jenny Levin"
+          },
+          "official_url": "https://www.elections.il.gov/campaigndisclosure/CommitteeDetail.aspx?ID=5UkJ6hiXIOmlXIZLQvh08Q%3d%3d"
+        },
+        {
+          "id": "house-51-republican",
+          "name": "Lori Smith",
+          "party": "Republican",
+          "official_id": "41026"
+        }
+      ]
+    },
+    {
+      "id": "house-52",
+      "chamber": "House",
+      "district": 52,
+      "candidates": [
+        {
+          "id": "house-52-democratic",
+          "name": "Maria Peterson",
+          "party": "Democratic",
+          "committee": {
+            "id": "ed4925ee4f21ed8d8d8af6ce970bed87",
+            "name": "Maria for 52"
+          },
+          "official_url": null
+        },
+        {
+          "id": "house-52-republican",
+          "name": "Martin McLaughlin",
+          "party": "Republican",
+          "committee": {
+            "id": "d9ef1d0759a8a4274198b4e286d4a59f",
+            "name": "Martin McLaughlin For State Representative"
+          },
+          "official_url": null
+        }
+      ]
+    },
+    {
+      "id": "house-68",
+      "chamber": "House",
+      "district": 68,
+      "candidates": [
+        {
+          "id": "house-68-democratic",
+          "name": "Dave Vella",
+          "party": "Democratic",
+          "committee": {
+            "id": "1acc72d1dc44d668639ec4e91063754d",
+            "name": "Friends of Dave Vella"
+          },
+          "official_url": null
+        },
+        {
+          "id": "house-68-republican",
+          "name": "Kathy Easton",
+          "party": "Republican",
+          "official_id": "40831"
+        }
+      ]
+    },
+    {
+      "id": "house-76",
+      "chamber": "House",
+      "district": 76,
+      "candidates": [
+        {
+          "id": "house-76-democratic",
+          "name": "Murri Briel",
+          "party": "Democratic",
+          "committee": {
+            "id": "155ec0cf69b4acb5af67e3ec74c2812f",
+            "name": "Friends for Murri Briel"
+          },
+          "official_url": null
+        },
+        {
+          "id": "house-76-republican",
+          "name": "Liz Bishop",
+          "party": "Republican",
+          "official_id": "39550"
+        }
+      ]
+    },
+    {
+      "id": "house-104",
+      "chamber": "House",
+      "district": 104,
+      "candidates": [
+        {
+          "id": "house-104-democratic",
+          "name": "Mary Catherine Roberson",
+          "party": "Democratic",
+          "official_id": "41140"
+        },
+        {
+          "id": "house-104-republican",
+          "name": "Brandun Schweizer",
+          "party": "Republican",
+          "committee": {
+            "id": "9766fd29d3e805c03d5d8ae7ab3c5fb6",
+            "name": "Citizens For Schweizer"
+          },
+          "official_url": null
+        }
+      ]
+    },
+    {
+      "id": "house-112",
+      "chamber": "House",
+      "district": 112,
+      "candidates": [
+        {
+          "id": "house-112-democratic",
+          "name": "Katie Stuart",
+          "party": "Democratic",
+          "committee": {
+            "id": "6a874a2ce85e1ba1c18b5f071eeb189c",
+            "name": "Friends for Katie Stuart"
+          },
+          "official_url": null
+        },
+        {
+          "id": "house-112-republican",
+          "name": "James Ford",
+          "party": "Republican",
+          "official_id": "40894"
+        }
+      ]
+    },
+    {
+      "id": "house-114",
+      "chamber": "House",
+      "district": 114,
+      "candidates": [
+        {
+          "id": "house-114-democratic",
+          "name": "George McClellan",
+          "party": "Democratic",
+          "official_id": "41080"
+        },
+        {
+          "id": "house-114-republican",
+          "name": "Kevin Schmidt",
+          "party": "Republican",
+          "committee": {
+            "id": "9a24837150efb6ffaf7efa6470f70f39",
+            "name": "Schmidt for Illinois"
+          },
+          "official_url": null
+        }
+      ]
+    },
+    {
+      "id": "senate-24",
+      "chamber": "Senate",
+      "district": 24,
+      "candidates": [
+        {
+          "id": "senate-24-democratic",
+          "name": "Benjamin McAdams",
+          "party": "Democratic",
+          "official_id": "40904"
+        },
+        {
+          "id": "senate-24-republican",
+          "name": "Seth Lewis",
+          "party": "Republican",
+          "committee": {
+            "id": "c3e296182c6f40f8a45dad846ef8c7b5",
+            "name": "Citizens for Seth Lewis"
+          },
+          "official_url": null
+        }
+      ]
+    },
+    {
+      "id": "senate-26",
+      "chamber": "Senate",
+      "district": 26,
+      "candidates": [
+        {
+          "id": "senate-26-democratic",
+          "name": "Nabeela Syed",
+          "party": "Democratic",
+          "committee": {
+            "id": "adeeff75141c7dd0f8c89dec0b90b72d",
+            "name": "Friends & Family of Nabeela Syed"
+          },
+          "official_url": null
+        },
+        {
+          "id": "senate-26-republican",
+          "name": "Darby Hills",
+          "party": "Republican",
+          "committee": {
+            "id": "f7270a67c3f7a4ee32f026fd5ec2b678",
+            "name": "Citizens for Darby Hills"
+          },
+          "official_url": null
+        }
+      ]
+    },
+    {
+      "id": "senate-32",
+      "chamber": "Senate",
+      "district": 32,
+      "candidates": [
+        {
+          "id": "senate-32-democratic",
+          "name": "Karen Battaglia",
+          "party": "Democratic",
+          "official_id": "40813"
+        },
+        {
+          "id": "senate-32-republican",
+          "name": "Craig Wilcox",
+          "party": "Republican",
+          "committee": {
+            "id": "b22047e1e52d9679848f742ae997cdb4",
+            "name": "Citizens for Colonel Craig Wilcox"
+          },
+          "official_url": null
+        }
+      ]
+    },
+    {
+      "id": "senate-33",
+      "chamber": "Senate",
+      "district": 33,
+      "candidates": [
+        {
+          "id": "senate-33-democratic",
+          "name": "Michele Clark",
+          "party": "Democratic",
+          "official_id": "40848"
+        },
+        {
+          "id": "senate-33-republican",
+          "name": "Danielle Penman",
+          "party": "Republican",
+          "official_id": "40819"
+        }
+      ]
+    },
+    {
+      "id": "senate-36",
+      "chamber": "Senate",
+      "district": 36,
+      "candidates": [
+        {
+          "id": "senate-36-democratic",
+          "name": "Mike Halpin",
+          "party": "Democratic",
+          "committee": {
+            "id": "8de2a432089d2dbb38df732d0194b1b7",
+            "name": "Friends of Mike Halpin"
+          },
+          "official_url": null
+        },
+        {
+          "id": "senate-36-republican",
+          "name": "Brad Beekman",
+          "party": "Republican",
+          "official_id": "40808"
+        }
+      ]
+    },
+    {
+      "id": "senate-48",
+      "chamber": "Senate",
+      "district": 48,
+      "candidates": [
+        {
+          "id": "senate-48-democratic",
+          "name": "Doris Turner",
+          "party": "Democratic",
+          "committee": {
+            "id": "c57e84f16086437696d270be75ce7b49",
+            "name": "Friends of Doris Turner"
+          },
+          "official_url": null
+        },
+        {
+          "id": "senate-48-republican",
+          "name": "Frank Lesko",
+          "party": "Republican",
+          "official_id": "12713"
+        }
+      ]
+    },
+    {
+      "id": "senate-56",
+      "chamber": "Senate",
+      "district": 56,
+      "candidates": [
+        {
+          "id": "senate-56-democratic",
+          "name": "Marsia Geldert-Murphey",
+          "party": "Democratic",
+          "official_id": "40937"
+        },
+        {
+          "id": "senate-56-republican",
+          "name": "Erica Harriss",
+          "party": "Republican",
+          "committee": {
+            "id": "8908da94399844d787fbf3d194ff43f5",
+            "name": "Erica for Illinois"
+          },
+          "official_url": null
+        }
+      ]
+    }
+  ]
+}

@@ -264,6 +264,10 @@ def create_app(directory=None, poll=True):
     app.config['PRELOAD_SUMMARIES'] = poll
     history = History(store)
     app.config['HISTORY'] = history
+    from spotlight import Spotlight, routes as spotlight_routes
+    spotlight=Spotlight(store,history)
+    app.config['SPOTLIGHT']=spotlight
+    spotlight_routes(app,spotlight)
     app.config['MAX_CONTENT_LENGTH'] = 64*1024
     app.register_blueprint(routes(store))
     worker = None
@@ -296,6 +300,9 @@ def create_app(directory=None, poll=True):
                 estimates=threading.Thread(target=history.maintain,daemon=True)
                 app.config['ESTIMATE_WORKER']=estimates
                 estimates.start()
+                spotlight_worker=threading.Thread(target=spotlight.maintain,daemon=True)
+                app.config['SPOTLIGHT_WORKER']=spotlight_worker
+                spotlight_worker.start()
 
     @app.after_request
     def security(response):
@@ -325,6 +332,11 @@ def create_app(directory=None, poll=True):
         keys={e['committee']['id'] for g in groups for e in g['pinned']+g['members'] if e['committee']}
         for key in sorted(keys): history.schedule(key,priority=1)
         return jsonify(committees={key:history.finance(key) for key in keys})
+
+    @app.get('/downloads/IllinoisTracker-v21.zip')
+    def download21_iphone_project():
+        archive = Path(__file__).resolve().parent.parent / 'releases' / 'IllinoisTracker-iPhone-Source-v21.zip'
+        return send_file(archive, mimetype='application/zip', as_attachment=True, download_name='IllinoisTracker-iPhone-Source-v21.zip', conditional=True)
 
     @app.get('/downloads/IllinoisTracker-v20.zip')
     def download20_observer_iphone_project():
@@ -409,31 +421,6 @@ def create_app(directory=None, poll=True):
         archive = Path(__file__).resolve().parent.parent / 'releases' / 'IllinoisTracker-iPhone-Source-v6.zip'
         return send_file(archive, mimetype='application/zip', as_attachment=True,
                          download_name='IllinoisTracker-iPhone-Source-v6.zip', conditional=True)
-
-    @app.get('/v1/pac-source-inspection')
-    def pac_source_inspection():
-        from archive_source import Source, BASE
-        from reports import Document
-        source=Source()
-        page=request.args.get('page','CommitteeSearch.aspx')
-        if page not in ('CommitteeSearch.aspx','LatestCommitteeTotalsByLatest.aspx'):return jsonify(error='Unknown source'),400
-        html=source.read(BASE+page)
-        doc=Document(html)
-        if request.args.get('search')=='1':
-            fields={n.attrs['name']:n.attrs.get('value','') for n in doc.root.all('input') if n.attrs.get('name') and n.attrs.get('type') in ('hidden','text')}
-            for n in doc.root.all('select'):
-                selected=next((o for o in n.all('option') if 'selected' in o.attrs),next(n.all('option'),None))
-                if selected is not None:fields[n.attrs['name']]=selected.attrs.get('value','')
-            fields['ctl00$ContentPlaceHolder1$chkActive']='on'
-            if page=='CommitteeSearch.aspx':fields['ctl00$ContentPlaceHolder1$ddlCommitteeType']='Political Action'
-            if page=='LatestCommitteeTotalsByLatest.aspx':fields['ctl00$ContentPlaceHolder1$txtName']='A'
-            fields['ctl00$ContentPlaceHolder1$btnSubmit']='Search'
-            action=next(doc.root.all('form')).attrs.get('action',page)
-            html=source.read(urllib.parse.urljoin(BASE+page,action),fields)
-            doc=Document(html)
-        if request.args.get('html')=='1':return jsonify(html=html)
-        
-        return jsonify(fields=[dict(tag=n.tag,attrs={k:v for k,v in n.attrs.items() if k in ('id','name','type','value','href')},text=n.text()[:6000],options=[dict(value=o.attrs.get('value'),text=o.text()) for o in n.all('option')]) for tag in ('select','input','a') for n in doc.root.all(tag) if n.attrs.get('type')!='hidden'], text=doc.root.text()[-16000:])
 
     @app.get('/v1/coverage')
     def committee_coverage():
