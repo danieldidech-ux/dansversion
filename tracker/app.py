@@ -308,7 +308,7 @@ def create_app(directory=None, poll=True):
     def security(response):
         response.headers['X-Content-Type-Options'] = 'nosniff'
         response.headers['Cache-Control'] = 'no-store'
-        response.headers['Content-Security-Policy'] = "default-src 'none'; style-src 'unsafe-inline'; frame-ancestors 'none'; base-uri 'none'"
+        response.headers['Content-Security-Policy'] = "default-src 'none'; img-src 'self'; style-src 'unsafe-inline'; frame-ancestors 'none'; base-uri 'none'"
         return response
 
     @app.get('/v1/committees/<key>/history')
@@ -332,6 +332,11 @@ def create_app(directory=None, poll=True):
         keys={e['committee']['id'] for g in groups for e in g['pinned']+g['members'] if e['committee']}
         for key in sorted(keys): history.schedule(key,priority=1)
         return jsonify(committees={key:history.finance(key) for key in keys})
+
+    @app.get('/downloads/IllinoisTracker-v24.zip')
+    def download24_iphone_project():
+        archive = Path(__file__).resolve().parent.parent / 'releases' / 'Checks-and-Balances-iPhone-v24.zip'
+        return send_file(archive, mimetype='application/zip', as_attachment=True, download_name='Checks-and-Balances-iPhone-v24.zip', conditional=True)
 
     @app.get('/downloads/IllinoisTracker-v23.zip')
     def download23_iphone_project():

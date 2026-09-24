@@ -16,12 +16,12 @@ private enum CivicTheme {
         #endif
         return UserDefaults.standard.string(forKey: "appearance") == "pink"
     }
-    static var background: Color { pink ? adaptive(0xFFF2F6, 0xFFF2F6) : adaptive(0xF3F6FA, 0x10191F) }
-    static var surface: Color { pink ? adaptive(0xFFFFFF, 0xFFFFFF) : adaptive(0xFFFFFF, 0x19262F) }
-    static var ink: Color { pink ? adaptive(0x482237, 0x482237) : adaptive(0x102A43, 0xEEF5F8) }
-    static var secondary: Color { pink ? adaptive(0x785466, 0x785466) : adaptive(0x526777, 0xAFC1CC) }
-    static var accent: Color { pink ? adaptive(0x96375F, 0x96375F) : adaptive(0x006078, 0x9FE8EE) }
-    static var summary: Color { pink ? adaptive(0x662740, 0x662740) : adaptive(0x082E45, 0x192C36) }
+    static var background: Color { pink ? adaptive(0xFFF2F6, 0xFFF2F6) : adaptive(0xF7F6F1, 0x0B1C27) }
+    static var surface: Color { pink ? adaptive(0xFFFFFF, 0xFFFFFF) : adaptive(0xFFFFFF, 0x142D3A) }
+    static var ink: Color { pink ? adaptive(0x482237, 0x482237) : adaptive(0x092C44, 0xF7F5EE) }
+    static var secondary: Color { pink ? adaptive(0x785466, 0x785466) : adaptive(0x536675, 0xB4C8D1) }
+    static var accent: Color { pink ? adaptive(0x96375F, 0x96375F) : adaptive(0x007B89, 0x83DEE4) }
+    static var summary: Color { pink ? adaptive(0x662740, 0x662740) : adaptive(0x092C44, 0x123443) }
     static var summaryNumber: Color { pink ? .white : adaptive(0xFFFFFF, 0x9FE8EE) }
 }
 private var accent: Color { CivicTheme.accent }
@@ -38,13 +38,13 @@ private struct TactileButtonStyle: ButtonStyle {
             .frame(minHeight: 44)
             .background {
                 RoundedRectangle(cornerRadius: 12)
-                    .fill(CivicTheme.surface.gradient)
-                    .shadow(color: .black.opacity(enabled && !configuration.isPressed ? 0.18 : 0.04),
-                            radius: configuration.isPressed ? 0 : 3, x: 0, y: configuration.isPressed ? 0 : 2)
+                    .fill(CivicTheme.surface)
+                    .shadow(color: .black.opacity(enabled && !configuration.isPressed ? 0.10 : 0.02),
+                            radius: configuration.isPressed ? 0 : 2, x: 0, y: configuration.isPressed ? 0 : 2)
             }
             .overlay {
                 RoundedRectangle(cornerRadius: 12)
-                    .strokeBorder(LinearGradient(colors: [CivicTheme.accent.opacity(0.30), CivicTheme.accent.opacity(0.12)],
+                    .strokeBorder(LinearGradient(colors: [CivicTheme.accent.opacity(0.22), CivicTheme.accent.opacity(0.10)],
                                                  startPoint: .top, endPoint: .bottom), lineWidth: 1)
             }
             .contentShape(RoundedRectangle(cornerRadius: 12))
@@ -56,12 +56,12 @@ private struct TactileButtonStyle: ButtonStyle {
 private struct TactileRowSurface: View {
     var body: some View {
         RoundedRectangle(cornerRadius: 12)
-            .fill(CivicTheme.surface.gradient)
+            .fill(CivicTheme.surface)
             .overlay {
                 RoundedRectangle(cornerRadius: 12)
                     .strokeBorder(CivicTheme.accent.opacity(0.23), lineWidth: 1)
             }
-            .shadow(color: .black.opacity(0.14), radius: 2, x: 0, y: 2)
+            .shadow(color: .black.opacity(0.07), radius: 2, x: 0, y: 2)
             .padding(.vertical, 3)
     }
 }
@@ -89,7 +89,10 @@ private extension View {
             .background(CivicTheme.background)
             .foregroundStyle(CivicTheme.ink)
             .listStyle(.insetGrouped)
-            .listSectionSpacing(.compact)
+            .listSectionSpacing(14)
+            .contentMargins(.top, 8, for: .scrollContent)
+            .toolbarBackground(CivicTheme.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
             .environment(\.defaultMinListRowHeight, 44)
             .modifier(PreviewTextScale())
             .buttonStyle(TactileButtonStyle())
@@ -109,7 +112,11 @@ struct RootView: View {
     var body: some View {
         Group {
         #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("--preview-inkind") {
+        if ProcessInfo.processInfo.arguments.contains("--preview-about") {
+            NavigationStack { BrandAboutView() }
+        } else if ProcessInfo.processInfo.arguments.contains("--preview-settings") {
+            SettingsView()
+        } else if ProcessInfo.processInfo.arguments.contains("--preview-inkind") {
             NavigationStack { InKindSourcePreview() }
         } else if ProcessInfo.processInfo.arguments.contains("--preview-add-list") {
             NavigationStack { AddCommitteeToList(committee: Committee(id: "1b5ce79b8d1251adaf13eda719fd6d7a", name: "Daniel Didech Campaign Committee")) }
@@ -133,6 +140,10 @@ struct RootView: View {
         mainTabs
         #endif
         }.id(appearance).preferredColorScheme(preferredScheme).tint(accent)
+            .onAppear { BrandAppearance.configure() }
+            .onChange(of: appearance) { _, _ in BrandAppearance.configure() }
+            .fontDesign(.default)
+            .modifier(PreviewTextScale())
             .buttonStyle(TactileButtonStyle())
             .disclosureGroupStyle(TactileDisclosureStyle())
     }
@@ -158,6 +169,8 @@ struct RootView: View {
             #endif
         }
         .tint(accent)
+        .toolbarBackground(CivicTheme.background, for: .tabBar)
+        .toolbarBackground(.visible, for: .tabBar)
         .alert("Couldn't finish that", isPresented: Binding(get: { model.error != nil }, set: { if !$0 { model.error = nil } })) {
             Button("OK") { model.error = nil }
         } message: { Text(model.error ?? "Please try again.") }
@@ -215,17 +228,21 @@ struct HomeView: View {
     var body: some View {
         NavigationStack(path: $path) {
             ScrollView {
-                VStack(spacing: 16) {
+                VStack(spacing: 12) {
+                    BrandHomeHeader()
                     ForEach(HomeCaucus.allCases) { caucus in
                         NavigationLink(value: caucus) {
                             HStack(alignment: .center, spacing: 12) {
                                 VStack(alignment: .leading, spacing: 2) {
+                                    if caucus == .executive { Text(caucus.title).font(.system(.title2, design: .default, weight: .bold)).fixedSize(horizontal: false, vertical: true) }
+                                    else {
                                     Text(caucus.chamber)
-                                        .font(.system(.title, design: .rounded, weight: .bold))
+                                        .font(.system(.title, design: .default, weight: .bold))
                                         .fixedSize(horizontal: false, vertical: true)
                                     Text(caucus.party)
-                                        .font(.system(.title, design: .rounded, weight: .bold))
+                                        .font(.system(.title, design: .default, weight: .bold))
                                         .fixedSize(horizontal: false, vertical: true)
+                                    }
                                 }
                                 Spacer(minLength: 0)
                                 Image(systemName: "arrow.up.right")
@@ -234,8 +251,8 @@ struct HomeView: View {
                                     .background(.white.opacity(0.16), in: Circle())
                             }
                             .foregroundStyle(caucus.foreground)
-                            .padding(.horizontal, 24).padding(.vertical, 22)
-                            .frame(maxWidth: .infinity, minHeight: 125, alignment: .leading)
+                            .padding(.horizontal, 22).padding(.vertical, caucus == .executive ? 17 : 16)
+                            .frame(maxWidth: .infinity, minHeight: caucus == .executive ? 76 : 110, alignment: .leading)
                             .background {
                                 ZStack(alignment: .trailing) {
                                     LinearGradient(colors: caucus.colors, startPoint: .topLeading, endPoint: .bottomTrailing)
@@ -243,11 +260,11 @@ struct HomeView: View {
                                         .frame(width: 210, height: 210).offset(x: 65, y: -35)
                                 }
                             }
-                            .clipShape(RoundedRectangle(cornerRadius: 25))
+                            .clipShape(RoundedRectangle(cornerRadius: 20))
                             .overlay {
-                                RoundedRectangle(cornerRadius: 25).strokeBorder(.white.opacity(0.16), lineWidth: 1)
+                                RoundedRectangle(cornerRadius: 20).strokeBorder(.white.opacity(0.16), lineWidth: 1)
                             }
-                            .shadow(color: caucus.colors.last!.opacity(0.20), radius: 10, x: 0, y: 6)
+                            .shadow(color: caucus.colors.last!.opacity(0.20), radius: 5, x: 0, y: 3)
                             .accessibilityElement(children: .ignore)
                             .accessibilityLabel(caucus.title)
                             .accessibilityHint("Opens the committee list")
@@ -256,8 +273,8 @@ struct HomeView: View {
                 }.padding(.horizontal, 20).padding(.vertical, 16)
             }
             .background(CivicTheme.background)
-            .navigationTitle("Illinois Committees")
-            .toolbar { AppUtilities() }
+            .navigationTitle("Checks & Balances")
+            .toolbar { AppUtilities(showBrand: false) }
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: HomeCaucus.self) { caucus in
                 CaucusesView(groupID: caucus.rawValue, title: caucus.title)
@@ -278,7 +295,7 @@ struct FeedView: View {
     @State private var watchOnly = false
     var body: some View {
         NavigationStack {
-            List {
+            BrandList {
                 Section {
                     if model.monitor?.stale == true { Label("Feed delayed · showing saved reports", systemImage: "exclamationmark.triangle").font(.caption).foregroundStyle(.orange) }
                     if (model.monitor?.unresolvedGaps ?? 0) > 0 { Text("A possible gap in filing history is under review.").font(.caption).foregroundStyle(.orange) }
@@ -453,7 +470,7 @@ private struct NativeReportContents: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 12) {
-            Text("Report contents").font(.headline)
+            Text("Report details").font(.headline)
             if loading {
                 ProgressView("Loading report…")
                     .frame(maxWidth: .infinity).padding(24)
@@ -552,7 +569,7 @@ struct AlertsView: View {
 private struct AlertCenterView: View {
     @EnvironmentObject var model: AppModel
     var body: some View {
-        List {
+        BrandList {
             Section {
                 HStack {
                     Label(model.alertsEnabled && model.pushConfigured && model.notificationStatus == "Allowed on this iPhone" ? "Notifications on" : "Notifications paused", systemImage: "bell.badge")
@@ -598,7 +615,7 @@ private struct AlertCenterView: View {
                 NavigationLink { AlertInboxView() } label: { Label("Alert history", systemImage: "clock.arrow.circlepath") }
                     .listRowBackground(TactileRowSurface()).listRowSeparator(.hidden)
             }
-        }.civicSurface().navigationTitle("Alerts").toolbar { AppUtilities() }
+        }.civicSurface().navigationTitle("Alerts").navigationBarTitleDisplayMode(.inline).toolbar { AppUtilities() }
             .task { await model.refreshPermission(); await model.refreshIfNeeded() }
             .refreshable { await model.refresh() }
     }
@@ -616,7 +633,7 @@ private struct AlertCenterView: View {
 private struct CaucusAlertsView: View {
     @EnvironmentObject var model: AppModel
     var body: some View {
-        List {
+        BrandList {
             Section {
                 ForEach(model.categories) { category in
                     Toggle(isOn: Binding(get: { model.followedCategories.contains(category.id) }, set: { _ in Task { await model.toggleCategory(category.id) } })) {
@@ -650,7 +667,7 @@ private struct CommitteeSearchView: View {
     @State private var generation = 0
     private var showingSelected: Bool { manageAlerts && query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
     var body: some View {
-        List {
+        BrandList {
             if showingSelected {
                 Section {
                     ForEach(model.following) { committee in committeeRow(committee) }
@@ -716,34 +733,36 @@ struct SettingsView: View {
     @AppStorage("appearance") private var appearance = "light"
     var body: some View {
         NavigationStack {
-            List {
+            BrandList {
                 Section {
                     Picker("Appearance", selection: $appearance) {
-                        Text("Modern Civic · Light").tag("light")
-                        Text("Night Ledger · Dark").tag("dark")
-                        Text("Pink Mode").tag("pink")
+                        Text("Ivory · Light").tag("light")
+                        Text("Midnight · Dark").tag("dark")
+                        Text("Rose · Pink").tag("pink")
                         Text("Follow iPhone appearance").tag("system")
                     }
                 } header: { Text("Appearance") } footer: {
-                    Text("Modern Civic is the default. Choose Night Ledger, Pink Mode, or switch between light and dark with your iPhone.")
+                    Text("Ivory, Midnight, and Rose share the same clear layouts and readable report colors. You can also follow your iPhone’s appearance.")
                 }
                 Section {
                     NavigationLink { AlertCenterView() } label: { Label("Manage alerts", systemImage: "bell") }
                         .listRowBackground(TactileRowSurface()).listRowSeparator(.hidden)
                 }
                 Section("Help") { ProblemButton(context: ["screen": "Settings"]) }
-                Section("About") {
-                    Text("Illinois Filing Tracker").font(.headline)
-                    Text("An independent way to follow Illinois campaign finance filings. Not affiliated with the Illinois State Board of Elections.").font(.subheadline)
-                    Link("Official filing feed", destination: URL(string: "https://www.elections.il.gov/rss/LatestReportsFiled.aspx")!)
-                    Text("The service checks every minute. State publication delays, connection issues, and iPhone notification settings can affect alert timing.").font(.footnote).foregroundStyle(CivicTheme.secondary)
+                Section {
+                    NavigationLink { BrandAboutView() } label: {
+                        HStack(spacing: 14) {
+                            BrandIcon(size: 48)
+                            VStack(alignment: .leading, spacing: 4) { Text("Checks & Balances").font(.headline); Text("About, sources & service status").font(.caption).foregroundStyle(CivicTheme.secondary) }
+                        }.padding(.vertical, 4)
+                    }.listRowBackground(TactileRowSurface()).listRowSeparator(.hidden)
                 }
                 Section("Your data") {
-                    Text("No email or password required. Your installation identifier, selected committees and categories, and push token are stored to deliver your alerts. Problem reports you submit are also stored for review. Your alert selections belong to this installation and does not sync between devices.").font(.subheadline)
+                    Text("No email or password required. Your installation identifier, selected committees and categories, and push token are stored to deliver your alerts. Problem reports you submit are also stored for review. Your alert selections belong to this installation and do not sync between devices.").font(.subheadline)
                     Button("Delete my saved data", role: .destructive) { confirmDelete = true }.disabled(model.saving || model.loading)
                 }
             }
-            .civicSurface().navigationTitle("Settings")
+            .civicSurface().navigationTitle("Settings").navigationBarTitleDisplayMode(.inline)
             .toolbar { if presented { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } } }
             .confirmationDialog("Delete your alert selections and custom lists, and disable notifications?", isPresented: $confirmDelete, titleVisibility: .visible) {
                 Button("Delete my data", role: .destructive) { Task { await model.deleteData() } }
@@ -786,7 +805,7 @@ struct CaucusesView: View {
         }
     }
     var body: some View {
-            List {
+            BrandList {
                 Section {
                     HStack(spacing: 16) {
                         Menu {
@@ -845,7 +864,7 @@ struct CaucusesView: View {
             }
             .sheet(isPresented: $showInfo) {
                 NavigationStack {
-                    List {
+                    BrandList {
                         Section("Data freshness") { CacheNotice(path: "/v1/directory") }
                         Section("Category alerts") { Text("Adds new reports from the listed committees, leaders, and caucus funds to your alerts. Membership updates apply automatically.") }
                         Section("Cash estimates") { Text("Highest estimates appear first; unavailable estimates appear last. Leaders and caucus funds stay pinned. Balances may use different quarter-end dates and exclude unreported spending. Pull to refresh.") }
@@ -992,7 +1011,7 @@ struct CommitteeFilingsView: View {
     @State private var loaded = false
     @State private var failure: String?
     var body: some View {
-        List {
+        BrandList {
             Section {
                 if !member.isEmpty { Text(member).font(.subheadline.weight(.medium)).foregroundStyle(accent) }
                 Text(committee.name).font(.title2.bold()).foregroundStyle(CivicTheme.ink)
@@ -1230,8 +1249,9 @@ private struct QuarterlyScheduleView: View {
         return Decimal(string: cleaned, locale: Locale(identifier: "en_US_POSIX"))
     }
     var body: some View {
-        List {
+        BrandList {
             Section {
+                VStack(alignment: .leading, spacing: 8) {
                 Text(filing.committeeName).font(.headline)
                 if let period = schedule?.period { Text(period).font(.caption).foregroundStyle(CivicTheme.secondary) }
                 Text((includedAmount == nil ? "Itemized total: " : "Included in post-primary total: ") + ReportContribution.currency(includedAmount ?? section.itemized)).font(.subheadline.bold()).foregroundStyle(accent)
@@ -1239,6 +1259,7 @@ private struct QuarterlyScheduleView: View {
                     Text("In-kind receipts from March 18, 2026 onward. Any entry without a readable date is retained for review.").font(.caption).foregroundStyle(CivicTheme.secondary)
                     if section.unitemized != "0.00" { Text("This report also discloses " + ReportContribution.currency(section.unitemized) + " in unitemized support without individual receipt details. Only quarters entirely after the primary include that amount in the total.").font(.caption).foregroundStyle(CivicTheme.secondary) }
                 }
+                }.padding(.vertical, 4)
             }
             if loading { ProgressView("Loading itemized entries…") }
             else if let schedule, schedule.status == "ready" {
@@ -1336,7 +1357,7 @@ private struct AlertOptionsView: View {
     @State private var saving = false
     @State private var message: String?
     var body: some View {
-        Form {
+        BrandForm {
             Section("Which filings?") {
                 Picker("Notify me about", selection: $options.mode) {
                     Text("All report types").tag("all")
@@ -1391,7 +1412,7 @@ private struct MyListsView: View {
     @State private var failure: String?
     @State private var saving = false
     var body: some View {
-        List {
+        BrandList {
             Section("Create a custom list") {
                 TextField("For example, Lake County races", text: $name)
                 Button("Create list & choose committees") { Task { await create() } }.disabled(saving || name.trimmingCharacters(in: .whitespaces).isEmpty)
@@ -1436,7 +1457,7 @@ private struct ObserverListView: View {
     @State private var seen: Int?
     @State private var currentName = ""
     var body: some View {
-        List {
+        BrandList {
             Section {
                 Button("Manage committees & list name") { editing = true }
                 Text("\(filings.filter { $0.seq > (seen ?? list.seenSeq) }.count) loaded reports since your last visit").font(.caption)
@@ -1476,7 +1497,7 @@ private struct EditObserverListView: View {
     @State private var saving = false
     @State private var loaded = false
     var body: some View {
-        List {
+        BrandList {
             Section("Name") { TextField("List name", text: $name); Text("Listed committees are included in your alerts. Changes take effect when you tap Save list.").font(.caption).foregroundStyle(CivicTheme.secondary) }
             Section("Selected committees") {
                 ForEach(selected) { committee in Button { selected.removeAll { $0.id == committee.id } } label: { VStack(alignment: .leading) { Text(committee.name); Label("Remove from list", systemImage: "minus.circle").font(.caption) } } }
@@ -1579,7 +1600,7 @@ private struct AddCommitteeToList: View {
     @State private var busy = false
     @State private var loading = true
     var body: some View {
-        List {
+        BrandList {
             Section {
                 Text(committee.name).font(.headline)
                 Text("Custom lists include their committees’ new reports in your alerts. Only you can see your lists.")
@@ -1658,12 +1679,12 @@ private struct AlertInboxView: View {
     @State private var cursor: Int?
     @State private var failure: String?
     var body: some View {
-        List {
+        BrandList {
             ForEach(rows) { filing in NavigationLink { FilingDetail(filing: filing) } label: { FilingRow(filing: filing) }.listRowBackground(TactileRowSurface()).listRowSeparator(.hidden).buttonStyle(TactileButtonStyle()) }
             if cursor != nil { Button("Earlier alerts") { Task { await load(true) } } }
             if rows.isEmpty { Text("Delivered alerts and digest reports appear here. Push setup and notification permission are required.") }
             if let failure { Text(failure) }
-        }.navigationTitle("Alerts & digests").task { await load(false) }.refreshable { await load(false) }
+        }.civicSurface().navigationTitle("Alert history").navigationBarTitleDisplayMode(.inline).task { await load(false) }.refreshable { await load(false) }
     }
     private func load(_ more: Bool) async {
         do {
@@ -1692,9 +1713,9 @@ private struct ProblemForm: View {
     @State private var receipt: String?
     @State private var failure: String?
     var body: some View {
-        Form {
+        BrandForm {
             if let receipt {
-                Section { Label("Report received", systemImage: "checkmark.circle"); Text("Reference: " + receipt).textSelection(.enabled); Text("Saved for review. Thank you for helping improve the app.").font(.subheadline) }
+                Section { Label("Report received", systemImage: "checkmark.circle"); Text("Reference: " + receipt).textSelection(.enabled); Text("Saved for review. Thank you for helping improve Checks & Balances.").font(.subheadline) }
             } else {
                 Section { Picker("Problem", selection: $category) { ForEach(["Incorrect data", "Missing report", "App issue", "Other"], id: \.self) { Text($0) } } }
                 Section("What went wrong?") { TextEditor(text: $message).frame(minHeight: 140).accessibilityLabel("Describe the problem") }
@@ -1791,8 +1812,16 @@ private struct InlineFilingPDF: View {
 
 
 private struct AppUtilities: ToolbarContent {
+    var showBrand = true
     @State private var settings = false
     var body: some ToolbarContent {
+        if showBrand {
+            ToolbarItem(placement: .topBarLeading) {
+                NavigationLink { BrandAboutView() } label: { BrandIcon(size: 32) }
+                    .buttonStyle(.plain).frame(minWidth: 44, minHeight: 44)
+                    .accessibilityLabel("About Checks & Balances")
+            }
+        }
         ToolbarItemGroup(placement: .topBarTrailing) {
             NavigationLink { CommitteeSearchView(manageAlerts: false) } label: { Image(systemName: "magnifyingglass") }.accessibilityLabel("Search committees")
             Button { settings = true } label: { Image(systemName: "gearshape") }.accessibilityLabel("Settings")
@@ -1812,7 +1841,7 @@ struct HotRacesView: View {
     private var races: [HotRace] { (page?.races ?? []).filter { filter == "All" || $0.chamber == filter } }
     var body: some View {
         NavigationStack {
-            List {
+            BrandList {
                 Section {
                     Picker("Chamber", selection: $filter) {
                         Text("All").tag("All"); Text("House").tag("House"); Text("Senate").tag("Senate")
@@ -1831,10 +1860,10 @@ struct HotRacesView: View {
                 }
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) { Button { about = true } label: { Image(systemName: "info.circle") }.accessibilityLabel("About Hot Races") }
-                    AppUtilities()
+                    AppUtilities(showBrand: false)
                 }
                 .sheet(isPresented: $about) {
-                    NavigationStack { List { Text(page?.note ?? "A curated watchlist of competitive Illinois legislative races."); Text("Cash and investments are reported balances. Estimates add subsequent monetary A-1 receipts and do not subtract unreported spending. Each candidate’s quarter-end date is shown. PDF-only filings are excluded from estimates; see committee calculation details.") }.navigationTitle("About Hot Races").navigationBarTitleDisplayMode(.inline).toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { about = false } } } }
+                    NavigationStack { BrandList { Text(page?.note ?? "A curated watchlist of competitive Illinois legislative races."); Text("Cash and investments are reported balances. Estimates add subsequent monetary A-1 receipts and do not subtract unreported spending. Each candidate’s quarter-end date is shown. PDF-only filings are excluded from estimates; see committee calculation details.") }.navigationTitle("About Hot Races").navigationBarTitleDisplayMode(.inline).toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { about = false } } } }
                 }
                 .refreshable { await load() }
                 .task(id: phase) {
@@ -1934,7 +1963,7 @@ private struct InKindSupportDetails: View {
     @Environment(\.dismiss) private var dismiss
     var body: some View {
         NavigationStack {
-            List {
+            BrandList {
                 Section {
                     Text(candidate.name).font(.headline)
                     Text(candidate.postPrimaryInKind?.amount.map(ReportContribution.currency) ?? "Not yet available").font(.title.bold()).monospacedDigit()
@@ -1995,11 +2024,13 @@ private struct NativeInKindSourceView: View {
                let section = report.sections?.first(where: { $0.id == "in_kind" }), section.hasDetails {
                 QuarterlyScheduleView(filing: filing, section: section, since: "2026-03-18", includedAmount: source.amount)
             } else {
-                List {
+                BrandList {
                     Section {
+                        VStack(alignment: .leading, spacing: 8) {
                         Text(source.filing?.committeeName ?? "In-kind contributions").font(.headline)
                         Text(source.period).font(.caption).foregroundStyle(CivicTheme.secondary)
                         Text("Included: " + ReportContribution.currency(source.amount)).font(.headline).foregroundStyle(CivicTheme.accent)
+                        }.padding(.vertical, 4)
                     }
                     if loading { ProgressView("Loading in-kind details…") }
                     else if let report, report.status == "ready" {
@@ -2048,7 +2079,7 @@ struct TopPACsView: View {
     private var rows: [RankedPAC] { (page?.committees ?? []).filter { query.isEmpty || $0.committee.name.localizedCaseInsensitiveContains(query) } }
     var body: some View {
         NavigationStack {
-            List {
+            BrandList {
                 Section {
                     VStack(alignment: .leading, spacing: 5) {
                     Text("Reported cash + investments").font(.subheadline.bold())
@@ -2076,9 +2107,9 @@ struct TopPACsView: View {
                 .searchable(text: $query, prompt: "Search ranked PACs")
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) { Button { about = true } label: { Image(systemName: "info.circle") }.accessibilityLabel("About PAC rankings") }
-                    AppUtilities()
+                    AppUtilities(showBrand: false)
                 }
-                .sheet(isPresented: $about) { NavigationStack { List { Text(page?.note ?? "Ranked using official reported balances."); Text("\(page?.total ?? 0) committees with verified balances. Showing up to 100. \(page?.excluded ?? 0) active committees without a verified balance in this ranking.") }.navigationTitle("About Top PACs").navigationBarTitleDisplayMode(.inline).toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { about = false } } } } }
+                .sheet(isPresented: $about) { NavigationStack { BrandList { Text(page?.note ?? "Ranked using official reported balances."); Text("\(page?.total ?? 0) committees with verified balances. Showing up to 100. \(page?.excluded ?? 0) active committees without a verified balance in this ranking.") }.navigationTitle("About Top PACs").navigationBarTitleDisplayMode(.inline).toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { about = false } } } } }
                 .refreshable { await load() }
                 .task(id: phase) {
                     guard phase == .active else { return }
@@ -2113,3 +2144,93 @@ private struct InKindSourcePreview: View {
     }
 }
 #endif
+
+
+// One visual system for every list and form, including sheets and nested screens.
+private struct BrandList<Content: View>: View {
+    let content: Content
+    init(@ViewBuilder content: () -> Content) { self.content = content() }
+    var body: some View { List { content.listRowBackground(CivicTheme.surface).listRowSeparatorTint(CivicTheme.secondary.opacity(0.16)) }.civicSurface() }
+}
+private struct BrandForm<Content: View>: View {
+    let content: Content
+    init(@ViewBuilder content: () -> Content) { self.content = content() }
+    var body: some View { Form { content.listRowBackground(CivicTheme.surface).listRowSeparatorTint(CivicTheme.secondary.opacity(0.16)) }.civicSurface() }
+}
+private struct BrandIcon: View {
+    var size: CGFloat = 44
+    var body: some View {
+        Image("BrandMark").resizable().interpolation(.high).scaledToFit()
+            .frame(width: size, height: size)
+            .clipShape(RoundedRectangle(cornerRadius: size * 0.23, style: .continuous))
+            .accessibilityHidden(true)
+    }
+}
+private struct BrandHomeHeader: View {
+    var body: some View {
+        NavigationLink { BrandAboutView() } label: {
+            HStack(spacing: 14) {
+                BrandIcon(size: 62)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("The Unofficial Authority").font(.headline.weight(.bold))
+                    Text("on Illinois Campaign Finance").font(.subheadline).foregroundStyle(CivicTheme.secondary)
+                }.fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right").font(.caption.bold()).foregroundStyle(CivicTheme.secondary)
+            }.padding(.vertical, 2)
+        }.buttonStyle(TactileButtonStyle(inset: 12))
+         .accessibilityElement(children: .ignore)
+         .accessibilityLabel("Checks & Balances. The Unofficial Authority on Illinois Campaign Finance. About the app.")
+    }
+}
+private struct BrandAboutView: View {
+    var body: some View {
+        BrandList {
+            Section {
+                Image("FullBrand").resizable().scaledToFit()
+                    .padding(10).background(Color(red: 250/255, green: 248/255, blue: 242/255))
+                    .clipShape(RoundedRectangle(cornerRadius: 16))
+                    .accessibilityLabel("Checks & Balances. The Unofficial Authority on Illinois Campaign Finance. Illinois Capitol with eight columns and a small Lincoln statue.")
+            }.listRowInsets(EdgeInsets()).listRowBackground(Color.clear)
+            Section("Independent by design") {
+                Text("An independent way to read Illinois campaign finance reports, track committees, and manage filing alerts.")
+                Text("Not affiliated with or endorsed by the Illinois State Board of Elections or any government agency.").font(.subheadline).foregroundStyle(CivicTheme.secondary)
+            }
+            Section("Reports & calculations") {
+                Text("Official reports are the source of record. Amendments can change previously reported amounts.")
+                Text("Estimated balances combine reported cash and investments with later monetary A-1 receipts. They exclude in-kind support, unreported spending, and PDF-only filings.").font(.subheadline).foregroundStyle(CivicTheme.secondary)
+                Text("The service checks for new filings every minute. State publication delays, network conditions, and phone settings can affect alert timing.").font(.subheadline).foregroundStyle(CivicTheme.secondary)
+                Link(destination: URL(string: "https://www.elections.il.gov/rss/LatestReportsFiled.aspx")!) { Label("Official filing feed", systemImage: "arrow.up.right.square") }
+                Link(destination: URL(string: "https://illinois-filing-tracker.onrender.com/")!) { Label("Service status", systemImage: "waveform.path.ecg") }
+            }
+            Section {
+                ProblemButton(context: ["screen": "About Checks & Balances"])
+                HStack { Text("Version"); Spacer(); Text("1.0 · Build " + (Bundle.main.infoDictionary?["CFBundleVersion"] as? String ?? "")).monospacedDigit().foregroundStyle(CivicTheme.secondary) }
+            }
+        }.navigationTitle("Checks & Balances").navigationBarTitleDisplayMode(.inline)
+    }
+}
+enum BrandAppearance {
+    @MainActor static func configure() {
+        let nav = UINavigationBarAppearance()
+        nav.configureWithOpaqueBackground()
+        nav.backgroundColor = UIColor(CivicTheme.background)
+        nav.titleTextAttributes = [.foregroundColor: UIColor(CivicTheme.ink), .font: UIFont.systemFont(ofSize: 17, weight: .semibold)]
+        nav.largeTitleTextAttributes = [.foregroundColor: UIColor(CivicTheme.ink), .font: UIFont.systemFont(ofSize: 32, weight: .bold)]
+        nav.shadowColor = UIColor(CivicTheme.secondary.opacity(0.10))
+        UINavigationBar.appearance().standardAppearance = nav
+        UINavigationBar.appearance().scrollEdgeAppearance = nav
+        UINavigationBar.appearance().compactAppearance = nav
+        let tab = UITabBarAppearance(); tab.configureWithOpaqueBackground()
+        tab.backgroundColor = UIColor(CivicTheme.background)
+        tab.shadowColor = UIColor(CivicTheme.secondary.opacity(0.12))
+        for item in [tab.stackedLayoutAppearance, tab.inlineLayoutAppearance, tab.compactInlineLayoutAppearance] {
+            item.normal.iconColor = UIColor(CivicTheme.secondary)
+            item.normal.titleTextAttributes = [.foregroundColor: UIColor(CivicTheme.secondary)]
+            item.selected.iconColor = UIColor(CivicTheme.accent)
+            item.selected.titleTextAttributes = [.foregroundColor: UIColor(CivicTheme.accent)]
+        }
+        UITabBar.appearance().standardAppearance = tab
+        UITabBar.appearance().scrollEdgeAppearance = tab
+    }
+}

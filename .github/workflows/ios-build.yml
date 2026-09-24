@@ -18,15 +18,31 @@ jobs:
       - name: Wait for matching backend release
         run: |
           for attempt in $(seq 1 30); do
-            if curl --fail --silent --max-time 15 https://illinois-filing-tracker.onrender.com/downloads/IllinoisTracker-v23.zip -o /tmp/live-release.zip && cmp -s /tmp/live-release.zip releases/IllinoisTracker-iPhone-Source-v23.zip; then break; fi
+            if curl --fail --silent --max-time 15 https://illinois-filing-tracker.onrender.com/downloads/IllinoisTracker-v24.zip -o /tmp/live-release.zip && cmp -s /tmp/live-release.zip releases/Checks-and-Balances-iPhone-v24.zip; then break; fi
             sleep 10
           done
-          cmp /tmp/live-release.zip releases/IllinoisTracker-iPhone-Source-v23.zip
+          cmp /tmp/live-release.zip releases/Checks-and-Balances-iPhone-v24.zip
       - name: Validate native directory decoding
         run: |
           curl --fail --retry 3 --max-time 30 https://illinois-filing-tracker.onrender.com/v1/directory -o /tmp/live-directory.json
           cat ios/IllinoisTracker/Models.swift ios/Checks/DirectoryCheck.swift > /tmp/DirectoryCheck.swift
           swift /tmp/DirectoryCheck.swift tracker/directory.json /tmp/live-directory.json
+      - name: Validate brand assets
+        run: |
+          python3 - <<'PYTHON'
+          import json, plistlib
+          from pathlib import Path
+          p = Path('ios/IllinoisTracker')
+          info = plistlib.loads((p/'Info.plist').read_bytes())
+          assert info['CFBundleDisplayName'] == 'Checks & Balances'
+          assert info['CFBundleVersion'] == '24'
+          assets = p/'Assets.xcassets'
+          assert (assets/'AppIcon.appiconset/AppIcon.png').stat().st_size > 1000
+          for catalog in assets.rglob('Contents.json'):
+              data = json.loads(catalog.read_text())
+              for image in data.get('images', []):
+                  if 'filename' in image: assert (catalog.parent/image['filename']).is_file()
+          PYTHON
       - name: Build iPhone simulator app
         run: xcodebuild -project ios/IllinoisTracker.xcodeproj -scheme IllinoisTracker -sdk iphonesimulator -destination 'generic/platform=iOS Simulator' -configuration Debug -derivedDataPath build CODE_SIGNING_ALLOWED=YES CODE_SIGN_IDENTITY=- build
       - name: Launch simulator and capture live app
@@ -35,13 +51,26 @@ jobs:
           xcrun simctl boot "$DEVICE"
           xcrun simctl bootstatus "$DEVICE" -b
           xcrun simctl install "$DEVICE" build/Build/Products/Debug-iphonesimulator/IllinoisTracker.app
-          xcrun simctl launch "$DEVICE" com.danieldidech.illinoisfilings --preview-inkind --preview-night
-          sleep 60
-          xcrun simctl io "$DEVICE" screenshot IllinoisTracker-inkind-quarter.png
-          xcrun simctl terminate "$DEVICE" com.danieldidech.illinoisfilings
-          xcrun simctl launch "$DEVICE" com.danieldidech.illinoisfilings --preview-inkind --preview-inkind-a1 --preview-night
-          sleep 45
-          xcrun simctl io "$DEVICE" screenshot IllinoisTracker-inkind-a1.png
+          capture() {
+            LABEL="$1"
+            shift
+            xcrun simctl launch "$DEVICE" com.danieldidech.illinoisfilings "$@"
+            sleep 12
+            xcrun simctl io "$DEVICE" screenshot "IllinoisTracker-$LABEL.png"
+            xcrun simctl terminate "$DEVICE" com.danieldidech.illinoisfilings
+          }
+          capture home-light
+          capture home-night --preview-night
+          capture home-pink --preview-pink
+          capture reports --preview-reports
+          capture alerts --preview-alerts --preview-night
+          capture settings --preview-settings --preview-pink
+          capture about --preview-about
+          capture committee --preview-committee --preview-night
+          capture races --preview-hot-races --preview-night
+          capture lists --preview-lists
+          capture home-large --preview-large
+          xcrun simctl io "$DEVICE" screenshot IllinoisTracker-installed-icon.png
       - uses: actions/upload-artifact@v4
         if: always()
         with:

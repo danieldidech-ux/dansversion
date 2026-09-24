@@ -13,6 +13,7 @@ import UserNotifications
         if let pendingSequence { Task { await model.openNotification(pendingSequence) }; self.pendingSequence = nil }
     }
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+        BrandAppearance.configure()
         UNUserNotificationCenter.current().delegate = self
         return true
     }

@@ -1,3 +1,9 @@
+# Checks & Balances
+
+The Unofficial Authority on Illinois Campaign Finance.
+
+Open `IllinoisTracker.xcodeproj` and press Run. The internal project and bundle identifier are preserved so existing alerts and saved settings stay with this app.
+
 # Illinois Filing Tracker · Version 16
 
 ## Install the update

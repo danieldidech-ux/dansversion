@@ -343,7 +343,7 @@ def dispatch(store, sender, enabled=None):
     for group in groups.values():
         row=group[-1]
         if row['delivery']!='instant':
-            row['digest_count']=len(group);row['alert_title']='Your Illinois filing digest'
+            row['digest_count']=len(group);row['alert_title']='Checks & Balances · Filing digest'
             row['alert_body']=f"{len(group)} new reports: "+'; '.join(dict.fromkeys(r['committee_name'] for r in group))
             row['thread_id']='filing-digest'
         try: status,reason=sender.send(row)
