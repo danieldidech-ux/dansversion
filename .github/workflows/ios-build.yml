@@ -18,10 +18,10 @@ jobs:
       - name: Wait for matching backend release
         run: |
           for attempt in $(seq 1 30); do
-            if curl --fail --silent --max-time 15 https://illinois-filing-tracker.onrender.com/downloads/IllinoisTracker-v25.zip -o /tmp/live-release.zip && cmp -s /tmp/live-release.zip releases/Checks-and-Balances-iPhone-v25.zip; then break; fi
+            if curl --fail --silent --max-time 15 https://illinois-filing-tracker.onrender.com/downloads/IllinoisTracker-v26.zip -o /tmp/live-release.zip && cmp -s /tmp/live-release.zip releases/Checks-and-Balances-iPhone-v26.zip; then break; fi
             sleep 10
           done
-          cmp /tmp/live-release.zip releases/Checks-and-Balances-iPhone-v25.zip
+          cmp /tmp/live-release.zip releases/Checks-and-Balances-iPhone-v26.zip
       - name: Validate native directory decoding
         run: |
           curl --fail --retry 3 --max-time 30 https://illinois-filing-tracker.onrender.com/v1/directory -o /tmp/live-directory.json
@@ -35,8 +35,11 @@ jobs:
           p = Path('ios/IllinoisTracker')
           info = plistlib.loads((p/'Info.plist').read_bytes())
           assert info['CFBundleDisplayName'] == 'Checks & Balances'
-          assert info['CFBundleVersion'] == '25'
+          assert info['CFBundleVersion'] == '26'
           assets = p/'Assets.xcassets'
+          launch = json.loads((assets/'LaunchMark.imageset/Contents.json').read_text())
+          assert launch['properties']['preserves-vector-representation'] is True
+          assert launch['images'][0]['filename'] == 'LaunchMark.pdf'
           assert (assets/'AppIcon.appiconset/AppIcon.png').stat().st_size > 1000
           for catalog in assets.rglob('Contents.json'):
               data = json.loads(catalog.read_text())

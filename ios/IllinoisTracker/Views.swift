@@ -231,7 +231,6 @@ struct HomeView: View {
         NavigationStack(path: $path) {
             ScrollView {
                 VStack(spacing: 12) {
-                    BrandHomeHeader()
                     ForEach(HomeCaucus.allCases) { caucus in
                         NavigationLink(value: caucus) {
                             HStack(alignment: .center, spacing: 12) {
@@ -276,7 +275,7 @@ struct HomeView: View {
             }
             .background(CivicTheme.background)
             .navigationTitle("Checks & Balances")
-            .toolbar { AppUtilities(showBrand: false) }
+            .toolbar { AppUtilities() }
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(for: HomeCaucus.self) { caucus in
                 CaucusesView(groupID: caucus.rawValue, title: caucus.title)
@@ -2166,23 +2165,6 @@ private struct BrandIcon: View {
             .frame(width: size, height: size)
             .clipShape(RoundedRectangle(cornerRadius: size * 0.23, style: .continuous))
             .accessibilityHidden(true)
-    }
-}
-private struct BrandHomeHeader: View {
-    var body: some View {
-        NavigationLink { BrandAboutView() } label: {
-            HStack(spacing: 14) {
-                BrandIcon(size: 62)
-                VStack(alignment: .leading, spacing: 4) {
-                    Text("The Unofficial Authority").font(.headline.weight(.bold))
-                    Text("on Illinois Campaign Finance").font(.subheadline).foregroundStyle(CivicTheme.secondary)
-                }.fixedSize(horizontal: false, vertical: true)
-                Spacer(minLength: 0)
-                Image(systemName: "chevron.right").font(.caption.bold()).foregroundStyle(CivicTheme.secondary)
-            }.padding(.vertical, 2)
-        }.buttonStyle(TactileButtonStyle(inset: 12))
-         .accessibilityElement(children: .ignore)
-         .accessibilityLabel("Checks & Balances. The Unofficial Authority on Illinois Campaign Finance. About the app.")
     }
 }
 private struct BrandAboutView: View {
