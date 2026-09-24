@@ -51,6 +51,7 @@ def unavailable(message,status='unavailable'):
 class History:
  def __init__(self,store):
   self.audit_context={}
+  self.extra_keys=set()
   self.store=store;self.tasks=queue.PriorityQueue();self.lock=threading.Lock();self.pending=set();self.promoted=set();self.tickets={};self.active=set();self.workers=[];self.counter=0
   self.urls={e['committee']['id']:e['official_url'] for g in store.directory_data['groups'] for e in g['members']+g['pinned'] if e.get('committee') and e.get('official_url')}
   self.urls['1b5ce79b8d1251adaf13eda719fd6d7a']=BASE+'CommitteeDetail.aspx?ID=PFWS3Q4VBrJwLQhAj5bRtQ%3D%3D'
@@ -64,6 +65,7 @@ class History:
   # Interleave categories, rather than putting every member of the first caucus
   # ahead of the others. Missing/current-version balances precede cached ones.
   groups=[[e['committee']['id'] for e in g['pinned']+g['members'] if e.get('committee')] for g in self.store.directory_data['groups']]
+  groups.append(sorted(self.extra_keys.copy()))
   seen=set()
   for row in zip_longest(*groups):
    for key in row:

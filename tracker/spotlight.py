@@ -61,7 +61,8 @@ class Spotlight:
    for c in race['candidates']:
     saved=self.cached('candidate:'+c['id'])
     if saved:c.update(saved[1])
-    if c.get('committee'):self.register(c)
+    if c.get('committee'):
+     self.register(c);self.history.extra_keys.add(c['committee']['id'])
   saved=self.cached('pac-ranking')
   if saved:
    for c in saved[1]['committees']:self.register(c)
@@ -88,7 +89,9 @@ class Spotlight:
       self.register(record);self.save('candidate:'+c['id'],record)
       with self.lock:c.update(record)
      except Exception:logging.getLogger('gunicorn.error').exception('Race committee lookup failed for %s',c['id'])
-    if c.get('committee'):self.history.schedule(c['committee']['id'],priority=1)
+    if c.get('committee'):
+     self.history.extra_keys.add(c['committee']['id'])
+     self.history.schedule(c['committee']['id'],priority=1)
  def races(self):
   with self.lock:result=json.loads(json.dumps(self.data))
   for r in result['races']:
