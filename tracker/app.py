@@ -418,7 +418,7 @@ def create_app(directory=None, poll=True):
         page=request.args.get('page','CommitteeSearch.aspx')
         if page not in ('CommitteeSearch.aspx','LatestCommitteeTotalsByLatest.aspx'):return jsonify(error='Unknown source'),400
         doc=Document(source.read(BASE+page))
-        return jsonify(fields=[dict(tag=n.tag,attrs={k:v for k,v in n.attrs.items() if k in ('id','name','type','value','href')},text=n.text()[:6000]) for tag in ('select','input','a') for n in doc.root.all(tag) and n.attrs.get('type')!='hidden'], text=doc.root.text()[-16000:])
+        return jsonify(fields=[dict(tag=n.tag,attrs={k:v for k,v in n.attrs.items() if k in ('id','name','type','value','href')},text=n.text()[:6000],options=[dict(value=o.attrs.get('value'),text=o.text()) for o in n.all('option')]) for tag in ('select','input','a') for n in doc.root.all(tag) if n.attrs.get('type')!='hidden'], text=doc.root.text()[-16000:])
 
     @app.get('/v1/coverage')
     def committee_coverage():
