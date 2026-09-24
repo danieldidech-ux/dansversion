@@ -4,7 +4,7 @@ from contextlib import closing
 from datetime import date, datetime, timedelta
 from decimal import Decimal
 from archive_source import Source, OfficialPDFError
-from history import previous_quarter_end
+from history import previous_quarter_end, identity
 from reports import ReportFormatError, normalized
 from quarterly import parse_quarterly, fetch_schedule, money
 
@@ -124,9 +124,13 @@ class RaceSupport:
         if not saved:return dict(status='loading',amount=None,since=START,note=NOTE,issues=[],sources=[])
         checked,result=saved
         # Resolve the exact archived filing so clients can open native contents.
-        with closing(self.history.store.connect()) as db:
-            filings={r['url']:r for row in db.execute('SELECT seq,payload FROM archive_reports WHERE committee_key=?',(key,))
-                     for r in [dict(json.loads(row['payload']),seq=-row['seq'])]}
+        ids=list({identity(source['url']) for source in result.get('sources',[])})
+        filings={}
+        if ids:
+            with closing(self.history.store.connect()) as db:
+                placeholders=','.join('?' for _ in ids)
+                filings={r['url']:r for row in db.execute('SELECT seq,payload FROM archive_reports WHERE committee_key=? AND document_id IN ('+placeholders+')',[key]+ids)
+                         for r in [dict(json.loads(row['payload']),seq=-row['seq'])]}
         covered=[period(source) for source in result.get('sources',[]) if 'd-2 quarterly' in source['report_type'].lower()]
         for source in result.get('sources',[]):
             source['filing']=filings.get(source['url'])
