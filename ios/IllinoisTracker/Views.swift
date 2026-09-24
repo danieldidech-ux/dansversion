@@ -2176,8 +2176,8 @@ private struct BrandAboutView: View {
                     .clipShape(RoundedRectangle(cornerRadius: 16))
                     .accessibilityLabel("Checks & Balances. The Unofficial Authority on Illinois Campaign Finance. Illinois Capitol with eight columns and a small Lincoln statue.")
             }.listRowInsets(EdgeInsets()).listRowBackground(Color.clear)
-            Section("Independent by design") {
-                Text("An independent way to read Illinois campaign finance reports, track committees, and manage filing alerts.")
+            Section("Welcome to Checks & Balances") {
+                Text("A smarter way to read Illinois campaign finance reports, track committees, and manage filing alerts.")
                 Text("Not affiliated with or endorsed by the Illinois State Board of Elections or any government agency.").font(.subheadline).foregroundStyle(CivicTheme.secondary)
             }
             Section("Reports & calculations") {
