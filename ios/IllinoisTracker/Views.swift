@@ -1787,6 +1787,7 @@ struct HotRacesView: View {
     @EnvironmentObject var model: AppModel
     @Environment(\.scenePhase) private var phase
     @State private var page: HotRacePage?
+    @State private var selectedCandidate: RaceCandidate?
     @State private var filter = "All"
     @State private var failure: String?
     @State private var about = false
@@ -1803,10 +1804,13 @@ struct HotRacesView: View {
                 if page == nil && failure == nil { ProgressView("Loading races…") }
                 ForEach(races) { race in
                     Section {
-                        RaceComparison(race: race)
+                        RaceComparison(race: race, onSelect: { selectedCandidate = $0 })
                     } header: { Text(race.title).font(.headline).foregroundStyle(CivicTheme.ink).textCase(nil) }
                 }
             }.civicSurface().navigationTitle("Hot Races").navigationBarTitleDisplayMode(.inline)
+                .navigationDestination(isPresented: Binding(get: { selectedCandidate != nil }, set: { if !$0 { selectedCandidate = nil } })) {
+                    if let candidate = selectedCandidate, let committee = candidate.committee { CommitteeFilingsView(committee: committee, member: candidate.name, officialURL: nil) }
+                }
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) { Button { about = true } label: { Image(systemName: "info.circle") }.accessibilityLabel("About Hot Races") }
                     AppUtilities()
@@ -1829,6 +1833,7 @@ struct HotRacesView: View {
 
 private struct RaceComparison: View {
     let race: HotRace
+    let onSelect: (RaceCandidate) -> Void
     private func partyColor(_ party: String) -> Color { party == "Democratic" ? .blue : party == "Republican" ? .red : .purple }
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -1836,8 +1841,8 @@ private struct RaceComparison: View {
                 ForEach(race.candidates) { candidate in
                     VStack(alignment: .leading, spacing: 7) {
                         Text(candidate.party).font(.caption.bold()).foregroundStyle(partyColor(candidate.party))
-                        if let committee = candidate.committee {
-                            NavigationLink { CommitteeFilingsView(committee: committee, member: candidate.name, officialURL: nil) } label: {
+                        if candidate.committee != nil {
+                            Button { onSelect(candidate) } label: {
                                 HStack(alignment: .top, spacing: 4) { Text(candidate.name).font(.headline); Image(systemName: "chevron.right").font(.caption.bold()) }
                                     .frame(maxWidth: .infinity, alignment: .leading)
                             }.buttonStyle(TactileButtonStyle(inset: 8))
@@ -1893,10 +1898,12 @@ struct TopPACsView: View {
         NavigationStack {
             List {
                 Section {
+                    VStack(alignment: .leading, spacing: 5) {
                     Text("Reported cash + investments").font(.subheadline.bold())
                     if let date = page?.checkedAt { Text("Updated \(Date(timeIntervalSince1970: date).formatted(date: .abbreviated, time: .shortened))").font(.caption).foregroundStyle(CivicTheme.secondary) }
                     if page?.status == "partial" { Text("Building ranking: \(page?.processed ?? 0) of \(page?.reportCount ?? 0) reports checked. Order may change.").font(.caption).foregroundStyle(CivicTheme.secondary) }
                     if page?.status == "stale" { Text("Saved ranking · Source refresh delayed").font(.caption).foregroundStyle(CivicTheme.secondary) }
+                    }
                 }
                 if let failure { Section { Text(failure).font(.caption); Button("Try again") { Task { await load() } } } }
                 if page == nil || (page?.status == "loading" && rows.isEmpty) { ProgressView("Loading PAC balances…") }
