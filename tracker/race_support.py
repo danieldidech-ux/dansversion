@@ -123,6 +123,14 @@ class RaceSupport:
         saved=self.spotlight.cached('post-primary:'+key)
         if not saved:return dict(status='loading',amount=None,since=START,note=NOTE,issues=[],sources=[])
         checked,result=saved
+        # Resolve the exact archived filing so clients can open native contents.
+        with closing(self.history.store.connect()) as db:
+            filings={r['url']:r for row in db.execute('SELECT seq,payload FROM archive_reports WHERE committee_key=?',(key,))
+                     for r in [dict(json.loads(row['payload']),seq=-row['seq'])]}
+        covered=[period(source) for source in result.get('sources',[]) if 'd-2 quarterly' in source['report_type'].lower()]
+        for source in result.get('sources',[]):
+            source['filing']=filings.get(source['url'])
+            source['excluded_periods']=covered if source['report_type'].lower().startswith('a-1') else []
         state=self.history.state(key)
         verified=min(checked,state['checked']) if state else checked
         return dict(result,checked_at=verified,stale=verified<time.time()-1800)

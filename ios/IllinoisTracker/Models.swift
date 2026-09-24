@@ -336,6 +336,8 @@ struct PostPrimaryInKind: Decodable {
     let status: String; let amount: String?; let since: String; let note: String
     let issues: [String]; let sources: [InKindSource]; let checkedAt: Double?; let stale: Bool?
 }
-struct InKindSource: Decodable {
+struct InKindSource: Decodable, Identifiable {
     let reportType: String; let period: String; let url: String; let amount: String
+    let filing: Filing?; let excludedPeriods: [[String]]?
+    var id: String { url }
 }

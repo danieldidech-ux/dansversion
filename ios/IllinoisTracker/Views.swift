@@ -109,7 +109,9 @@ struct RootView: View {
     var body: some View {
         Group {
         #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("--preview-add-list") {
+        if ProcessInfo.processInfo.arguments.contains("--preview-inkind") {
+            NavigationStack { InKindSourcePreview() }
+        } else if ProcessInfo.processInfo.arguments.contains("--preview-add-list") {
             NavigationStack { AddCommitteeToList(committee: Committee(id: "1b5ce79b8d1251adaf13eda719fd6d7a", name: "Daniel Didech Campaign Committee")) }
         } else if ProcessInfo.processInfo.arguments.contains("--preview-pdf") {
             NavigationStack { FilingByIDView(seq: 2001000) }
@@ -1177,6 +1179,8 @@ private struct QuarterlyScheduleView: View {
     @EnvironmentObject var model: AppModel
     let filing: Filing
     let section: QuarterlySection
+    var since: String? = nil
+    var includedAmount: String? = nil
     @State private var schedule: ItemizedSchedule?
     @State private var loading = true
     @State private var failure: String?
@@ -1184,8 +1188,9 @@ private struct QuarterlyScheduleView: View {
     @State private var attempt = 0
     @AppStorage("quarterlyItemSort") private var sortOrder = "name"
     private var entries: [ScheduleEntry] {
-        (schedule?.entries ?? []).filter {
-            query.isEmpty || $0.fields.contains { $0.value.localizedCaseInsensitiveContains(query) }
+        (schedule?.entries ?? []).filter { entry in
+            if let since, let date = receiptDate(entry), date < since { return false }
+            return query.isEmpty || entry.fields.contains { $0.value.localizedCaseInsensitiveContains(query) }
         }.sorted { left, right in
             if sortOrder == "amount" {
                 let a = amount(left), b = amount(right)
@@ -1198,6 +1203,15 @@ private struct QuarterlyScheduleView: View {
             if comparison != .orderedSame { return comparison == .orderedAscending }
             return left.id < right.id
         }
+    }
+    private func receiptDate(_ entry: ScheduleEntry) -> String? {
+        let dateField = entry.fields.first { ["date", "date received", "received date", "receipt date"].contains($0.label.lowercased()) }?.value
+        let amountLines = entry.fields.first { $0.label.lowercased() == "amount" }?.value.components(separatedBy: "\n") ?? []
+        guard let raw = dateField ?? (amountLines.count == 2 ? amountLines[1] : nil) else { return nil }
+        let formatter = DateFormatter(); formatter.locale = Locale(identifier: "en_US_POSIX"); formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "M/d/yyyy"
+        guard let date = formatter.date(from: raw.trimmingCharacters(in: .whitespacesAndNewlines)) else { return nil }
+        formatter.dateFormat = "yyyy-MM-dd"; return formatter.string(from: date)
     }
     private func name(_ entry: ScheduleEntry) -> String {
         let labels = ["contributor", "recipient", "payee", "name", "vendor"]
@@ -1220,7 +1234,11 @@ private struct QuarterlyScheduleView: View {
             Section {
                 Text(filing.committeeName).font(.headline)
                 if let period = schedule?.period { Text(period).font(.caption).foregroundStyle(CivicTheme.secondary) }
-                Text("Itemized total: " + ReportContribution.currency(section.itemized)).font(.subheadline.bold()).foregroundStyle(accent)
+                Text((includedAmount == nil ? "Itemized total: " : "Included in post-primary total: ") + ReportContribution.currency(includedAmount ?? section.itemized)).font(.subheadline.bold()).foregroundStyle(accent)
+                if since != nil {
+                    Text("In-kind receipts from March 18, 2026 onward. Any entry without a readable date is retained for review.").font(.caption).foregroundStyle(CivicTheme.secondary)
+                    if section.unitemized != "0.00" { Text("This report also discloses " + ReportContribution.currency(section.unitemized) + " in unitemized support without individual receipt details. Only quarters entirely after the primary include that amount in the total.").font(.caption).foregroundStyle(CivicTheme.secondary) }
+                }
             }
             if loading { ProgressView("Loading itemized entries…") }
             else if let schedule, schedule.status == "ready" {
@@ -1230,7 +1248,7 @@ private struct QuarterlyScheduleView: View {
                         Text("Amount (highest first)").tag("amount")
                     }
                 }
-                Section("\(entries.count) of \(schedule.total ?? 0) entries") {
+                Section(since == nil ? "\(entries.count) of \(schedule.total ?? 0) entries" : "\(entries.count) matching entries") {
                     ForEach(entries) { entry in
                         VStack(alignment: .leading, spacing: 12) {
                             ForEach(entry.fields.indices, id: \.self) { index in
@@ -1254,7 +1272,7 @@ private struct QuarterlyScheduleView: View {
             }
             Section {
                 CacheNotice(path: "/v1/filings/\(filing.seq)/schedules/\(section.id)")
-                Link("Export itemized CSV", destination: URL(string: "https://illinois-filing-tracker.onrender.com/share/filing/\(filing.seq).csv?section=\(section.id)")!)
+                Link(since == nil ? "Export itemized CSV" : "Export full schedule CSV", destination: URL(string: "https://illinois-filing-tracker.onrender.com/share/filing/\(filing.seq).csv?section=\(section.id)")!)
             }
             if let text = section.sourceUrl, let url = URL(string: text) {
                 Section { Link("Open official itemized schedule", destination: url) }
@@ -1912,6 +1930,7 @@ private struct RaceComparison: View {
 
 private struct InKindSupportDetails: View {
     let candidate: RaceCandidate
+    @State private var selectedSource: InKindSource?
     @Environment(\.dismiss) private var dismiss
     var body: some View {
         NavigationStack {
@@ -1922,7 +1941,7 @@ private struct InKindSupportDetails: View {
                     Text("In-kind support received since March 18, 2026").font(.subheadline)
                     if let support = candidate.postPrimaryInKind {
                         if support.status == "partial" { Text("Partial total — see coverage below").font(.subheadline.bold()) }
-                        Text(support.note).font(.caption).foregroundStyle(CivicTheme.secondary)
+                        DisclosureGroup("How this total is calculated") { Text(support.note).font(.caption).foregroundStyle(CivicTheme.secondary) }
                         if let checked = support.checkedAt { Text("Checked \(Date(timeIntervalSince1970: checked).formatted(date: .abbreviated, time: .shortened))").font(.caption) }
                         if support.stale == true { Text("Source refresh delayed. Showing saved disclosures.").font(.caption) }
                     } else { Text("Loading the committee’s official disclosures…") }
@@ -1931,26 +1950,91 @@ private struct InKindSupportDetails: View {
                     if !support.issues.isEmpty {
                         Section("Coverage") { ForEach(support.issues, id: \.self) { Text($0).font(.subheadline) } }
                     }
-                    Section("Official source reports") {
-                        ForEach(Array(support.sources.enumerated()), id: \.offset) { _, source in
-                            if let url = URL(string: source.url) {
-                                Link(destination: url) {
-                                    HStack {
-                                        VStack(alignment: .leading, spacing: 4) {
-                                            Text(source.reportType).font(.subheadline.bold())
-                                            Text(source.period).font(.caption)
-                                            Text("Included: \(ReportContribution.currency(source.amount))").font(.subheadline).monospacedDigit()
-                                        }
-                                        Spacer(); Image(systemName: "arrow.up.right.square")
+                    Section("In-kind report details") {
+                        ForEach(support.sources) { source in
+                            Button { selectedSource = source } label: {
+                                HStack {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        Text(source.reportType).font(.subheadline.bold())
+                                        Text(source.period).font(.caption)
+                                        Text("Included: \(ReportContribution.currency(source.amount))").font(.subheadline).monospacedDigit()
                                     }
-                                }.buttonStyle(TactileButtonStyle(inset: 8))
-                            }
+                                    Spacer(); Image(systemName: "chevron.right")
+                                }
+                            }.buttonStyle(TactileButtonStyle(inset: 8))
+                             .accessibilityHint("Read in-kind contributions within the app")
                         }
                     }
                 }
             }.civicSurface().navigationTitle("In-kind support").navigationBarTitleDisplayMode(.inline)
+             .navigationDestination(isPresented: Binding(get: { selectedSource != nil }, set: { if !$0 { selectedSource = nil } })) {
+                 if let source = selectedSource { NativeInKindSourceView(source: source) }
+             }
              .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         }.tint(CivicTheme.accent)
+    }
+}
+
+private struct NativeInKindSourceView: View {
+    let source: InKindSource
+    @EnvironmentObject var model: AppModel
+    @State private var report: ReportContents?
+    @State private var loading = true
+    @State private var failure: String?
+    @State private var attempt = 0
+    private var contributions: [ReportContribution] {
+        (report?.contributions ?? []).filter { entry in
+            let kind = entry.contributionType.lowercased().replacingOccurrences(of: "–", with: "-")
+            return (kind.contains("in-kind") || kind.contains("in kind")) && entry.receivedDate >= "2026-03-18" &&
+                !(source.excludedPeriods ?? []).contains { $0.count == 2 && $0[0] <= entry.receivedDate && entry.receivedDate <= $0[1] }
+        }
+    }
+    var body: some View {
+        Group {
+            if let filing = source.filing, let report, report.status == "ready", report.kind == "quarterly",
+               let section = report.sections?.first(where: { $0.id == "in_kind" }), section.hasDetails {
+                QuarterlyScheduleView(filing: filing, section: section, since: "2026-03-18", includedAmount: source.amount)
+            } else {
+                List {
+                    Section {
+                        Text(source.filing?.committeeName ?? "In-kind contributions").font(.headline)
+                        Text(source.period).font(.caption).foregroundStyle(CivicTheme.secondary)
+                        Text("Included: " + ReportContribution.currency(source.amount)).font(.headline).foregroundStyle(CivicTheme.accent)
+                    }
+                    if loading { ProgressView("Loading in-kind details…") }
+                    else if let report, report.status == "ready" {
+                        if report.kind == "quarterly" {
+                            Text("This report has no linked itemized in-kind schedule.")
+                            if let section = report.sections?.first(where: { $0.id == "in_kind" }) {
+                                Text("Reported itemized: " + ReportContribution.currency(section.itemized))
+                                Text("Reported unitemized: " + ReportContribution.currency(section.unitemized))
+                                Text("Unitemized support does not include individual contributor details.").font(.caption).foregroundStyle(CivicTheme.secondary)
+                            }
+                        } else {
+                            Section("In-kind contributions included in this total") {
+                                ForEach(contributions) { contribution in ContributionCard(contribution: contribution) }
+                                if contributions.isEmpty { Text("No matching in-kind contributions in this filing.") }
+                            }
+                        }
+                    } else {
+                        Text(failure ?? report?.message ?? "Details are not yet available.")
+                        Button("Try again") { attempt += 1 }.buttonStyle(TactileButtonStyle())
+                    }
+                    Section {
+                        Text("Source: Illinois State Board of Elections").font(.caption).foregroundStyle(CivicTheme.secondary)
+                        if let url = URL(string: source.url) { Link("Open official report", destination: url).buttonStyle(TactileButtonStyle()) }
+                    }
+                }.civicSurface().navigationTitle("In-kind details").navigationBarTitleDisplayMode(.inline)
+            }
+        }.task(id: attempt) {
+            loading = true; failure = nil
+            do {
+                guard let filing = source.filing else { throw APIError.message("Refresh Hot Races to load this report’s details.") }
+                try await model.setup()
+                report = try await model.connection().call("/v1/filings/\(filing.seq)/contents")
+            } catch { if !Task.isCancelled { failure = error.localizedDescription } }
+            loading = false
+        }
     }
 }
 
@@ -2007,3 +2091,25 @@ struct TopPACsView: View {
         catch { if !Task.isCancelled { failure = error.localizedDescription } }
     }
 }
+
+#if DEBUG
+private struct InKindSourcePreview: View {
+    @EnvironmentObject var model: AppModel
+    @State private var source: InKindSource?
+    @State private var error: String?
+    var body: some View {
+        Group {
+            if let source { NativeInKindSourceView(source: source) }
+            else if let error { Text(error) }
+            else { ProgressView("Loading in-kind preview…") }
+        }.task {
+            do {
+                try await model.setup()
+                let page: HotRacePage = try await model.connection().call("/v1/hot-races")
+                let kind = ProcessInfo.processInfo.arguments.contains("--preview-inkind-a1") ? "A-1" : "D-2"
+                source = page.races.first?.candidates.last?.postPrimaryInKind?.sources.first { $0.reportType.hasPrefix(kind) && $0.amount != "0.00" }
+            } catch { self.error = error.localizedDescription }
+        }
+    }
+}
+#endif

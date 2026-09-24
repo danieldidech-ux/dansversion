@@ -72,3 +72,20 @@ class SupportTests(unittest.TestCase):
     spotlight.support.refresh('test')
     calc.assert_called_once()
    self.assertEqual(spotlight.support.get('test')['amount'],'42.00')
+
+ def test_native_source_is_exact_filing_and_a1_excludes_covered_quarter(self):
+  import json, tempfile
+  from app import create_app
+  with tempfile.TemporaryDirectory() as root:
+   spotlight=create_app(root,poll=False).config['SPOTLIGHT']
+   quarter_row=report('q'); a1_row=report('a','A-1',filed='2026-07-20')
+   with spotlight.store.connect() as db:
+    for row in (quarter_row,a1_row):
+     db.execute('INSERT INTO archive_reports(committee_key,document_id,payload) VALUES (?,?,?)',('test',row['document_id'],json.dumps(dict(row,committee_key='test',committee_name='Example'))))
+    db.commit()
+   spotlight.save('post-primary:test',dict(status='ready',amount='120.00',sources=[dict(r,amount='100.00' if r is quarter_row else '20.00') for r in (quarter_row,a1_row)]))
+   result=spotlight.support.get('test')
+   self.assertEqual(result['sources'][0]['filing']['seq'],-1)
+   self.assertEqual(result['sources'][1]['filing']['seq'],-2)
+   self.assertEqual(result['sources'][1]['excluded_periods'],[('2026-04-01','2026-06-30')])
+   self.assertEqual(result['sources'][0]['excluded_periods'],[])
