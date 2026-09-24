@@ -18,10 +18,10 @@ jobs:
       - name: Wait for matching backend release
         run: |
           for attempt in $(seq 1 30); do
-            if curl --fail --silent --max-time 15 https://illinois-filing-tracker.onrender.com/downloads/IllinoisTracker-v24.zip -o /tmp/live-release.zip && cmp -s /tmp/live-release.zip releases/Checks-and-Balances-iPhone-v24.zip; then break; fi
+            if curl --fail --silent --max-time 15 https://illinois-filing-tracker.onrender.com/downloads/IllinoisTracker-v25.zip -o /tmp/live-release.zip && cmp -s /tmp/live-release.zip releases/Checks-and-Balances-iPhone-v25.zip; then break; fi
             sleep 10
           done
-          cmp /tmp/live-release.zip releases/Checks-and-Balances-iPhone-v24.zip
+          cmp /tmp/live-release.zip releases/Checks-and-Balances-iPhone-v25.zip
       - name: Validate native directory decoding
         run: |
           curl --fail --retry 3 --max-time 30 https://illinois-filing-tracker.onrender.com/v1/directory -o /tmp/live-directory.json
@@ -35,7 +35,7 @@ jobs:
           p = Path('ios/IllinoisTracker')
           info = plistlib.loads((p/'Info.plist').read_bytes())
           assert info['CFBundleDisplayName'] == 'Checks & Balances'
-          assert info['CFBundleVersion'] == '24'
+          assert info['CFBundleVersion'] == '25'
           assets = p/'Assets.xcassets'
           assert (assets/'AppIcon.appiconset/AppIcon.png').stat().st_size > 1000
           for catalog in assets.rglob('Contents.json'):
@@ -59,18 +59,8 @@ jobs:
             xcrun simctl io "$DEVICE" screenshot "IllinoisTracker-$LABEL.png"
             xcrun simctl terminate "$DEVICE" com.danieldidech.illinoisfilings
           }
+          capture launch --preview-launch
           capture home-light
-          capture home-night --preview-night
-          capture home-pink --preview-pink
-          capture reports --preview-reports
-          capture alerts --preview-alerts --preview-night
-          capture settings --preview-settings --preview-pink
-          capture about --preview-about
-          capture committee --preview-committee --preview-night
-          capture races --preview-hot-races --preview-night
-          capture lists --preview-lists
-          capture home-large --preview-large
-          xcrun simctl io "$DEVICE" screenshot IllinoisTracker-installed-icon.png
       - uses: actions/upload-artifact@v4
         if: always()
         with:

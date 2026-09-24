@@ -105,14 +105,16 @@ struct RootView: View {
     @AppStorage("appearance") private var appearance = "light"
     private var preferredScheme: ColorScheme? {
         #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("--preview-night") { return .dark }
+        if ProcessInfo.processInfo.arguments.contains("--preview-night") || ProcessInfo.processInfo.arguments.contains("--preview-launch") { return .dark }
         #endif
         return appearance == "system" ? nil : (appearance == "dark" ? .dark : .light)
     }
     var body: some View {
         Group {
         #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("--preview-about") {
+        if ProcessInfo.processInfo.arguments.contains("--preview-launch") {
+            LaunchScreenPreview().ignoresSafeArea()
+        } else if ProcessInfo.processInfo.arguments.contains("--preview-about") {
             NavigationStack { BrandAboutView() }
         } else if ProcessInfo.processInfo.arguments.contains("--preview-settings") {
             SettingsView()
@@ -2234,3 +2236,13 @@ enum BrandAppearance {
         UITabBar.appearance().scrollEdgeAppearance = tab
     }
 }
+
+#if DEBUG
+// Renders the compiled launch storyboard for visual verification, with no launch delay.
+private struct LaunchScreenPreview: UIViewControllerRepresentable {
+    func makeUIViewController(context: Context) -> UIViewController {
+        UIStoryboard(name: "LaunchScreen", bundle: nil).instantiateInitialViewController()!
+    }
+    func updateUIViewController(_ controller: UIViewController, context: Context) {}
+}
+#endif

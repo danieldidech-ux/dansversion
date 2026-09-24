@@ -333,6 +333,11 @@ def create_app(directory=None, poll=True):
         for key in sorted(keys): history.schedule(key,priority=1)
         return jsonify(committees={key:history.finance(key) for key in keys})
 
+    @app.get('/downloads/IllinoisTracker-v25.zip')
+    def download25_iphone_project():
+        archive = Path(__file__).resolve().parent.parent / 'releases' / 'Checks-and-Balances-iPhone-v25.zip'
+        return send_file(archive, mimetype='application/zip', as_attachment=True, download_name='Checks-and-Balances-iPhone-v25.zip', conditional=True)
+
     @app.get('/downloads/IllinoisTracker-v24.zip')
     def download24_iphone_project():
         archive = Path(__file__).resolve().parent.parent / 'releases' / 'Checks-and-Balances-iPhone-v24.zip'
