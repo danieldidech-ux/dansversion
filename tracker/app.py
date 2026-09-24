@@ -426,6 +426,7 @@ def create_app(directory=None, poll=True):
                 if selected is not None:fields[n.attrs['name']]=selected.attrs.get('value','')
             fields['ctl00$ContentPlaceHolder1$chkActive']='on'
             if page=='CommitteeSearch.aspx':fields['ctl00$ContentPlaceHolder1$ddlCommitteeType']='Political Action'
+            if page=='LatestCommitteeTotalsByLatest.aspx':fields['ctl00$ContentPlaceHolder1$txtName']='A'
             fields['ctl00$ContentPlaceHolder1$btnSubmit']='Search'
             action=next(doc.root.all('form')).attrs.get('action',page)
             html=source.read(urllib.parse.urljoin(BASE+page,action),fields)
