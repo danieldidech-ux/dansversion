@@ -3,6 +3,7 @@ import hashlib,json,logging,re,threading,time,unicodedata,urllib.parse
 from contextlib import closing
 from concurrent.futures import ThreadPoolExecutor, as_completed
 from history import identity
+from race_support import RaceSupport
 from datetime import datetime
 from decimal import Decimal
 from pathlib import Path
@@ -63,6 +64,7 @@ class Spotlight:
     if saved:c.update(saved[1])
     if c.get('committee'):
      self.register(c);self.history.extra_keys.add(c['committee']['id'])
+  self.support=RaceSupport(self)
   saved=self.cached('pac-ranking')
   if saved:
    for c in saved[1]['committees']:self.register(c)
@@ -98,6 +100,7 @@ class Spotlight:
    for c in r['candidates']:
     committee=c.get('committee');c['committee']=committee
     c['finance']=self.history.finance(committee['id']) if committee else None
+    c['post_primary_in_kind']=self.support.get(committee['id']) if committee else None
   return result
  def pacs(self):
   saved=self.cached('pac-ranking')
@@ -109,6 +112,11 @@ class Spotlight:
   while True:
    try:self.resolve_candidates()
    except Exception:logging.getLogger('gunicorn.error').exception('Race refresh failed')
+   keys={c['committee']['id'] for r in self.data['races'] for c in r['candidates'] if c.get('committee')}
+   with ThreadPoolExecutor(max_workers=2) as workers:
+    for future in [workers.submit(self.support.refresh,key) for key in sorted(keys)]:
+     try:future.result()
+     except Exception:logging.getLogger('gunicorn.error').exception('In-kind refresh failed')
    if time.time()>=next_pacs:
     try:
      saved=self.cached('pac-ranking')

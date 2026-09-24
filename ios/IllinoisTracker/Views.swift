@@ -1834,6 +1834,7 @@ struct HotRacesView: View {
 private struct RaceComparison: View {
     let race: HotRace
     let onSelect: (RaceCandidate) -> Void
+    @State private var supportCandidate: RaceCandidate?
     private func partyColor(_ party: String) -> Color { party == "Democratic" ? .blue : party == "Republican" ? .red : .purple }
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
@@ -1861,6 +1862,28 @@ private struct RaceComparison: View {
             Divider()
             comparison("Estimated balance before unreported spending", field: { $0.estimatedCash }, prominent: true)
             if race.candidates.contains(where: { $0.finance?.stale == true }) { Text("A saved estimate is shown while its source is refreshed.").font(.caption).foregroundStyle(CivicTheme.secondary) }
+            Divider()
+            VStack(alignment: .leading, spacing: 6) {
+                Text("In-kind support since primary").font(.subheadline.bold())
+                Text("Received March 18, 2026 onward · Not cash").font(.caption2).foregroundStyle(CivicTheme.secondary)
+                HStack(alignment: .top, spacing: 14) {
+                    ForEach(race.candidates) { candidate in
+                        Button { supportCandidate = candidate } label: {
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack(spacing: 4) {
+                                    Text(candidate.postPrimaryInKind?.amount.map(ReportContribution.currency) ?? (candidate.postPrimaryInKind?.status == "unavailable" ? "Unavailable" : "Calculating…"))
+                                        .font(.subheadline.bold()).monospacedDigit().minimumScaleFactor(0.7).lineLimit(1)
+                                    Spacer(minLength: 0)
+                                    Image(systemName: "chevron.right").font(.caption2.bold())
+                                }
+                                if candidate.postPrimaryInKind?.status == "partial" { Text("Partial total").font(.caption2) }
+                                if candidate.postPrimaryInKind?.stale == true { Text("Update delayed").font(.caption2) }
+                            }.frame(maxWidth: .infinity, alignment: .leading)
+                        }.buttonStyle(TactileButtonStyle(inset: 8))
+                         .accessibilityLabel("\(candidate.name), in-kind support since primary, \(candidate.postPrimaryInKind?.amount.map(ReportContribution.currency) ?? "calculating"), view sources and coverage")
+                    }
+                }
+            }
             DisclosureGroup("Committee alerts") {
                 ForEach(race.candidates) { candidate in
                     if let committee = candidate.committee {
@@ -1869,6 +1892,7 @@ private struct RaceComparison: View {
                 }
             }.font(.subheadline)
         }.padding(.vertical, 8)
+         .sheet(item: $supportCandidate) { candidate in InKindSupportDetails(candidate: candidate) }
     }
     private func comparison(_ label: String, field: @escaping (CommitteeFinance) -> String?, prominent: Bool = false) -> some View {
         VStack(alignment: .leading, spacing: 5) {
@@ -1883,6 +1907,50 @@ private struct RaceComparison: View {
                 }
             }
         }
+    }
+}
+
+private struct InKindSupportDetails: View {
+    let candidate: RaceCandidate
+    @Environment(\.dismiss) private var dismiss
+    var body: some View {
+        NavigationStack {
+            List {
+                Section {
+                    Text(candidate.name).font(.headline)
+                    Text(candidate.postPrimaryInKind?.amount.map(ReportContribution.currency) ?? "Not yet available").font(.title.bold()).monospacedDigit()
+                    Text("In-kind support received since March 18, 2026").font(.subheadline)
+                    if let support = candidate.postPrimaryInKind {
+                        if support.status == "partial" { Text("Partial total — see coverage below").font(.subheadline.bold()) }
+                        Text(support.note).font(.caption).foregroundStyle(CivicTheme.secondary)
+                        if let checked = support.checkedAt { Text("Checked \(Date(timeIntervalSince1970: checked).formatted(date: .abbreviated, time: .shortened))").font(.caption) }
+                        if support.stale == true { Text("Source refresh delayed. Showing saved disclosures.").font(.caption) }
+                    } else { Text("Loading the committee’s official disclosures…") }
+                }
+                if let support = candidate.postPrimaryInKind {
+                    if !support.issues.isEmpty {
+                        Section("Coverage") { ForEach(support.issues, id: \.self) { Text($0).font(.subheadline) } }
+                    }
+                    Section("Official source reports") {
+                        ForEach(Array(support.sources.enumerated()), id: \.offset) { _, source in
+                            if let url = URL(string: source.url) {
+                                Link(destination: url) {
+                                    HStack {
+                                        VStack(alignment: .leading, spacing: 4) {
+                                            Text(source.reportType).font(.subheadline.bold())
+                                            Text(source.period).font(.caption)
+                                            Text("Included: \(ReportContribution.currency(source.amount))").font(.subheadline).monospacedDigit()
+                                        }
+                                        Spacer(); Image(systemName: "arrow.up.right.square")
+                                    }
+                                }.buttonStyle(TactileButtonStyle(inset: 8))
+                            }
+                        }
+                    }
+                }
+            }.civicSurface().navigationTitle("In-kind support").navigationBarTitleDisplayMode(.inline)
+             .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+        }.tint(CivicTheme.accent)
     }
 }
 

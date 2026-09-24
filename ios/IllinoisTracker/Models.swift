@@ -322,7 +322,7 @@ struct HotRace: Decodable, Identifiable {
     var title: String { "\(chamber) District \(district)" }
 }
 struct RaceCandidate: Decodable, Identifiable {
-    let id: String; let name: String; let party: String; let committee: Committee?; let finance: CommitteeFinance?
+    let id: String; let name: String; let party: String; let committee: Committee?; let finance: CommitteeFinance?; let postPrimaryInKind: PostPrimaryInKind?
 }
 struct TopPACPage: Decodable {
     let status: String; let note: String; let checkedAt: Double?; let total: Int; let processed: Int?; let reportCount: Int?; let excluded: Int?; let committees: [RankedPAC]
@@ -330,4 +330,12 @@ struct TopPACPage: Decodable {
 struct RankedPAC: Decodable, Identifiable {
     let committee: Committee; let committeeType: String; let balance: String; let asOf: String; let rank: Int
     var id: String { committee.id }
+}
+
+struct PostPrimaryInKind: Decodable {
+    let status: String; let amount: String?; let since: String; let note: String
+    let issues: [String]; let sources: [InKindSource]; let checkedAt: Double?; let stale: Bool?
+}
+struct InKindSource: Decodable {
+    let reportType: String; let period: String; let url: String; let amount: String
 }
