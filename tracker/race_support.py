@@ -136,7 +136,7 @@ class RaceSupport:
         saved=self.spotlight.cached('post-primary:'+key)
         if saved:
             checked,result=saved
-            if checked>time.time()-300:return
+            if result.get('signature')==signature and checked>time.time()-300:return
             if result.get('signature')==signature and result['status']=='ready' and result.get('calculated_at',0)>time.time()-86400:
                 self.spotlight.save('post-primary:'+key,result);return
         source=Source()

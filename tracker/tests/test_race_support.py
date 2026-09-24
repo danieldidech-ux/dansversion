@@ -59,3 +59,16 @@ class SupportTests(unittest.TestCase):
   from decimal import Decimal
   value=schedule_receipt(dict(fields=[dict(label='Amount',value='$1,122.00\n6/12/2026')]))
   self.assertEqual(value,('2026-06-12',Decimal('1122.00')))
+
+ def test_new_archive_filing_invalidates_fresh_cache(self):
+  import json, tempfile, time
+  from pathlib import Path
+  from unittest.mock import patch
+  from app import create_app
+  with tempfile.TemporaryDirectory() as root:
+   spotlight=create_app(root,poll=False).config['SPOTLIGHT']
+   spotlight.save('post-primary:test',dict(status='ready',signature='old',calculated_at=time.time()))
+   with patch.object(spotlight.history,'state',return_value=dict(complete=1,payload=json.dumps(dict(creation_date='07/01/2026')))), patch('race_support.calculate',return_value=dict(status='ready',amount='42.00')) as calc:
+    spotlight.support.refresh('test')
+    calc.assert_called_once()
+   self.assertEqual(spotlight.support.get('test')['amount'],'42.00')
