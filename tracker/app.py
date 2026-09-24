@@ -410,6 +410,16 @@ def create_app(directory=None, poll=True):
         return send_file(archive, mimetype='application/zip', as_attachment=True,
                          download_name='IllinoisTracker-iPhone-Source-v6.zip', conditional=True)
 
+    @app.get('/v1/pac-source-inspection')
+    def pac_source_inspection():
+        from archive_source import Source, BASE
+        from reports import Document
+        source=Source()
+        page=request.args.get('page','CommitteeSearch.aspx')
+        if page not in ('CommitteeSearch.aspx','LatestCommitteeTotalsByLatest.aspx'):return jsonify(error='Unknown source'),400
+        doc=Document(source.read(BASE+page))
+        return jsonify(fields=[dict(tag=n.tag,attrs={k:v for k,v in n.attrs.items() if k in ('id','name','type','value','href')},text=n.text()[:6000]) for tag in ('select','input','a') for n in doc.root.all(tag) and n.attrs.get('type')!='hidden'], text=doc.root.text()[-16000:])
+
     @app.get('/v1/coverage')
     def committee_coverage():
         entries=[]
