@@ -403,9 +403,13 @@ struct FilingRow: View {
                     Text("\(p.contributionCount ?? 0) contribution\(p.contributionCount == 1 ? "" : "s")" + (p.includesInKind == true ? " · includes in-kind" : "")).font(.caption).foregroundStyle(CivicTheme.secondary)
                 } else if p.kind == "quarterly" {
                     if let period = p.period { Text(period).font(.subheadline).foregroundStyle(CivicTheme.secondary) }
+                    previewMetric("Starting balance · cash", p.beginningCash)
                     previewMetric("Receipts", p.receipts)
                     previewMetric("Spending", p.expenditures)
-                    previewMetric("Cash + investments", p.cashAndInvestments)
+                    Divider()
+                    previewMetric("Ending balance", p.cashAndInvestments)
+                    Text("Cash on hand + investments")
+                        .font(.caption).foregroundStyle(CivicTheme.secondary)
                 }
             } else if showPreview && (FilingReportKind(filing.reportType) == .a1 || FilingReportKind(filing.reportType) == .quarterly) {
                 Text(filing.previewStatus == "unavailable" ? "Summary temporarily unavailable" : "Loading summary…").font(.caption).foregroundStyle(CivicTheme.secondary)

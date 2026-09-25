@@ -1,5 +1,5 @@
 {
-  "revision": "2026-09-23-approved-5",
+  "revision": "2026-09-25-approved-6",
   "groups": [
     {
       "id": "executive-branch",
@@ -282,8 +282,8 @@
         },
         {
           "id": "889f5d3b04d1c5cce2c81ce0e68de6cb",
-          "member": "Demi",
-          "last_name": "Demi",
+          "member": "Demi Palecek",
+          "last_name": "Palecek",
           "district": 13,
           "committee": {
             "id": "43374dcadc30ba4ce6f937a3add78a74",
@@ -292,7 +292,7 @@
           "official_url": "https://www.elections.il.gov/campaigndisclosure/CommitteeDetail.aspx?ID=EZnCNqRZriIYDL7Ksktn6g%3d%3d",
           "role": "",
           "evidence": "Confirmed by user",
-          "review_note": "Committee name, member association and official URL supplied by Daniel Didech. Not independently verified against the live registry. User requested Demi in place of retiring Hoan Huynh. Candidate entry, not a claim of current officeholding. Full name/sort surname still needed."
+          "review_note": "Committee name, member association and official URL supplied by Daniel Didech. Not independently verified against the live registry. User requested Demi in place of retiring Hoan Huynh. Candidate entry, not a claim of current officeholding. Full name and sort surname supplied by Daniel Didech."
         },
         {
           "id": "cd75bd09c784c92004bf1a8da909073a",
@@ -925,20 +925,6 @@
           "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
         },
         {
-          "id": "15b2201fa5be9da9535e0295a680010e",
-          "member": "Maurice West",
-          "last_name": "West",
-          "district": 67,
-          "committee": {
-            "id": "e0861cfc95546a84df84f41d90a206c0",
-            "name": "Maurice West for Rockford"
-          },
-          "official_url": null,
-          "role": "",
-          "evidence": "Name observed; link unverified",
-          "review_note": "Two names in RSS; confirm whether separate committees or a name change using official IDs."
-        },
-        {
           "id": "d0e8d876819fb8f53c85901bf8691aee",
           "member": "Maurice West",
           "last_name": "West",
@@ -947,10 +933,10 @@
             "id": "4b3f9f73a7c60009917b56ae733809ee",
             "name": "Maurice West for Illinois"
           },
-          "official_url": null,
+          "official_url": "https://www.elections.il.gov/campaigndisclosure/CommitteeDetail.aspx?ID=wPmSRLqCvxMZ7it72tjF1Q%3d%3d",
           "role": "",
-          "evidence": "Name observed; link unverified",
-          "review_note": "Two names in RSS; confirm whether separate committees or a name change using official IDs."
+          "evidence": "Confirmed by user",
+          "review_note": "Daniel Didech confirmed this as the only Maurice West committee to list on caucus pages and supplied its official URL."
         },
         {
           "id": "342e93ab173d58ca26957c7b55f39df5",
@@ -1065,18 +1051,18 @@
           "review_note": "Exact committee name observed in RSS; member association inferred from name, not a verified D-1 link."
         },
         {
-          "id": "edee4d8b29aeb6ccb9589bc2a8082716",
-          "member": "Stephanie Kifowit",
-          "last_name": "Kifowit",
+          "id": "23ba92ff6ff65afe58fb07ac31a51eb6",
+          "member": "Saba Haider",
+          "last_name": "Haider",
           "district": 84,
           "committee": {
-            "id": "48d7f78c4895d8676819a2588a443e9f",
-            "name": "Friends of Stephanie Kifowit"
+            "id": "c7ec5faacaaa99476e9346584bfa0c41",
+            "name": "Citizens for Saba Haider"
           },
-          "official_url": null,
+          "official_url": "https://www.elections.il.gov/campaigndisclosure/CommitteeDetail.aspx?ID=CBQsNdpXiScdEXUKBg1hkA%3d%3d",
           "role": "",
-          "evidence": "Historical only \u2014 recheck",
-          "review_note": "2017 registry: To elect Stephanie Kifowit to elected office Current name, status and association must be rechecked; old district numbers may differ."
+          "evidence": "Confirmed by user",
+          "review_note": "Daniel Didech supplied this committee and confirmed Saba Haider as the primary winner replacing Stephanie Kifowit in the current-cycle list."
         },
         {
           "id": "3305c0713e49eec053df91415e28d811",

@@ -302,6 +302,7 @@ struct FilingPreview: Codable, Hashable {
     let period: String?
     let receipts: String?
     let expenditures: String?
+    let beginningCash: String?
     let endingCash: String?
     let cashAndInvestments: String?
 }
