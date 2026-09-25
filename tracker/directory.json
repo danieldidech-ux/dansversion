@@ -1,5 +1,5 @@
 {
-  "revision": "2026-09-25-approved-6",
+  "revision": "2026-09-25-approved-7",
   "groups": [
     {
       "id": "executive-branch",
@@ -212,8 +212,8 @@
         },
         {
           "id": "7cb4d30d569c9068d28e1cc284c41d76",
-          "member": "Shantel",
-          "last_name": "Shantel",
+          "member": "Shantel Franklin",
+          "last_name": "Franklin",
           "district": 8,
           "committee": {
             "id": "b6ce183fe865be322455205cc0a8555c",
@@ -222,7 +222,7 @@
           "official_url": "https://www.elections.il.gov/campaigndisclosure/CommitteeDetail.aspx?ID=5ZpxBL2ua%2fFzqKVzx5Ygwg%3d%3d",
           "role": "",
           "evidence": "Confirmed by user",
-          "review_note": "Committee name, association and official URL supplied by Daniel Didech. Not independently verified against the live registry. User requested Shantel in place of LaShawn Ford. Candidate entry, not a claim of current officeholding. Full name/sort surname still needed."
+          "review_note": "Committee name, association and official URL supplied by Daniel Didech. Not independently verified against the live registry. User requested Shantel in place of LaShawn Ford. Candidate entry, not a claim of current officeholding. Full name and sort surname supplied by Daniel Didech."
         },
         {
           "id": "fff64bdc03ae53f3b5dcd735067dee30",
