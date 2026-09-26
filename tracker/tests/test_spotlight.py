@@ -12,7 +12,7 @@ class SpotlightTests(unittest.TestCase):
   self.app=create_app(self.tmp.name,poll=False);self.spotlight=self.app.config['SPOTLIGHT'];self.client=self.app.test_client()
  def test_races_have_distinct_candidates_and_no_uncontested_seed(self):
   data=self.client.get('/v1/hot-races').json
-  self.assertEqual(len(data['races']),18)
+  self.assertEqual(len(data['races']),19)
   ids=set()
   for race in data['races']:
    self.assertNotIn(race['id'],ids);ids.add(race['id'])

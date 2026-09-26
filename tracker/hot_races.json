@@ -123,6 +123,29 @@
       ]
     },
     {
+      "id": "house-65",
+      "chamber": "House",
+      "district": 65,
+      "candidates": [
+        {
+          "id": "house-65-democratic",
+          "name": "Richard Rivard",
+          "party": "Democratic",
+          "official_id": "39482"
+        },
+        {
+          "id": "house-65-republican",
+          "name": "Dan Ugaste",
+          "party": "Republican",
+          "committee": {
+            "id": "2ea8248b0f7cc18d30dcae1352fa98ab",
+            "name": "Citizens for Dan Ugaste"
+          },
+          "official_url": null
+        }
+      ]
+    },
+    {
       "id": "house-68",
       "chamber": "House",
       "district": 68,
