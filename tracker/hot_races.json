@@ -1,5 +1,5 @@
 {
-  "revision": "2026-09-24",
+  "revision": "2026-09-25",
   "note": "Draft editorial watchlist for review, not a prediction or a complete list of contested races. Selection considers competitive district history and current matchups. Candidate names and committee references were cross-checked against Illinois Sunshine; financial figures come from official Illinois State Board of Elections reports. The publisher can revise this list.",
   "sources": [
     "https://www.ilcapitolgroup.com/Home/Elections",
@@ -142,6 +142,33 @@
           "name": "Liz Bishop",
           "party": "Republican",
           "official_id": "39550"
+        }
+      ]
+    },
+    {
+      "id": "house-97",
+      "chamber": "House",
+      "district": 97,
+      "candidates": [
+        {
+          "id": "house-97-democratic",
+          "name": "Jessica Dixon Heitman",
+          "party": "Democratic",
+          "committee": {
+            "id": "59fa5040eb96aebfe544d8aef24bf7d8",
+            "name": "Committee to Elect Jessica Dixon Heitman"
+          },
+          "official_url": null
+        },
+        {
+          "id": "house-97-republican",
+          "name": "Gabby Shanahan",
+          "party": "Republican",
+          "committee": {
+            "id": "a58af82ffcc0ac38b870530840b230d4",
+            "name": "Team Shanahan"
+          },
+          "official_url": null
         }
       ]
     },
