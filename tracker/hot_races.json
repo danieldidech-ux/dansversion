@@ -8,6 +8,29 @@
   ],
   "races": [
     {
+      "id": "house-45",
+      "chamber": "House",
+      "district": 45,
+      "candidates": [
+        {
+          "id": "house-45-democratic",
+          "name": "Martha Deuter",
+          "party": "Democratic",
+          "committee": {
+            "id": "4b0a45d09f3e267b77549427090f6e1a",
+            "name": "Friends of Marti Deuter"
+          },
+          "official_url": null
+        },
+        {
+          "id": "house-45-republican",
+          "name": "Gina Parrilli",
+          "party": "Republican",
+          "official_id": "41116"
+        }
+      ]
+    },
+    {
       "id": "house-47",
       "chamber": "House",
       "district": 47,
