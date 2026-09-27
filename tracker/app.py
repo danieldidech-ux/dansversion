@@ -79,6 +79,7 @@ class Store:
         self.directory = Path(directory)
         self.directory.mkdir(parents=True, exist_ok=True)
         self.path = self.directory / 'filings.sqlite3'
+        self.cleanup_backups()
         with closing(self.connect()) as db, db:
             db.execute('PRAGMA journal_mode=WAL')
             db.executescript('''
@@ -181,19 +182,43 @@ class Store:
                     'disk_free_bytes': disk.free, 'low_disk_space': disk.free < 100*1024*1024,
                     'recent_checks': checks, 'push_notifications_enabled': configured()}
 
+    def cleanup_backups(self, required_free=100*1024*1024):
+        folder = self.directory / 'backups'
+        if not folder.exists():
+            return
+        # Only our dated backup files; never touch the live database or its WAL.
+        for partial in folder.glob('????-??-??.tmp'):
+            partial.unlink(missing_ok=True)
+        completed = sorted(folder.glob('????-??-??.sqlite3'))
+        while len(completed) > 1 and (len(completed) > 3 or
+                shutil.disk_usage(self.directory).free < required_free):
+            old = completed.pop(0)
+            LOG.info('Removing expired backup %s (%s bytes)', old.name, old.stat().st_size)
+            old.unlink()
+
     def backup(self):
-        # SQLite's backup API gives a consistent database copy, unlike copying a WAL file.
+        # Reserve space for live writes before attempting another full copy.
+        required = self.path.stat().st_size + 100*1024*1024
+        self.cleanup_backups(required)
         folder = self.directory / 'backups'
         folder.mkdir(exist_ok=True)
         target = folder / (datetime.now(timezone.utc).strftime('%Y-%m-%d')+'.sqlite3')
         if target.exists():
             return
+        if shutil.disk_usage(self.directory).free < required:
+            LOG.warning('Skipping backup to preserve free space for live filings')
+            return
         temporary = target.with_suffix('.tmp')
-        with closing(self.connect()) as db, closing(sqlite3.connect(temporary)) as backup:
-            db.backup(backup)
-        os.replace(temporary, target)
-        for old in sorted(folder.glob('*.sqlite3'))[:-3]:
-            old.unlink()
+        def check_space(status, remaining, total):
+            if shutil.disk_usage(self.directory).free < 100*1024*1024:
+                raise OSError('Backup stopped to preserve free space for live filings')
+        try:
+            with closing(self.connect()) as db, closing(sqlite3.connect(temporary)) as backup:
+                db.backup(backup, pages=256, progress=check_space)
+            os.replace(temporary, target)
+        finally:
+            temporary.unlink(missing_ok=True)
+        self.cleanup_backups()
 
 
 def collect(store):
@@ -224,6 +249,11 @@ def collect(store):
 
 
 def polling_loop(store):
+    # Retry promptly after restart, including recovery from disk exhaustion.
+    try:
+        collect(store)
+    except Exception:
+        LOG.exception("Initial collector check failed")
     while True:
         last = store.meta('last_attempt', 0)
         failures = store.meta('failure_count', 0)

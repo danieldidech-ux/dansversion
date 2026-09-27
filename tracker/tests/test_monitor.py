@@ -23,6 +23,28 @@ class MonitorTests(unittest.TestCase):
     def tearDown(self):
         self.tmp.cleanup()
 
+    def test_low_space_cleanup_preserves_latest_backup_and_live_filings(self):
+        self.store.ingest(parse_feed(feed(1)))
+        folder = Path(self.tmp.name) / 'backups'
+        folder.mkdir()
+        for name in ('2026-09-25.sqlite3', '2026-09-26.sqlite3', '2026-09-27.tmp'):
+            (folder / name).write_bytes(b'backup')
+        from types import SimpleNamespace
+        with patch('app.shutil.disk_usage', return_value=SimpleNamespace(free=0)):
+            restarted = Store(self.tmp.name)
+            restarted.backup()
+        self.assertEqual(sorted(p.name for p in folder.iterdir()), ['2026-09-26.sqlite3'])
+        self.assertEqual(restarted.status()['stored_filings'], 1)
+
+    def test_backup_failure_removes_partial_copy(self):
+        from types import SimpleNamespace
+        with patch('app.shutil.disk_usage', side_effect=[SimpleNamespace(free=10**10), SimpleNamespace(free=0)]):
+            with self.assertRaises(OSError):
+                self.store.backup()
+        self.assertEqual(list((Path(self.tmp.name) / 'backups').iterdir()), [])
+        self.store.ingest(parse_feed(feed(1)))
+        self.assertEqual(self.store.status()['stored_filings'], 1)
+
     def test_baseline_restart_and_duplicate_suppression(self):
         self.assertEqual(self.store.ingest(parse_feed(feed(2,1)))['new_filings'], 0)
         restarted = Store(self.tmp.name)
