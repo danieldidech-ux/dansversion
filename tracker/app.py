@@ -34,6 +34,19 @@ def committee_key(name):
     return hashlib.sha256(normalized.encode()).hexdigest()[:32]
 
 
+def search_words(value):
+    return re.findall(r'[^\W_]+', unicodedata.normalize('NFKC', value).casefold())
+
+
+def word_prefix_match(name, query):
+    """Match each search word at the start of a committee-name word."""
+    words = search_words(name)
+    prefixes = search_words(query)
+    if not prefixes:
+        return not query.strip()
+    return all(any(word.startswith(prefix) for word in words) for prefix in prefixes)
+
+
 def report_link(value):
     if not value:
         return None
@@ -107,6 +120,7 @@ class Store:
     def connect(self):
         db = sqlite3.connect(self.path, timeout=20)
         db.row_factory = sqlite3.Row
+        db.create_function('word_prefix_match', 2, word_prefix_match, deterministic=True)
         db.execute('PRAGMA synchronous=FULL')
         return db
 
@@ -577,7 +591,7 @@ def create_app(directory=None, poll=True):
         after = request.args.get('after', '')[:64]
         with closing(store.connect()) as db:
             rows = [dict(r) for r in db.execute(
-                'SELECT id,name FROM committees WHERE instr(lower(name),lower(?))>0 AND id>? ORDER BY id LIMIT 101', (q, after))]
+                'SELECT id,name FROM committees WHERE word_prefix_match(name,?) AND id>? ORDER BY id LIMIT 101', (q, after))]
         more = len(rows)>100
         rows = rows[:100]
         return jsonify({'committees': rows, 'has_more': more,
