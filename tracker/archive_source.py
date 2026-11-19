@@ -1,5 +1,5 @@
 """Bounded reader for official ISBE Web Forms archives."""
-import http.cookiejar, re, urllib.parse, urllib.request
+import http.cookiejar, re, threading, time, urllib.error, urllib.parse, urllib.request
 from reports import Document, Node, ReportFormatError, normalized
 BASE='https://www.elections.il.gov/CampaignDisclosure/'
 
@@ -15,6 +15,25 @@ class OfficialRedirect(urllib.request.HTTPRedirectHandler):
  def redirect_request(self,req,fp,code,msg,headers,newurl):
   safe_url(newurl)
   return super().redirect_request(req,fp,code,msg,headers,newurl)
+# Archive workers share one upstream host. Give it a quiet period when
+# multiple distinct requests are denied, while RSS continues its own checks.
+_archive_lock = threading.Lock()
+_blocked_until = 0.0
+_last_denied = None
+
+def check_archive_access():
+ with _archive_lock:
+  if time.monotonic() < _blocked_until:
+   raise ReportFormatError('Official archive temporarily unavailable after repeated access denials')
+
+def record_denial(url):
+ global _blocked_until, _last_denied
+ now = time.monotonic()
+ with _archive_lock:
+  if _last_denied and now - _last_denied[1] < 60 and url != _last_denied[0]:
+   _blocked_until = now + 1800
+  _last_denied = (url, now)
+
 class Source:
  def __init__(self):
   self.opener=urllib.request.build_opener(OfficialRedirect(),urllib.request.HTTPCookieProcessor(http.cookiejar.CookieJar()))
@@ -23,7 +42,14 @@ class Source:
   self.last_url=url
   data=urllib.parse.urlencode(fields).encode() if fields is not None else None
   req=urllib.request.Request(url,data=data,headers={'User-Agent':'IllinoisFilingTracker/0.3 (public campaign filing reader)','Accept':'text/html'})
-  with self.opener.open(req,timeout=20) as r:
+  check_archive_access()
+  try:
+   response = self.opener.open(req,timeout=20)
+  except urllib.error.HTTPError as exc:
+   if exc.code == 403:
+    record_denial(url)
+   raise
+  with response as r:
    safe_url(r.url)
    raw=r.read(20_000_001)
    if len(raw)>20_000_000: raise ReportFormatError('Archive exceeds reader limit')
