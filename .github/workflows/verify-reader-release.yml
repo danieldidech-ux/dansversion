@@ -1,0 +1,43 @@
+name: Verify live installed-client endpoints
+on:
+  push:
+    branches: ['verify/installed-reader-flows-2026-11-22']
+permissions: {}
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Read production screens
+        run: |
+          python3 - <<'PY'
+          import json, time, urllib.request
+          base = 'https://illinois-filing-tracker.onrender.com'
+          def read(path):
+              with urllib.request.urlopen(base + path, timeout=15) as r:
+                  return r.read().decode()
+          def data(path):
+              return json.loads(read(path))
+          for attempt in range(12):
+              try:
+                  one = data('/v1/committees')
+                  if one.get('next_cursor','').startswith('n:'):
+                      break
+              except OSError:
+                  pass
+              time.sleep(8)
+          else:
+              raise RuntimeError('Updated committee list did not become available')
+          two = data('/v1/committees?after=' + one['next_cursor'])
+          rows = one['committees'] + two['committees']
+          assert len(rows) == len({r['id'] for r in rows}) and len(rows)>100
+          assert data('/healthz')['ok']
+          feed = data('/v1/filings')['filings']
+          assert feed and all('preview_status' in r for r in feed)
+          assert 'A verified summary is unavailable' in read('/share/filing/' + str(feed[0]['seq'])) or 'Checks &amp; Balances' in read('/share/filing/' + str(feed[0]['seq']))
+          assert 'Filing monitor' in read('/')
+          for path, key in [('/v1/directory','groups'),("/v1/hot-races",'races')]:
+              assert data(path)[key]
+          state = data('/v1/status')
+          print('Committee rows', len(rows), 'Feed rows', len(feed), 'Feed stale', state['stale'], 'Last successful check', state['last_success_utc'], 'Unresolved feed gaps', state['unresolved_gaps'])
+          PY
