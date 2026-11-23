@@ -24,27 +24,28 @@ class SummaryLoader:
    db.execute('DELETE FROM summary_previews WHERE identity IN (SELECT identity FROM summary_previews ORDER BY checked DESC LIMIT -1 OFFSET 50000)')
   return payload
  def snapshot(self,filing):
+  with closing(self.store.connect()) as db:
+   return self.snapshot_using(db,filing)
+ def snapshot_using(self,db,filing):
   key=self.key(filing)
   if key is None:
-   with closing(self.store.connect()) as db:
-    row=db.execute('SELECT payload FROM shared_reports WHERE seq=?',(filing['seq'],)).fetchone()
+   row=db.execute('SELECT payload FROM shared_reports WHERE seq=?',(filing['seq'],)).fetchone()
    value=preview(json.loads(row['payload'])) if row else None
    return dict(status='ready' if value is not None else 'unsupported',preview=value)
-  with closing(self.store.connect()) as db:
-   row=db.execute('SELECT checked,payload FROM summary_previews WHERE identity=?',(key,)).fetchone()
-   if row:
-    payload=json.loads(row['payload'])
-    if row['checked']>time.time()-(7*86400 if payload['status']=='ready' else 60):return payload
-   row=db.execute('SELECT payload FROM shared_reports WHERE seq=?',(filing['seq'],)).fetchone()
-   if not row:
-    row=db.execute('SELECT payload FROM report_cache WHERE source_url=? AND expires>? ORDER BY expires DESC LIMIT 1',(filing.get('url'),time.time())).fetchone()
+  row=db.execute('SELECT checked,payload FROM summary_previews WHERE identity=?',(key,)).fetchone()
+  if row:
+   payload=json.loads(row['payload'])
+   if row['checked']>time.time()-(7*86400 if payload['status']=='ready' else 60):return payload
+  row=db.execute('SELECT payload FROM shared_reports WHERE seq=?',(filing['seq'],)).fetchone()
+  if not row:
+   row=db.execute('SELECT payload FROM report_cache WHERE source_url=? AND expires>? ORDER BY expires DESC LIMIT 1',(filing.get('url'),time.time())).fetchone()
   if row:
    value=preview(json.loads(row['payload']))
    if value is not None:return self.save(key,value,'ready')
   return dict(status='loading',preview=None)
- def schedule(self,filing,priority=10):
+ def schedule(self,filing,priority=10,*,known_loading=False):
   key=self.key(filing)
-  if key is None or self.snapshot(filing)['status']!='loading':return False
+  if key is None or (not known_loading and self.snapshot(filing)['status']!='loading'):return False
   with self.lock:
    if key in self.pending or self.tasks.full():return False
    self.counter+=1;self.pending.add(key)

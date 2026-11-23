@@ -28,11 +28,11 @@ def install(app,store,authenticated,reader):
   results=[]
   with closing(store.connect()) as db:
    rows=[lookup_filing(db,seq) for seq in ids]
-  for seq,row in zip(ids,rows):
-   if row is None:results.append(dict(seq=seq,status='unsupported',preview=None));continue
-   filing=dict(row);state=loader.snapshot(filing)
-   if state['status']=='loading':loader.schedule(filing,priority=0)
-   results.append(dict(seq=seq,**state))
+   for seq,row in zip(ids,rows):
+    if row is None:results.append(dict(seq=seq,status='unsupported',preview=None));continue
+    filing=dict(row);state=loader.snapshot_using(db,filing)
+    if state['status']=='loading':loader.schedule(filing,priority=0,known_loading=True)
+    results.append(dict(seq=seq,**state))
   return jsonify(summaries=results)
 
  with closing(store.connect()) as db,db:
@@ -44,11 +44,12 @@ def install(app,store,authenticated,reader):
   data=response.get_json()
   if not isinstance(data,dict) or not isinstance(data.get('filings'),list):return response
   rows=data['filings']
-  for i,row in enumerate(rows):
-   if not isinstance(row,dict) or 'seq' not in row:continue
-   state=loader.snapshot(row)
-   row['preview']=state['preview'];row['preview_status']=state['status']
-   if i<8 and state['status']=='loading' and current_app.config.get('PRELOAD_SUMMARIES',True):loader.schedule(row)
+  with closing(store.connect()) as db:
+   for i,row in enumerate(rows):
+    if not isinstance(row,dict) or 'seq' not in row:continue
+    state=loader.snapshot_using(db,row)
+    row['preview']=state['preview'];row['preview_status']=state['status']
+    if i<8 and state['status']=='loading' and current_app.config.get('PRELOAD_SUMMARIES',True):loader.schedule(row,known_loading=True)
   response.set_data(current_app.json.dumps(data));return response
  @app.post('/v1/me/problems')
  @authenticated

@@ -208,18 +208,19 @@ class History:
  def page(self,key,before=None):
   row=self.state(key)
   with closing(self.store.connect()) as db:
-   records=[dict(json.loads(r['payload']),seq=-r['seq']) for r in db.execute('SELECT seq,payload FROM archive_reports WHERE committee_key=?',(key,))]
-  records.sort(key=lambda r:(r['filed_at'],r['document_id']),reverse=True)
-  # Stable archive record IDs act as cursors through the dated order.
-  offset=0
-  if before is not None:
-   positions=[i for i,r in enumerate(records) if r['seq']==before]
-   if positions:offset=positions[0]+1
-  page=records[offset:offset+50]
-  if not records:
-   with closing(self.store.connect()) as db:page=[dict(r) for r in db.execute('SELECT * FROM filings WHERE committee_key=? ORDER BY seq DESC LIMIT 50',(key,))]
+   # Positive cursors continue the live feed even if an archive arrives mid-page.
+   records=[] if before and before>0 else [dict(json.loads(r['payload']),seq=-r['seq']) for r in db.execute('SELECT seq,payload FROM archive_reports WHERE committee_key=?',(key,))]
+   if records or (before is not None and before<0):
+    records.sort(key=lambda r:(r['filed_at'],r['document_id']),reverse=True)
+    offset=0 if before is None else next((i+1 for i,r in enumerate(records) if r['seq']==before),len(records))
+    page=records[offset:offset+51]
+   else:
+    ceiling=before if before is not None else 2**63-1
+    page=[dict(r) for r in db.execute('SELECT * FROM filings WHERE committee_key=? AND seq<? ORDER BY seq DESC LIMIT 51',(key,ceiling))]
+  more=len(page)>50
+  page=page[:50]
   status=json.loads(row['payload']) if row else dict(status='loading',message='Loading the official report history…')
-  return dict(filings=page,has_more=len(records)>offset+50,next_cursor=page[-1]['seq'] if len(records)>offset+50 else None,history=status)
+  return dict(filings=page,has_more=more,next_cursor=page[-1]['seq'] if more else None,history=status)
  def calculate(self,source,committee,rows,created=None):
   quarters=[r for r in rows if 'd-2 quarterly' in r['report_type'].lower()]
   assumed=False;excluded=[]

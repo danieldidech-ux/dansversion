@@ -98,6 +98,7 @@ class Store:
             db.executescript('''
                 CREATE TABLE IF NOT EXISTS metadata (key TEXT PRIMARY KEY, value TEXT NOT NULL);
                 CREATE TABLE IF NOT EXISTS committees (id TEXT PRIMARY KEY NOT NULL, name TEXT NOT NULL);
+                CREATE INDEX IF NOT EXISTS committees_by_name ON committees(name COLLATE NOCASE,id);
                 CREATE TABLE IF NOT EXISTS filings (
                     seq INTEGER PRIMARY KEY AUTOINCREMENT, guid TEXT UNIQUE NOT NULL,
                     committee_key TEXT NOT NULL, committee_name TEXT NOT NULL,
@@ -360,7 +361,7 @@ def create_app(directory=None, poll=True):
         if not history.schedule(key): return jsonify(error='Unknown committee'),404
         try:
             cursor=int(request.args['before']) if 'before' in request.args else None
-            if cursor is not None and cursor>=0: raise ValueError()
+            if cursor is not None and (cursor == 0 or abs(cursor) > 2**63-1): raise ValueError()
         except ValueError: return jsonify(error='Invalid archive cursor'),400
         return jsonify(history.page(key,cursor))
 
@@ -589,13 +590,26 @@ def create_app(directory=None, poll=True):
     def committees():
         q = request.args.get('q', '')[:100]
         after = request.args.get('after', '')[:64]
+        legacy = bool(after and not after.startswith('n:'))
+        order = 'id' if legacy else 'name COLLATE NOCASE, id'
+        clauses, args = [], []
+        if q.strip():
+            clauses.append('word_prefix_match(name,?)')
+            args.append(q)
         with closing(store.connect()) as db:
+            if legacy:
+                clauses.append('id > ?')
+                args.append(after)
+            elif after:
+                clauses.append('(name COLLATE NOCASE, id) > (SELECT name, id FROM committees WHERE id=?)')
+                args.append(after[2:])
+            where = ' WHERE ' + ' AND '.join(clauses) if clauses else ''
             rows = [dict(r) for r in db.execute(
-                'SELECT id,name FROM committees WHERE word_prefix_match(name,?) AND id>? ORDER BY id LIMIT 101', (q, after))]
+                f'SELECT id,name FROM committees{where} ORDER BY {order} LIMIT 101', args)]
         more = len(rows)>100
         rows = rows[:100]
         return jsonify({'committees': rows, 'has_more': more,
-                        'next_cursor': rows[-1]['id'] if rows else None,
+                        'next_cursor': ('' if legacy else 'n:') + rows[-1]['id'] if rows else None,
                         'coverage': 'Reviewed legislative directory and committees observed in monitored filings; not the complete state directory',
                         'ids_are_official': False, 'categories_available': True})
 
