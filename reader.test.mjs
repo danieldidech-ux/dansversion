@@ -77,3 +77,14 @@ test('expired index falls back to the last successfully verified official rows',
   assert.equal(second.indexStale,true);assert.equal(second.checkedAt,first.checkedAt);
   assert.deepEqual(second.bills,first.bills);
 });
+test('service periods are retrieved only on request and preserve their check time after failure',async()=>{
+  let html='<h1>Member</h1><p>104th General Assembly (2025-2026)</p><div>January 2019 – Present</div><h2>Member Details</h2>';
+  const {reader,calls,advance}=setup(()=>html);
+  assert.equal(calls.length,0);
+  const url='https://www.ilga.gov/House/Members/Details/3347';
+  const record=await reader.service(url);
+  assert.deepEqual(record.periods,['January 2019 – Present']);
+  advance();html='<h2>Member Details</h2>';
+  const stale=await reader.service(url,true);
+  assert.equal(stale.stale,true);assert.equal(stale.retrievedAt,record.retrievedAt);
+});

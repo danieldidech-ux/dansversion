@@ -134,6 +134,23 @@ export function createReader(load, now = Date.now) {
       const result=await read('members','https://www.ilga.gov/'+chamber+'/Members/List',page=>parseMembers(page,chamber),force);
       return {members:result.data,officialUrl:result.officialUrl,retrievedAt:result.retrievedAt,stale:result.stale};
     },
+    async service(value,force=false) {
+      const url = officialUrl(value);
+      if (!/^\/(?:House|Senate)\/Members\/Details\/\d+\/?$/i.test(url.pathname)) throw new Error('Expected an official member profile');
+      const result = await read('service',url.href,page => {
+        const marker = page.html.search(/>\s*Member Details\s*</i);
+        if (marker < 0) throw new Error('Member details unavailable');
+        const header = page.html.slice(0,marker).split(/<h1\b/i).at(-1);
+        const lines = header.replace(/<\/(?:div|p|h[1-6]|li|span|strong)>|<br\s*\/?>/gi,'\n')
+          .split('\n').map(line => clean(line)).filter(Boolean);
+        const periods = lines.filter(line => line.length < 160 &&
+          /\b(?:18|19|20)\d{2}\s*(?:[-–—]|to)\s*(?:present|current|(?:18|19|20)\d{2})\b/i.test(line) &&
+          !/general assembly|copyright/i.test(line));
+        if (!periods.length) throw new Error('Service history could not be verified');
+        return [...new Set(periods)];
+      },force);
+      return {periods:result.data,officialUrl:result.officialUrl,retrievedAt:result.retrievedAt,stale:result.stale};
+    },
     status:()=>({...counters,inflight:pending.size,lastVerified:{...lastVerified}})
   };
 }
