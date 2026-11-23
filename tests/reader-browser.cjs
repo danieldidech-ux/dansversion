@@ -22,14 +22,21 @@ const server=createServer(async(req,res)=>{
       const [file,type]=files[url.pathname];
       res.writeHead(200,{'content-type':type});return res.end(await readFile(resolve(__dirname,'..',file)));
     }
-    const route=url.pathname.replace('/test-api/','');
+    const route=url.pathname.replace('/api/reader/','');
     if (!Object.hasOwn(fixtures,route)){res.writeHead(404);return res.end();}
     requests.push(route);
-    if(live){
-      const upstream=await fetch('http://127.0.0.1:10009/'+route+url.search,{headers:{Authorization:'Bearer '+process.env.ILGA_FEED_TOKEN}});
-      res.writeHead(upstream.status,{'content-type':'application/json'});return res.end(await upstream.text());
-    }
-    res.writeHead(200,{'content-type':'application/json'});res.end(JSON.stringify(fixtures[route]));
+    const {handleReaderRequest}=await import('../web/reader-proxy.mjs');
+    const env={ILGA_FEED_ORIGIN:'https://test-feed.invalid',ILGA_FEED_TOKEN:process.env.ILGA_FEED_TOKEN || 'fixture-only'};
+    const bridged=await handleReaderRequest(new Request(url),env,async(upstream,options)=>{
+      if(live){
+        const response=await fetch('http://127.0.0.1:10009'+upstream.pathname+upstream.search,options);
+        if(!response.ok) console.error('Feed response',route,response.status,await response.clone().text());
+        return response;
+      }
+      return Response.json(fixtures[route]);
+    });
+    res.writeHead(bridged.status,Object.fromEntries(bridged.headers));
+    res.end(await bridged.text());
   } catch(error){res.writeHead(500);res.end(String(error));}
 });
 async function main(){
@@ -53,7 +60,7 @@ async function main(){
           assert.match(await rows.last().innerText(),/SB0?400/);
         }
         assert.deepEqual(requests,[kind==='bill'?'range-index':'members']);
-        const row=rows.nth(kind==='bill'?14:40);
+        const row=rows.nth(kind==='bill'?74:40);
         const links=row.locator('a');
         const selected=links.nth(kind==='bill'?1:0);
         if(kind==='bill')assert.equal(await selected.getAttribute('href'),await links.first().getAttribute('href'));

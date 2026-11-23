@@ -49,7 +49,7 @@ function disclosure(label, load, describe) {
   details.append(summary,result);
   return details;
 }
-function mount(root,{key,title,index,rows,linkFor,request,scrollPane}) {
+function mount(root,{key,title,index,rows,linkFor,request=requestReader,scrollPane}) {
   activePanels.get(root)?.();
   const abort = new AbortController();
   const {signal} = abort;
@@ -141,4 +141,12 @@ export function mountMemberDirectory(root,options) {
     rows:data=>data.members.map(row=>({url:row.url,labels:[row.name],meta:'District '+row.district,
       action:'Service history',route:'member-service',describe:data=>data.periods.join(' · ')}))
   });
+}
+
+export async function requestReader(route,query,signal) {
+  const url = new URL('/api/reader/'+route, location.origin);
+  url.search = new URLSearchParams(query);
+  const response = await fetch(url,{signal});
+  if (!response.ok) throw new Error('Official data unavailable');
+  return response.json();
 }

@@ -6,12 +6,7 @@ if (params.has('detail')) {
   root.textContent='Opened detail';
 } else {
   const options={
-    linkFor:url=>'?detail='+encodeURIComponent(url),
-    request:async(route,query,signal)=>{
-      const response=await fetch('/test-api/'+route+'?'+new URLSearchParams(query),{signal});
-      if (!response.ok) throw Error('Request failed');
-      return response.json();
-    }
+    linkFor:url=>'?detail='+encodeURIComponent(url)
   };
   if (params.has('house')) mountMemberDirectory(root,{...options,chamber:'House',title:'House directory'});
   else mountBillRange(root,{...options,url:'https://ilga.gov/Legislation/RegularSession/SB?DocTypeID=SB&GaId=18&SessionId=114&num1=0301&num2=0400',title:'Senate bills 301–400'});
