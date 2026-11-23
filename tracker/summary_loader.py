@@ -1,5 +1,5 @@
 """Bounded, shared report-preview loading; never blocks a list on the state site."""
-import json, queue, threading, time
+import json, queue, re, threading, time
 from contextlib import closing
 from reports import filing_id, ReportFormatError, parse_a1
 from quarterly import is_quarter, document_id, parse_quarterly
@@ -31,7 +31,11 @@ class SummaryLoader:
   if key is None:
    row=db.execute('SELECT payload FROM shared_reports WHERE seq=?',(filing['seq'],)).fetchone()
    value=preview(json.loads(row['payload'])) if row else None
-   return dict(status='ready' if value is not None else 'unsupported',preview=value)
+   if value is not None:
+    return dict(status='ready',preview=value)
+   label=re.sub('[‐‑–—−]', '-', (filing.get('report_type') or '').strip().upper())
+   expects_preview=bool(re.match(r'^A-1\b',label) or (re.match(r'^D-2\b',label) and 'QUARTERLY' in label and 'FINAL' not in label))
+   return dict(status='unavailable' if expects_preview else 'unsupported',preview=None)
   row=db.execute('SELECT checked,payload FROM summary_previews WHERE identity=?',(key,)).fetchone()
   if row:
    payload=json.loads(row['payload'])

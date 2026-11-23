@@ -13,6 +13,11 @@ class SummaryTests(unittest.TestCase):
   self.filing=dict(seq=123,committee_key='committee-one',committee_name='Example',report_type='A-1',url='https://www.elections.il.gov/CampaignDisclosure/A1List.aspx?FiledDocID=example')
   self.report=dict(status='ready',contributions=[dict(contributor='Example Donor',amount='1000.00')],total='1000.00')
  def tearDown(self):self.tmp.cleanup()
+ def test_unlinked_reports_do_not_leave_native_rows_loading(self):
+  for label in ('A-1','D‑2 QUARTERLY'):
+   self.assertEqual(self.loader.snapshot(dict(self.filing,report_type=label,url=None))['status'],'unavailable')
+  self.assertEqual(self.loader.snapshot(dict(self.filing,report_type='D-1',url=None))['status'],'unsupported')
+
  def test_alias_ids_reuse_verified_summary_and_keep_committees_separate(self):
   with closing(self.store.connect()) as db,db:db.execute('INSERT INTO shared_reports VALUES (?,?)',(123,json.dumps(self.report)))
   self.assertEqual(self.loader.snapshot(self.filing)['preview']['total'],'1000.00')
