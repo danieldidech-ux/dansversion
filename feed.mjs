@@ -124,6 +124,7 @@ const server = createServer(async (req,res) => {
     const url = path.searchParams.get('url'), fresh = path.searchParams.get('refresh') === '1';
     if (path.pathname === '/range-index') return send(res,200,await reader.range(url,fresh));
     if (path.pathname === '/summary') return send(res,200,await reader.summary(url,fresh));
+    if (path.pathname === '/member-service') return send(res,200,await reader.service(url,fresh));
     if (path.pathname === '/members') return send(res,200,await reader.members(path.searchParams.get('chamber'),fresh));
     if (path.pathname === '/range') return send(res,200,await fullRange(url,fresh));
     if (path.pathname === '/status') return send(res,200,{...reader.status(), ...telemetry, queued:queue.length, pageCacheBytes:bytes});

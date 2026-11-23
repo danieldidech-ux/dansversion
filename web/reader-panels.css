@@ -1,0 +1,12 @@
+.dv-reader ul { list-style: none; padding: 0; }
+.dv-reader li { display: grid; grid-template-columns: minmax(5em, auto) 1fr minmax(8em,auto); align-items: baseline; gap: .35rem 1rem; padding: .65rem 0; border-block-end: 1px solid currentColor; }
+.dv-reader a { overflow-wrap: anywhere; }
+.dv-reader summary, .dv-reader button { cursor: pointer; }
+.dv-reader details p { margin: .3rem 0; }
+.dv-reader time { font-size: .9em; }
+.dv-reader :focus-visible { outline: 2px solid currentColor; outline-offset: 3px; }
+@media (max-width: 40rem) {
+  .dv-reader li { display: flex; flex-direction: column; align-items: stretch; }
+  .dv-reader li a, .dv-reader summary { display: block; padding-block: .4rem; }
+  .dv-reader summary { display: list-item; }
+}

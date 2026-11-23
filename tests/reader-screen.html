@@ -1,0 +1,19 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><link rel="stylesheet" href="/web/reader-panels.css"><title>Reader test</title></head><body><main></main><script type="module">
+import {mountBillRange,mountMemberDirectory} from '/web/reader-panels.mjs';
+const root=document.querySelector('main');
+const params=new URLSearchParams(location.search);
+if (params.has('detail')) {
+  root.textContent='Opened detail';
+} else {
+  const options={
+    linkFor:url=>'?detail='+encodeURIComponent(url),
+    request:async(route,query,signal)=>{
+      const response=await fetch('/test-api/'+route+'?'+new URLSearchParams(query),{signal});
+      if (!response.ok) throw Error('Request failed');
+      return response.json();
+    }
+  };
+  if (params.has('house')) mountMemberDirectory(root,{...options,chamber:'House',title:'House directory'});
+  else mountBillRange(root,{...options,url:'https://ilga.gov/Legislation/RegularSession/SB?DocTypeID=SB&GaId=18&SessionId=114&num1=0301&num2=0400',title:'Senate bills 301–400'});
+}
+</script></body></html>

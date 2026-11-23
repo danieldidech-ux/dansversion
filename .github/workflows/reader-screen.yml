@@ -1,0 +1,29 @@
+name: Reader screens
+on:
+  pull_request:
+    paths: ['web/reader-panels.*', 'reader.mjs', 'feed.mjs', 'tests/reader-*', '.github/workflows/reader-screen.yml']
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  screens:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: node --test reader.test.mjs
+      - run: npm install --no-save --no-package-lock playwright@1.56.1
+      - run: npx playwright install --with-deps chromium
+      - name: Phone and desktop navigation
+        run: node tests/reader-browser.cjs
+      - name: Phone and desktop with official ILGA pages
+        run: |
+          export ILGA_FEED_TOKEN="$(openssl rand -hex 32)"
+          PORT=10009 node feed.mjs &
+          feed_pid=$!
+          trap 'kill "$feed_pid" 2>/dev/null || true' EXIT
+          for i in {1..30}; do curl -fsS http://127.0.0.1:10009/health && break; sleep 1; done
+          node tests/reader-browser.cjs --live
