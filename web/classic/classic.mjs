@@ -22,7 +22,12 @@ const rangeLink = (kind,num) => '?' + new URLSearchParams({view:'bills',type:kin
 const mk = (tag,text) => Object.assign(document.createElement(tag),{textContent:text});
 const digits = n=>String(n).padStart(4,'0');
 async function api(route, query) {
-  const response = await fetch(apiBase+route+'?'+new URLSearchParams(query));
+  const url=apiBase+route+'?'+new URLSearchParams(query);
+  let response=await fetch(url);
+  if ([502,503,504].includes(response.status)) {
+    await new Promise(resolve=>setTimeout(resolve,600));
+    response=await fetch(url);
+  }
   if (!response.ok) throw new Error('Official data unavailable');
   return response.json();
 }
