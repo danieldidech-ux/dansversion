@@ -92,6 +92,7 @@ function statuteText(body, original) {
 }
 export async function mountStatutes(root, params) {
   const part=params.get('part') || 'Chapters';
+  root.querySelector('#printStatute').onclick=()=>window.print();
   const nav=root.querySelector('nav'), body=root.querySelector('.statute-body');
   const status=root.querySelector('[role=status]'), h1=root.querySelector('h1');
   function crumb(name,href) { nav.append(' / ',link(name,href)); }
@@ -127,12 +128,13 @@ export async function mountStatutes(root, params) {
         officialTitle || params.get('ActName') || 'Act contents';
       document.title=h1.textContent+' · Dan’s Version';
       const content=document.createDocumentFragment();
-      if (part==='Chapters') content.append(element('p','Browse by chapter, then select an act.'));
+      if (part==='Chapters') content.append(element('p','Information maintained by the Legislative Reference Bureau'));
       const entries=directory(content,doc,part,data.officialUrl);
       const original=doc.querySelector('#billtextanchor');
       if (original && clean(original.textContent)) statuteText(content,original);
       else if (!entries) throw Error('Official content missing');
-      const info=element('p','See ILGA’s ');
+      const info=element('p','The ILCS database may show changes before their effective dates. Recent Public Acts may also be awaiting inclusion. See ILGA’s ');
+      info.id='ilcs-database-note';
       info.className='notes';
       info.append(link('guide to the statutes','https://www.ilga.gov/Legislation/ILCS/Guide'),' for information about updates and effective dates.');
       body.replaceChildren(content,info);

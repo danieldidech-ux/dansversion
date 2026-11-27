@@ -7,7 +7,9 @@
 .rangeNav{display:flex;gap:20px}.list td{vertical-align:top}.list details{max-width:25rem}.list details p{margin:4px 0}.list summary{cursor:pointer;color:navy;text-decoration:underline}.list time{display:block;font-size:.82rem}.toolbar select,.toolbar button,.toolbar input{font:inherit}#first{width:6em}#home:target{scroll-margin-top:2px}
 @media(max-width:670px){.page .list{table-layout:fixed}.list td,.list th{padding:6px 3px;overflow-wrap:anywhere}.list td:first-child{white-space:normal}#bills th:first-child{width:22%}#bills th:last-child{width:26%}#members th:first-child{width:35%}#members th:nth-child(2){width:17%}#members th:nth-child(3){width:15%}.page .toolbar{gap:6px}.toolbar input{max-width:100%}}
 
-.crumbs{display:flex;flex-wrap:wrap;gap:.35em;margin-bottom:1em}.statute-body{max-width:58em}.statute-body h2{font-size:1.05rem}.statute-index{list-style:none;padding:0;margin:.25em 0 1.1em}.statute-index a{display:inline-block;padding:.2em 0}.statute-text{max-width:76ch;font:1rem/1.45 "Courier New",monospace;overflow-wrap:anywhere}.statute-text table{border-collapse:collapse;width:100%;font:inherit}.statute-text td{padding:0;vertical-align:top}.statute-text table table{margin:.2em 0}.statute-text p{margin:.35em 0}.statute-text code{font:inherit}.statute-text [id]{scroll-margin-top:1em}.statute-toc{margin:1em 0}.statute-toc summary{color:navy;cursor:pointer}.statute-body section{margin:0 0 1em}.statute-text>*{max-width:100%}
+.statute-tools{display:flex;align-items:center;flex-wrap:wrap;margin:.55em 0;font-size:.94rem}.statute-tools>*+*{border-left:1px solid #aaa;padding-left:.55em;margin-left:.55em}.statute-tools button{background:none;border-block:0;border-right:0;font:inherit;color:navy;text-decoration:underline;cursor:pointer}.crumbs{display:flex;flex-wrap:wrap;gap:.35em;margin-bottom:1em}.statute-body{max-width:58em}.statute-body h2{font-size:1.05rem}.statute-index{list-style:none;padding:0;margin:.25em 0 1.1em}.statute-index a{display:inline-block;padding:.2em 0}.statute-text{max-width:76ch;font:1rem/1.45 "Courier New",monospace;overflow-wrap:anywhere}.statute-text table{border-collapse:collapse;width:100%;font:inherit}.statute-text td{padding:0;vertical-align:top}.statute-text table table{margin:.2em 0}.statute-text p{margin:.35em 0}.statute-text code{font:inherit}.statute-text [id]{scroll-margin-top:1em}.statute-toc{margin:1em 0}.statute-toc summary{color:navy;cursor:pointer}.statute-body section{margin:0 0 1em}.statute-text>*{max-width:100%}
+
+@media print{body:has(#statutes:not([hidden])) :is(aside,.nav,.mast,.crumbs,.statute-tools,footer,.statute-toc){display:none}body:has(#statutes:not([hidden])) .layout{display:block;margin:0;max-width:none}body:has(#statutes:not([hidden])) main{padding:0}.statute-text{max-width:none}}
 </style></head><body>
 <header class="mast"><img src="./mast.png" alt="Illinois General Assembly"><em>Dan’s Version</em></header>
 <nav class="nav" aria-label="Main navigation"><a href="./#home">Home</a><a href="./#legislation">Legislation &amp; Laws</a><a href="./#senate">Senate</a><a href="./#house">House</a><a href="https://dansversion.com/workspace/">My Workspace</a><a href="./#resources">Resources</a></nav>
@@ -21,6 +23,13 @@
 <section class="page" id="statutes" hidden>
 <nav class="crumbs" aria-label="Statute navigation"><a href="./#home">Home</a></nav>
 <h1>Illinois Compiled Statutes</h1>
+<nav class="statute-tools" aria-label="Statute tools">
+<a href="https://www.ilga.gov/Legislation/PublicActs">Public Acts</a>
+<a href="https://www.ilga.gov/Search">Search ILGA</a>
+<a href="https://www.ilga.gov/Legislation/ILCS/Guide">Guide</a>
+<a href="#ilcs-database-note">Database note</a>
+<button type="button" id="printStatute">Print</button>
+</nav>
 <p class="notes" role="status">Checking ILGA…</p><div class="statute-body"></div>
 </section></main></div>
 <footer>Dan’s Version · Independent legislative reader. Bill and member links open the official ILGA record. <a href="https://dansversion.com/workspace/">Dan’s Version workspace</a></footer>
