@@ -29,7 +29,7 @@ if not bands: raise RuntimeError('Cannot locate the navy navigation in the refer
 top=bands[0][0]; bottom=bands[0][-1]+1
 xs=np.where(nav[top:bottom].sum(axis=0)>(bottom-top)*0.4)[0]
 left,right=int(xs[0]),int(xs[-1])
-width=right-left; height=round(width*.069)
+width=right-left; height=round(width*.064)
 print("Reference dimensions",im.size,"navigation",left,int(top),right,int(bottom),flush=True)
 im.save(OUT/'Original-ILGA-reference.jpg',quality=90)
 mast=im.crop((left,max(0,top-height),left+round(width*.62),top))
