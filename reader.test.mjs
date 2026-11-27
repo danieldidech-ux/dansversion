@@ -88,3 +88,28 @@ test('service periods are retrieved only on request and preserve their check tim
   const stale=await reader.service(url,true);
   assert.equal(stale.stale,true);assert.equal(stale.retrievedAt,record.retrievedAt);
 });
+
+test('bill colors follow dated actions, substantive assignments and terminal outcomes',async()=>{
+  const check=async(actions,expected,type='SB')=>{
+    const html=summary()+ '<table>'+actions.map(([chamber,text],i)=>'<tr><td>5/'+(i+1)+'/2026</td><td>'+chamber+'</td><td>'+text+'</td></tr>').join('')+'</table>';
+    const {reader}=setup(()=>html);
+    const result=(await reader.summary(bill(301).replace('DocTypeID=SB','DocTypeID='+type))).summary;
+    assert.equal(result.billStatus,expected,JSON.stringify(actions));
+    return result;
+  };
+  await check([['Senate','Referred to Assignments']],'');
+  await check([['Senate','Assigned to Executive']],'committee');
+  await check([['Senate','Assigned to Executive'],['Senate','Rule 3-9(a) / Re-referred to Assignments']],'');
+  await check([['Senate','Assigned to Executive'],['Senate','Do Pass Executive; 010-000-000']],'');
+  await check([['Senate','Assigned to Executive'],['Senate','Floor Amendment No. 1 Referred to Assignments']],'committee');
+  assert.equal((await check([['House','Arrive in House']],'both')).bothChambers,true);
+  await check([['Senate','Arrive in Senate']],'both','HB');
+  await check([['House','Arrive in House'],['House','Assigned to Judiciary - Civil Committee']],'committee');
+  await check([['Senate','Passed Both Houses']],'passed');
+  await check([['Senate','Sent to the Governor']],'passed');
+  await check([['Senate','Passed Both Houses'],['Senate','Governor Approved'],['Senate','Public Act 104-0001']],'signed');
+  await check([['Senate','Passed Both Houses'],['Senate','Governor Vetoed']],'vetoed');
+  await check([['Senate','Governor Amendatory Veto']],'vetoed');
+  const result=await check([['Senate','Governor Vetoed'],['Senate','Total Veto Stands'],['Senate','Public Act 104-0001']],'vetoed');
+  assert.equal(result.governorSigned,false);
+});

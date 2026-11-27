@@ -1,3 +1,4 @@
+import {paintBill,enrichBills,legend} from './bill-rows.mjs';
 import {apiBase} from './api-url.mjs';
 import {timestamp} from './reader-panels.mjs';
 
@@ -32,6 +33,8 @@ function cellContents(out,source,base) {
 }
 function copyTable(source,base,{directory=false}={}) {
   const table=document.createElement('table');
+  const bills=[];
+  const sponsorColumn=[...source.rows[0]?.cells||[]].findIndex(cell=>/sponsor/i.test(cell.textContent));
   for (const row of source.rows) {
     const out=table.insertRow();
     for (const cell of row.cells) {
@@ -39,6 +42,16 @@ function copyTable(source,base,{directory=false}={}) {
       if (cell.colSpan>1) td.colSpan=cell.colSpan;
       cellContents(td,cell,base);
       out.append(td);
+    }
+    const billLink=[...out.querySelectorAll('a')].find(a=>new URL(a.href).pathname.toLowerCase().replace(/\/$/,'')==='/legislation/billstatus');
+    if (billLink) {
+      const p=Object.fromEntries([...new URL(billLink.href).searchParams].map(([k,v])=>[k.toLowerCase(),v]));
+      if(p.doctypeid && p.docnum && (!p.gaid || p.gaid==='18')) {
+        const item={number:p.doctypeid.toUpperCase()+String(Number(p.docnum)).padStart(4,'0')};
+        out.dataset.bill=item.number;
+        const cell=sponsorColumn>=0?out.cells[sponsorColumn]:out.insertCell();
+        cell.className='bill-sponsors';paintBill(out,item);bills.push(item);
+      }
     }
     if (directory && out.cells.length>=4) {
       const url=official(row.cells[0].querySelector('a')?.getAttribute('href'),base);
@@ -52,6 +65,12 @@ function copyTable(source,base,{directory=false}={}) {
     }
   }
   const wrap=node('div');wrap.className='table-scroll';wrap.append(table);
+  if(bills.length) {
+    if(sponsorColumn<0 && table.rows[0]?.querySelector('th')) table.rows[0].append(node('th','Sponsors'));
+    wrap.prepend(legend());
+    // Start after insertion so every bill row can be updated in place.
+    queueMicrotask(()=>void enrichBills(bills,table));
+  }
   return wrap;
 }
 function tables(doc) {return [...doc.querySelectorAll('table')].filter(t=>t.rows.length);}

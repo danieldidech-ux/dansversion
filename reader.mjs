@@ -56,7 +56,26 @@ function parseSummary(page,url) {
   const primarySponsor = type.startsWith('H') ? houseSponsor : senateSponsor;
   const otherChamberSponsor = type.startsWith('H') ? senateSponsor : houseSponsor;
   const sponsorStatus = primarySponsor ? 'verified' : /^(EO|AM)$/.test(type) ? 'not-applicable' : 'unavailable';
-  return {subject,senateSponsor,houseSponsor,primarySponsor,otherChamberSponsor,sponsorStatus,complete:sponsorStatus !== 'unavailable'};
+  const actions = [...page.html.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)].map(row =>
+    [...row[1].matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/gi)].map(cell=>clean(cell[1])))
+    .filter(cells=>/^\d{1,2}\/\d{1,2}\/\d{4}$/.test(cells[0]) && /^(House|Senate)$/.test(cells[1]));
+  const actionTexts=actions.map(cells=>cells.slice(2).join(' '));
+  const governorSigned=actionTexts.some(text=>/^Governor Approved\b/i.test(text));
+  const vetoed=actionTexts.some(text=>/^(?:Governor )?(?:Vetoed|Total Veto|Item Veto|Amendatory Veto)\b/i.test(text));
+  const passedBoth=actionTexts.some(text=>/^(?:Passed Both Houses|Sent to the Governor)\b/i.test(text));
+  const opposite=type.startsWith('H')?'Senate':'House';
+  const bothChambers=!!otherChamberSponsor || passedBoth || governorSigned || vetoed || actions.some(cells=>cells[1]===opposite);
+  let committeeAssigned=false;
+  for (const cells of [...actions].sort((a,b)=>Date.parse(a[0])-Date.parse(b[0]))) {
+    const text=cells.slice(2).join(' ');
+    // Amendment referrals do not move the underlying bill.
+    if (/Amendment|Added|Removed.*Sponsor/i.test(text)) continue;
+    if (/(?:Assigned|Re-assigned|Referred|Re-referred) to /i.test(text)) {
+      committeeAssigned=!/\b(?:Rules|Assignments)\b/i.test(text);
+    } else if (/^(?:Do Pass|Be Adopted|Placed on Calendar|Second Reading|Third Reading|Arrive in|Passed Both|Sent to the Governor|Governor|Tabled|Session Sine Die)/i.test(text)) committeeAssigned=false;
+  }
+  const billStatus=governorSigned?'signed':vetoed?'vetoed':passedBoth?'passed':committeeAssigned?'committee':bothChambers?'both':'';
+  return {billStatus,bothChambers,governorSigned,vetoed,passedBoth,subject,senateSponsor,houseSponsor,primarySponsor,otherChamberSponsor,sponsorStatus,complete:sponsorStatus !== 'unavailable'};
 }
 function parseMembers(page, chamber) {
   const members = new Map();

@@ -3,7 +3,7 @@ import {resolve} from 'node:path';
 
 const target=resolve('dist-ogilga');
 await mkdir(target,{recursive:true});
-for (const file of ['index.html','mast.png','classic.mjs','chambers.mjs','statutes.mjs']) {
+for (const file of ['index.html','mast.png','classic.mjs','bill-rows.mjs','chambers.mjs','statutes.mjs']) {
   await copyFile(new URL(file,import.meta.url),resolve(target,file));
 }
 await copyFile(new URL('../reader-panels.mjs',import.meta.url),resolve(target,'reader-panels.mjs'));
