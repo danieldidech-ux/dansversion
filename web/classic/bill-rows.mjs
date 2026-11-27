@@ -15,7 +15,13 @@ export function paintBill(row,item) {
   const type=item.number.match(/^[A-Z]+/)[0];
   for(const [i,chamber] of (type.startsWith('H')?['House','Senate']:['Senate','House']).entries()) {
     const name=summary[chamber.toLowerCase()+'Sponsor'];
-    if(name) cell.append(mk('div',chamber+': '+name));
+    if(name) {
+      const line=mk('div','');
+      line.setAttribute('aria-label',chamber+' sponsor: '+name);
+      line.title=chamber+' sponsor';
+      line.append(mk(i===1?'em':'span',name));
+      cell.append(line);
+    }
     else if(i===1 && summary.bothChambers) cell.append(mk('div','No '+chamber+' sponsor'));
   }
 }
