@@ -1,0 +1,9 @@
+services:
+  - type: web
+    name: ogilga
+    runtime: static
+    branch: main
+    buildCommand: PUBLIC_FEED_ORIGIN=https://dansversion-legislative-feed.onrender.com node web/classic/build-static.mjs
+    staticPublishPath: ./dist-ogilga
+    domains:
+      - ogilga.net

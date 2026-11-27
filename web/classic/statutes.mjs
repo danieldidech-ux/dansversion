@@ -1,3 +1,4 @@
+import {apiBase} from './api-url.mjs';
 import {timestamp} from './reader-panels.mjs';
 
 const parts = new Map([['chapters','Chapters'],['acts','Acts'],['articles','Articles'],['details','details']]);
@@ -116,7 +117,7 @@ export async function mountStatutes(root, params) {
   async function load() {
     status.textContent='Checking ILGA…';
     try {
-      const response=await fetch('./api/statutes?'+params);
+      const response=await fetch(apiBase+'statutes?'+params);
       if (!response.ok) throw Error('Upstream unavailable');
       const data=await response.json();
       const template=document.createElement('template');
@@ -126,7 +127,7 @@ export async function mountStatutes(root, params) {
       h1.textContent=part==='Chapters'?'Illinois Compiled Statutes':part==='Acts'?
         [params.get('ChapterNumber') && 'Chapter '+params.get('ChapterNumber'),chapter].filter(Boolean).join(' · '):
         officialTitle || params.get('ActName') || 'Act contents';
-      document.title=h1.textContent+' · Dan’s Version';
+      document.title=h1.textContent+' · OGILGA';
       const content=document.createDocumentFragment();
       if (part==='Chapters') content.append(element('p','Information maintained by the Legislative Reference Bureau'));
       const entries=directory(content,doc,part,data.officialUrl);
