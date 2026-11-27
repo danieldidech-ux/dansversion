@@ -24,7 +24,7 @@ async function main() {
           assert.equal(n,100);
           assert.equal(await rows.first().locator('a').first().innerText(),'SB0301');
           assert.equal(await rows.last().locator('a').first().innerText(),'SB0400');
-          assert.equal(await rows.evaluateAll(rs=>rs.every(row=>row.querySelectorAll('a').length===2 && row.querySelectorAll('a')[0].href===row.querySelectorAll('a')[1].href)),true);
+          assert.equal(await rows.evaluateAll(rs=>rs.every(row=>row.querySelectorAll('td:nth-child(-n+2) a').length===2 && row.querySelectorAll('a')[0].href===row.querySelectorAll('a')[1].href)),true);
         } else {
           assert.ok(n>100);
           await section.locator('#sort').selectOption({label:'District'});
@@ -38,6 +38,12 @@ async function main() {
           assert.equal(await chosen.locator('details').count(),0);
           assert.match(await chosen.locator('.bill-sponsors > div').first().innerText(),/Mary Edly-Allen/);
           assert.equal(await chosen.locator('.bill-sponsors em').innerText(),'Daniel Didech');
+          const sponsor=chosen.locator('.bill-sponsors a').filter({hasText:'Daniel Didech'});
+          assert.match(await sponsor.getAttribute('href'),/view=profile&chamber=House&id=\d+/);
+          await sponsor.click();
+          await page.locator('#chamberPage h1').filter({hasText:'Daniel Didech'}).waitFor({timeout:65000});
+          await page.goBack();
+          await chosen.locator('.bill-sponsors em').waitFor({timeout:65000});
           assert.doesNotMatch(await chosen.locator('.bill-sponsors').innerText(),/Senate:|House:/);
           assert.equal(await chosen.getAttribute('class'),'bill-signed');
           assert.equal(await chosen.evaluate(row=>getComputedStyle(row).backgroundColor),'rgb(247, 237, 187)');

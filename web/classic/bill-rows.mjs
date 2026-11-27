@@ -19,7 +19,14 @@ export function paintBill(row,item) {
       const line=mk('div','');
       line.setAttribute('aria-label',chamber+' sponsor: '+name);
       line.title=chamber+' sponsor';
-      line.append(mk(i===1?'em':'span',name));
+      const text=mk(i===1?'em':'span',name);
+      const id=summary[chamber.toLowerCase()+'SponsorId'];
+      if (/^\d+$/.test(id||'')) {
+        const a=mk('a','');
+        a.href='?'+new URLSearchParams({view:'profile',chamber,id});
+        a.dataset.place=item.number+'-'+chamber+'-sponsor';
+        a.append(text);line.append(a);
+      } else line.append(text);
       cell.append(line);
     }
     else if(i===1 && summary.bothChambers) cell.append(mk('div','No '+chamber+' sponsor'));
@@ -31,7 +38,7 @@ export async function enrichBills(items,root) {
   await Promise.all(Array.from({length:3},async()=>{
     while(cursor<items.length) {
       const item=items[cursor++], type=item.number.match(/^[A-Z]+/)[0], number=Number(item.number.slice(type.length));
-      if(!item.summary || item.stale || !('billStatus' in item.summary)) {
+      if(!item.summary || item.stale || !('houseSponsorId' in item.summary)) {
         try {
           let task=saved.get(item.number);
           if(!task) {
