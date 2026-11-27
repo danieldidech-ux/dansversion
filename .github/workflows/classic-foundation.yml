@@ -29,7 +29,7 @@ jobs:
           PUBLISHED: ${{ inputs.published || github.ref == 'refs/heads/verify/ogilga-release' }}
         run: |
           if [ "$PUBLISHED" = true ]; then
-            export CLASSIC_ORIGIN="${OGILGA_PUBLIC_ORIGIN:-https://dansversion-legislative-feed.onrender.com/classic/}"
+            export CLASSIC_ORIGIN="${OGILGA_PUBLIC_ORIGIN:-https://ogilga.onrender.com/}"
           else
             export ILGA_FEED_TOKEN="$(openssl rand -hex 32)"
             PORT=10009 node feed.mjs &
@@ -40,3 +40,10 @@ jobs:
           node tests/classic-browser.cjs
           node tests/statutes-browser.cjs
           node tests/chambers-browser.cjs
+      - name: Check custom domain
+        run: |
+          node --input-type=module - <<'JS'
+          import dns from 'node:dns/promises';
+          try { console.log('Domain nameservers',await dns.resolveNs('ogilga.net')); } catch(e) { console.log('DNS',e.code); }
+          try { const r=await fetch('https://ogilga.net/',{signal:AbortSignal.timeout(12000)}); console.log('Domain response',r.status,r.url,(await r.text()).includes('class="wordmark">OGILGA')); } catch(e) { console.log('Custom HTTPS',e.cause?.code||e.message); }
+          JS

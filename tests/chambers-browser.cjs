@@ -35,7 +35,12 @@ const base=process.env.CLASSIC_ORIGIN||'http://127.0.0.1:10009/classic/';
         const values=await page.locator('.tenure-value').allTextContents();
         const months=values.map(v=>v==='Unavailable'?-1:Number(/(\d+) yr/.exec(v)?.[1]||0)*12+Number(/(\d+) mo/.exec(v)?.[1]||0));
         const missing=await list.evaluateAll(rs=>rs.filter(r=>r.querySelector('.tenure-value')?.textContent==='Unavailable').map(r=>r.querySelector('a').getAttribute('href')));
-        console.log(chamber,'missing service dates',missing.length);
+        console.log(chamber,'missing service dates',missing);
+        for(const path of missing) {
+          const u=new URL(path,base);
+          const res=await fetch('https://dansversion-legislative-feed.onrender.com/classic/api/chamber?'+u.searchParams);
+          if(res.ok){const data=await res.json();const pos=data.markup.indexOf('member-photo-col');console.log('Profile service field',path,data.markup.slice(pos,pos+1000).replace(/<[^>]+>/g,' ').replace(/\s+/g,' ').slice(0,300));}
+        }
         assert.ok(months.filter(n=>n>=0).length>names.length*.9);
         assert.deepEqual(months,[...months].sort((a,b)=>b-a));
         await page.locator('#sort').selectOption('Alphabetical');
