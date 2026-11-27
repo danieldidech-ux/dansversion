@@ -34,6 +34,16 @@ const base=process.env.CLASSIC_ORIGIN||'http://127.0.0.1:10009/classic/';
         await page.locator('.tenure-value').first().waitFor({timeout:220000});
         const values=await page.locator('.tenure-value').allTextContents();
         const months=values.map(v=>v==='Unavailable'?-1:Number(/(\d+) yr/.exec(v)?.[1]||0)*12+Number(/(\d+) mo/.exec(v)?.[1]||0));
+        const missing=await list.evaluateAll(rs=>rs.filter(r=>r.querySelector('.tenure-value')?.textContent==='Unavailable').map(r=>r.querySelector('a').getAttribute('href')));
+        console.log(chamber,'missing service dates',missing.length);
+        for (const href of missing.slice(0,8)) {
+          const u=new URL(href,base);
+          u.searchParams.set('primary','1');
+          const res=await fetch(base+'api/chamber?'+u.searchParams);
+          const data=res.ok?await res.json():{};
+          const photo=data.markup?.indexOf('member-photo')??-1;
+          console.log('Missing service',href,res.status,photo>=0?data.markup.slice(photo,photo+650).replace(/<[^>]+>/g,' ').replace(/\s+/g,' '):'No photo');
+        }
         assert.ok(months.filter(n=>n>=0).length>names.length*.9);
         assert.deepEqual(months,[...months].sort((a,b)=>b-a));
         await page.locator('#sort').selectOption('Alphabetical');

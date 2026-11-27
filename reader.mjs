@@ -85,7 +85,7 @@ export function createReader(load, now = Date.now) {
     if (pending.has(key)) { counters.coalesced++; return pending.get(key); }
     const fetchValue = async () => {
       try {
-        const page=await load(url,force);
+        const page=await load(kind==='service'?new URL('?Primary=True',url).href:url,force);
         const data=parse(page);
         if (kind === 'summary' && !data.complete && old?.data.complete) {
           old.stale = true;
@@ -140,12 +140,13 @@ export function createReader(load, now = Date.now) {
       const result = await read('service',url.href,page => {
         const marker = page.html.search(/>\s*Member Details\s*</i);
         if (marker < 0) throw new Error('Member details unavailable');
-        const header = page.html.slice(0,marker).split(/<h1\b/i).at(-1);
-        const lines = header.replace(/<\/(?:div|p|h[1-6]|li|span|strong)>|<br\s*\/?>/gi,'\n')
-          .split('\n').map(line => clean(line)).filter(Boolean);
-        const periods = lines.filter(line => line.length < 160 &&
-          /\b(?:18|19|20)\d{2}\s*(?:[-–—]|to)\s*(?:present|current|(?:[A-Za-z]{3,9}\.?\s+)?(?:18|19|20)\d{2})\b/i.test(line) &&
-          !/general assembly|copyright/i.test(line));
+        const header=page.html.slice(0,marker);
+        const photo=header.lastIndexOf('member-photo');
+        const identity=photo>=0 ? header.slice(photo) : header.split(/<h1\b/i).at(-1);
+        const lines=identity.replace(/<\/(?:div|p|h[1-6]|li|span|strong)>|<br\s*\/?>/gi,'\n')
+          .split('\n').map(line=>clean(line)).filter(Boolean);
+        const periods=lines.filter(line=>line.length<240 && /\b(?:18|19|20)\d{2}\b/.test(line) &&
+          /[-–—]|\bto\b/i.test(line) && !/general assembly|copyright/i.test(line));
         if (!periods.length) throw new Error('Service history could not be verified');
         return [...new Set(periods)];
       },force);
