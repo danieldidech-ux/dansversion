@@ -1,0 +1,62 @@
+const assert = require('node:assert/strict');
+const {chromium,devices} = require('playwright');
+const base = process.env.CLASSIC_ORIGIN || 'http://127.0.0.1:10009/classic/';
+async function main() {
+  const browser = await chromium.launch();
+  try {
+    for (const [name, device] of [['phone',devices['Pixel 7']],['desktop',{viewport:{width:1440,height:900}}]]) {
+      const page = await browser.newPage(device);
+      const requests=[], errors=[];
+      page.on('request',r=>{if(r.url().includes('/classic/api/')) requests.push(new URL(r.url()).pathname.split('/').pop());});
+      page.on('pageerror',e=>errors.push(e.message));
+      for (const bill of [true,false]) {
+        requests.length = 0;
+        await page.goto(base);
+        assert.ok(await page.locator('.mast img').evaluate(img=>img.complete && img.naturalWidth>0));
+        await page.locator(bill?'#legislation a':'#house a').first().click();
+        const section=page.locator(bill?'#bills':'#members');
+        const rows=section.locator('tbody tr');
+        await rows.first().waitFor({timeout:65000});
+        assert.deepEqual(requests,[bill?'range':'members']);
+        const n=await rows.count();
+        if(bill) {
+          assert.equal(n,100);
+          assert.equal(await rows.first().locator('a').first().innerText(),'SB0301');
+          assert.equal(await rows.last().locator('a').first().innerText(),'SB0400');
+          assert.equal(await rows.evaluateAll(rs=>rs.every(row=>row.querySelectorAll('a').length===2 && row.querySelectorAll('a')[0].href===row.querySelectorAll('a')[1].href)),true);
+        } else {
+          assert.ok(n>100);
+          await section.locator('#sort').selectOption({label:'District'});
+          assert.equal(await rows.first().locator('td').nth(1).innerText(),'1');
+        }
+        assert.ok(await section.locator('[role=status] time').getAttribute('datetime'));
+        const chosen=bill?rows.filter({hasText:'SB0315'}):rows.filter({hasText:'Didech'});
+        assert.equal(await chosen.count(),1);
+        const detail=chosen.locator('details');
+        await detail.locator('summary').click();
+        await detail.locator('time').waitFor({timeout:65000});
+        assert.ok(await detail.locator('p').innerText());
+        assert.deepEqual(requests,[bill?'range':'members',bill?'sponsors':'service']);
+        const target=rows.nth(74).locator('a').nth(bill?1:0);
+        await target.scrollIntoViewIfNeeded();
+        const href=await target.getAttribute('href'), label=await target.innerText();
+        assert.match(href,bill?/\/Legislation\/BillStatus/i:/\/House\/Members\/Details/i);
+        const top=await page.evaluate(()=>scrollY);
+        assert.ok(top>0);
+        // Isolate browser history from third-party navigation and redirect timing.
+        await page.route(href,route=>route.fulfill({contentType:'text/html',body:'<title>Official record</title>'}));
+        await target.click();
+        await page.waitForURL(href);
+        await page.goBack();
+        await page.waitForFunction(label=>document.activeElement?.textContent===label,label);
+        assert.ok(Math.abs(await page.evaluate(()=>scrollY)-top)<10);
+        if (!bill) assert.equal(await page.locator('#sort').inputValue(),'District');
+        assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+        assert.deepEqual(errors,[]);
+        console.log(name,bill?'SB 301–400':'House directory',n,'rows; live data, disclosure, timestamp and Back passed');
+      }
+      await page.close();
+    }
+  } finally {await browser.close();}
+}
+main().catch(e=>{console.error(e);process.exitCode=1;});

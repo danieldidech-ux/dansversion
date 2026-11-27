@@ -1,0 +1,34 @@
+name: Build classic design proof
+on:
+  push:
+    branches: ['design/classic-ilga']
+    paths: ['web/classic/**', '.github/workflows/classic-proof.yml']
+permissions:
+  contents: write
+jobs:
+  proof:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - run: python -m pip install pymupdf pillow numpy
+      - run: npm install --no-save --no-package-lock playwright@1.56.1 && npx playwright install --only-shell chromium
+      - name: Build and check the proof
+        run: |
+          export ILGA_FEED_TOKEN="$(openssl rand -hex 32)"
+          PORT=10009 node feed.mjs &
+          feed_pid=$!
+          trap 'kill "$feed_pid" 2>/dev/null || true' EXIT
+          for i in {1..20}; do curl -fsS http://127.0.0.1:10009/health && break; sleep 1; done
+          python web/classic/build.py
+          node web/classic/check.cjs
+      - name: Save tested design to its review branch
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add classic-proof
+          git diff --cached --quiet || git commit -m "Save verified classic design proof"
+          git push origin HEAD:design/classic-ilga

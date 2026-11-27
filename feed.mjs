@@ -1,3 +1,4 @@
+import { serveClassic } from './web/classic/serve.mjs';
 import { createReader, officialUrl } from './reader.mjs';
 import { createServer } from 'node:http';
 import { readFileSync } from 'node:fs';
@@ -116,6 +117,13 @@ async function fullRange(url, force) {
 const send = (res,status,value) => { res.writeHead(status, {'content-type':'application/json','cache-control':'no-store'}); res.end(JSON.stringify(value)); };
 const server = createServer(async (req,res) => {
   const path = new URL(req.url, 'http://localhost');
+  const host = (req.headers.host || '').split(':')[0].toLowerCase();
+  if (['ogilga.net','www.ogilga.net'].includes(host) && !path.pathname.startsWith('/classic')) {
+    // The custom domain serves the public reader from its homepage.
+    path.pathname = '/classic' + path.pathname;
+    return serveClassic(req,res,path,reader);
+  }
+  if (path.pathname === '/classic' || path.pathname.startsWith('/classic/')) return serveClassic(req,res,path,reader);
   if (req.method === 'GET' && ['/','/health'].includes(path.pathname)) return send(res,200,{status:'ok'});
   const supplied = Buffer.from(req.headers.authorization || ''), expected = Buffer.from(`Bearer ${token}`);
   if (supplied.length !== expected.length || !timingSafeEqual(supplied,expected)) return send(res,401,{error:'Unauthorized'});
