@@ -121,9 +121,9 @@ const server = createServer(async (req,res) => {
   if (['ogilga.net','www.ogilga.net'].includes(host) && !path.pathname.startsWith('/classic')) {
     // The custom domain serves the public reader from its homepage.
     path.pathname = '/classic' + path.pathname;
-    return serveClassic(req,res,path,reader);
+    return serveClassic(req,res,path,reader,page);
   }
-  if (path.pathname === '/classic' || path.pathname.startsWith('/classic/')) return serveClassic(req,res,path,reader);
+  if (path.pathname === '/classic' || path.pathname.startsWith('/classic/')) return serveClassic(req,res,path,reader,page);
   if (req.method === 'GET' && ['/','/health'].includes(path.pathname)) return send(res,200,{status:'ok'});
   const supplied = Buffer.from(req.headers.authorization || ''), expected = Buffer.from(`Bearer ${token}`);
   if (supplied.length !== expected.length || !timingSafeEqual(supplied,expected)) return send(res,401,{error:'Unauthorized'});

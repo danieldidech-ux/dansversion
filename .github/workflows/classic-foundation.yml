@@ -1,7 +1,7 @@
 name: Test classic reader
 on:
   pull_request:
-    paths: ['feed.mjs','web/classic/**','web/reader-panels.mjs','reader.mjs','tests/classic-browser.cjs','.github/workflows/classic-foundation.yml']
+    paths: ['feed.mjs','web/classic/**','web/reader-panels.mjs','reader.mjs','tests/classic-browser.cjs','tests/statutes-browser.cjs','.github/workflows/classic-foundation.yml']
   workflow_dispatch:
     inputs:
       published:
@@ -35,3 +35,4 @@ jobs:
             for i in {1..20}; do curl -fsS http://127.0.0.1:10009/health && break; sleep 1; done
           fi
           node tests/classic-browser.cjs
+          node tests/statutes-browser.cjs
