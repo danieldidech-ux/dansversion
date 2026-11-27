@@ -13,48 +13,27 @@ OUT=Path("classic-proof")
 OUT.mkdir(exist_ok=True)
 source='https://ilaging.illinois.gov/content/dam/soi/en/web/aging/programs/ltcombudsman/documents/illinois-legislative-update-march-2024-for-resident-and-family-support-council.pdf'
 document=fitz.open(stream=urlopen(source,timeout=60).read(),filetype='pdf')
-# Match the wide burgundy masthead by color and geometry; the state has served
-# different paginations of this training PDF at the same URL.
-from PIL import Image, ImageDraw
+# Page 10 is the browser screenshot showing the old home screen with bill search.
+from PIL import Image
 from io import BytesIO
 import numpy as np
-previews=[]
-candidates=[]
-for i,page in enumerate(document):
-    pix=page.get_pixmap(matrix=fitz.Matrix(960/page.rect.width,960/page.rect.width),alpha=False)
-    im=Image.frombytes("RGB",(pix.width,pix.height),pix.samples)
-    previews.append(im)
-    rgb=np.asarray(im).astype(float)
-    r,g,b=rgb[:,:,0],rgb[:,:,1],rgb[:,:,2]
-    mask=(r>75)&(r<185)&(r>1.4*g)&(r>1.4*b)&(abs(g-b)<23)&(g>21)
-    ys=np.where(mask.sum(axis=1)>135)[0]
-    for ys1 in np.split(ys,np.where(np.diff(ys)>3)[0]+1):
-        if len(ys1)<9: continue
-        top,bottom=ys1[0],ys1[-1]+1
-        cols=np.where(mask[top:bottom].sum(axis=0)>(bottom-top)*0.16)[0]
-        if len(cols)<130: continue
-        # Gaps in red come from the gold lettering and the Capitol illustration.
-        for part in np.split(cols,np.where(np.diff(cols)>50)[0]+1):
-            if len(part)<125: continue
-            left,right=part[0],part[-1]+1
-            if right-left<6*(bottom-top):continue
-            candidates.append((i,left,top,right,bottom))
-print("BANNER REGIONS", candidates,flush=True)
-thumb=Image.new('RGB',(720,((len(previews)+3)//4)*118),'white')
-d=ImageDraw.Draw(thumb)
-for i,im in enumerate(previews):
-    a=im.copy();a.thumbnail((176,98));x,y=i%4*180,i//4*118
-    thumb.paste(a,(x,y+16));d.text((x,y),str(i),fill='black')
-buf=BytesIO();thumb.save(buf,format='JPEG',quality=68)
-print("REFERENCE_CONTACT "+base64.b64encode(buf.getvalue()).decode(),flush=True)
-if not candidates:
-    raise RuntimeError('Archival masthead not found')
-i,left,top,right,bottom=candidates[0]
-print("CHOSEN",i,left,top,right,bottom)
-im=previews[i]
-# Crop the complete masthead, adjusting its left boundary to the screenshot edge.
-banner_img=im.crop((max(0,left-12),top,right,bottom))
-buf=BytesIO();banner_img.save(buf,format='PNG')
+page=document[9]
+pix=page.get_pixmap(matrix=fitz.Matrix(1800/page.rect.width,1800/page.rect.width),alpha=False)
+im=Image.frombytes("RGB",(pix.width,pix.height),pix.samples)
+rgb=np.array(im).astype(float)
+r,g,b=rgb[:,:,0],rgb[:,:,1],rgb[:,:,2]
+nav=(r<50)&(g<65)&(b>65)&(b>2.0*g)
+ys=np.where(nav.sum(axis=1)>0.54*im.width)[0]
+bands=[band for band in np.split(ys,np.where(np.diff(ys)>2)[0]+1) if len(band)>4]
+if not bands: raise RuntimeError('Cannot locate the navy navigation in the reference')
+top=bands[0][0]; bottom=bands[0][-1]+1
+xs=np.where(nav[top:bottom].sum(axis=0)>(bottom-top)*0.4)[0]
+left,right=int(xs[0]),int(xs[-1])
+width=right-left; height=round(width*.069)
+print("Reference dimensions",im.size,"navigation",left,int(top),right,int(bottom),flush=True)
+im.save(OUT/'Original-ILGA-reference.jpg',quality=90)
+mast=im.crop((left,max(0,top-height),left+round(width*.62),top))
+buf=BytesIO();mast.save(buf,format='PNG')
 banner="data:image/png;base64,"+base64.b64encode(buf.getvalue()).decode()
 def data(route,params):
     url='http://127.0.0.1:10009/'+route+'?'+urlencode(params)
