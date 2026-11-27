@@ -27,6 +27,7 @@ export function serviceMonths(periods, now=new Date()) {
 // Official profiles can omit the service field for mid-session appointments.
 // Use these dated records only when the member is on the current ILGA roster.
 const appointments=new Map([
+  ['Senate/3281',['December 2010','https://www.ilga.gov/documents/senate/journals/96/2011/SJ096140R.pdf','Senate Journal']],
   ['House/3461',['October 2025','https://www.ilga.gov/House/Members/Details/3461','ILGA biography']],
   ['House/3462',['December 2025','https://www.ilga.gov/Documents/House/journals/104/2026/HJ104062R.pdf','House Journal']],
   ['House/3465',['July 2026','https://ilhousedems.com/2026/08/10/dixon-heitman-sworn-in-as-97th-district-state-representative/','House caucus announcement']]
