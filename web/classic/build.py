@@ -13,13 +13,49 @@ OUT=Path("classic-proof")
 OUT.mkdir(exist_ok=True)
 source='https://ilaging.illinois.gov/content/dam/soi/en/web/aging/programs/ltcombudsman/documents/illinois-legislative-update-march-2024-for-resident-and-family-support-council.pdf'
 document=fitz.open(stream=urlopen(source,timeout=60).read(),filetype='pdf')
-page=document[11]
-w,h=page.rect.width,page.rect.height
-# The presentation's archived browser header, excluding its browser chrome, translation
-# widget, and mouse pointer. Coordinates are relative to the 2400 x 1350 reference.
-clip=fitz.Rect(w*1148/2400,h*219/1350,w*2168/2400,h*353/1350)
-image=page.get_pixmap(matrix=fitz.Matrix(1440/w,1440/w),clip=clip,alpha=False)
-banner="data:image/png;base64,"+base64.b64encode(image.tobytes("png")).decode()
+# Match the wide burgundy masthead by color and geometry; the state has served
+# different paginations of this training PDF at the same URL.
+from PIL import Image, ImageDraw
+from io import BytesIO
+import numpy as np
+previews=[]
+candidates=[]
+for i,page in enumerate(document):
+    pix=page.get_pixmap(matrix=fitz.Matrix(960/page.rect.width,960/page.rect.width),alpha=False)
+    im=Image.frombytes("RGB",(pix.width,pix.height),pix.samples)
+    previews.append(im)
+    rgb=np.asarray(im).astype(float)
+    r,g,b=rgb[:,:,0],rgb[:,:,1],rgb[:,:,2]
+    mask=(r>75)&(r<185)&(r>1.4*g)&(r>1.4*b)&(abs(g-b)<23)&(g>21)
+    ys=np.where(mask.sum(axis=1)>135)[0]
+    for ys1 in np.split(ys,np.where(np.diff(ys)>3)[0]+1):
+        if len(ys1)<9: continue
+        top,bottom=ys1[0],ys1[-1]+1
+        cols=np.where(mask[top:bottom].sum(axis=0)>(bottom-top)*0.16)[0]
+        if len(cols)<130: continue
+        # Gaps in red come from the gold lettering and the Capitol illustration.
+        for part in np.split(cols,np.where(np.diff(cols)>50)[0]+1):
+            if len(part)<125: continue
+            left,right=part[0],part[-1]+1
+            if right-left<6*(bottom-top):continue
+            candidates.append((i,left,top,right,bottom))
+print("BANNER REGIONS", candidates,flush=True)
+thumb=Image.new('RGB',(720,((len(previews)+3)//4)*118),'white')
+d=ImageDraw.Draw(thumb)
+for i,im in enumerate(previews):
+    a=im.copy();a.thumbnail((176,98));x,y=i%4*180,i//4*118
+    thumb.paste(a,(x,y+16));d.text((x,y),str(i),fill='black')
+buf=BytesIO();thumb.save(buf,format='JPEG',quality=68)
+print("REFERENCE_CONTACT "+base64.b64encode(buf.getvalue()).decode(),flush=True)
+if not candidates:
+    raise RuntimeError('Archival masthead not found')
+i,left,top,right,bottom=candidates[0]
+print("CHOSEN",i,left,top,right,bottom)
+im=previews[i]
+# Crop the complete masthead, adjusting its left boundary to the screenshot edge.
+banner_img=im.crop((max(0,left-12),top,right,bottom))
+buf=BytesIO();banner_img.save(buf,format='PNG')
+banner="data:image/png;base64,"+base64.b64encode(buf.getvalue()).decode()
 def data(route,params):
     url='http://127.0.0.1:10009/'+route+'?'+urlencode(params)
     req=Request(url,headers={'Authorization':'Bearer '+os.environ['ILGA_FEED_TOKEN']})
