@@ -34,9 +34,11 @@ async function main() {
         const chosen=bill?rows.filter({hasText:'SB0315'}):rows.filter({hasText:'Didech'});
         assert.equal(await chosen.count(),1);
         if(bill) {
-          await page.waitForFunction(()=>{const row=[...document.querySelectorAll('#billRows tr')].find(r=>r.textContent.includes('SB0315'));return row?.querySelector('.bill-sponsors')?.textContent.includes('House:');},null,{timeout:180000});
+          await page.waitForFunction(()=>{const row=[...document.querySelectorAll('#billRows tr')].find(r=>r.textContent.includes('SB0315'));return row?.querySelector('.bill-sponsors em')?.textContent.includes('Daniel Didech');},null,{timeout:180000});
           assert.equal(await chosen.locator('details').count(),0);
-          assert.match(await chosen.innerText(),/Senate:/);
+          assert.match(await chosen.locator('.bill-sponsors > div').first().innerText(),/Mary Edly-Allen/);
+          assert.equal(await chosen.locator('.bill-sponsors em').innerText(),'Daniel Didech');
+          assert.doesNotMatch(await chosen.locator('.bill-sponsors').innerText(),/Senate:|House:/);
           assert.equal(await chosen.getAttribute('class'),'bill-signed');
           assert.equal(await chosen.evaluate(row=>getComputedStyle(row).backgroundColor),'rgb(247, 237, 187)');
           await page.waitForFunction(()=>![...document.querySelectorAll('.bill-sponsors')].some(c=>c.textContent==='Loading sponsors…'),null,{timeout:240000});
