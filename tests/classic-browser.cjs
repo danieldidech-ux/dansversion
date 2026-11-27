@@ -14,10 +14,11 @@ async function main() {
         await page.goto(base);
         assert.ok(await page.locator('.mast img').evaluate(img=>img.complete && img.naturalWidth>0));
         await page.locator(bill?'#legislation a':'#house a').first().click();
+        if (bill) await page.getByRole('link',{name:'SB 0301–0400',exact:true}).click();
         const section=page.locator(bill?'#bills':'#members');
         const rows=section.locator('tbody tr');
         await rows.first().waitFor({timeout:65000});
-        assert.deepEqual(requests,[bill?'range':'members']);
+        assert.deepEqual(requests,(bill?['chamber','range']:['members']));
         const n=await rows.count();
         if(bill) {
           assert.equal(n,100);
@@ -36,17 +37,18 @@ async function main() {
         await detail.locator('summary').click();
         await detail.locator('time').waitFor({timeout:65000});
         assert.ok(await detail.locator('p').innerText());
-        assert.deepEqual(requests,[bill?'range':'members',bill?'sponsors':'service']);
+        assert.deepEqual(requests,(bill?['chamber','range','sponsors']:['members','service']));
         const target=rows.nth(74).locator('a').nth(bill?1:0);
         await target.scrollIntoViewIfNeeded();
         const href=await target.getAttribute('href'), label=await target.innerText();
-        assert.match(href,bill?/\/Legislation\/BillStatus/i:/\/House\/Members\/Details/i);
+        assert.match(href,bill?/\/Legislation\/BillStatus/i:/view=profile&chamber=House/i);
         const top=await page.evaluate(()=>scrollY);
         assert.ok(top>0);
         // Isolate browser history from third-party navigation and redirect timing.
-        await page.route(href,route=>route.fulfill({contentType:'text/html',body:'<title>Official record</title>'}));
+        if (bill) await page.route(href,route=>route.fulfill({contentType:'text/html',body:'<title>Official record</title>'}));
         await target.click();
-        await page.waitForURL(href);
+        await page.waitForURL(new URL(href,page.url()).href);
+        if (!bill) await page.locator('#chamberPage time').waitFor();
         await page.goBack();
         await page.waitForFunction(label=>document.activeElement?.textContent===label,label);
         assert.ok(Math.abs(await page.evaluate(()=>scrollY)-top)<10);

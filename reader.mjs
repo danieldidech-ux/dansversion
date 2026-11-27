@@ -144,7 +144,7 @@ export function createReader(load, now = Date.now) {
         const lines = header.replace(/<\/(?:div|p|h[1-6]|li|span|strong)>|<br\s*\/?>/gi,'\n')
           .split('\n').map(line => clean(line)).filter(Boolean);
         const periods = lines.filter(line => line.length < 160 &&
-          /\b(?:18|19|20)\d{2}\s*(?:[-–—]|to)\s*(?:present|current|(?:18|19|20)\d{2})\b/i.test(line) &&
+          /\b(?:18|19|20)\d{2}\s*(?:[-–—]|to)\s*(?:present|current|(?:[A-Za-z]{3,9}\.?\s+)?(?:18|19|20)\d{2})\b/i.test(line) &&
           !/general assembly|copyright/i.test(line));
         if (!periods.length) throw new Error('Service history could not be verified');
         return [...new Set(periods)];
