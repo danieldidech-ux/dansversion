@@ -8,7 +8,7 @@ const firstOf = n => Math.floor((n-1)/100)*100+1;
 const input = Number(params.get('first'));
 const first = Number.isInteger(input) && input>0 && input<=99999 ? firstOf(input) : 301;
 const chamber = params.get('chamber') === 'Senate' ? 'Senate' : 'House';
-const view = ['bills','members'].includes(params.get('view')) ? params.get('view') : 'home';
+const view = ['bills','members','statutes'].includes(params.get('view')) ? params.get('view') : 'home';
 const billView = view === 'bills';
 const filter = $(billView ? 'filterBills' : 'filterMembers');
 const rows = $(billView ? 'billRows' : 'memberRows');
@@ -22,7 +22,7 @@ async function api(route, query) {
   if (!response.ok) throw new Error('Official data unavailable');
   return response.json();
 }
-for (const name of ['home','bills','members']) $(name).hidden = name !== view;
+for (const name of ['home','bills','members','statutes']) $(name).hidden = name !== view;
 $('numberform').onsubmit = async event => {
   event.preventDefault();
   const match = $('number').value.trim().toUpperCase().match(/^([A-Z]+)\s*0*(\d{1,5})$/);
@@ -89,7 +89,10 @@ async function load() {
     message.replaceChildren('Could not load the official list. ',retry);
   }
 }
-if (view !== 'home') {
+if (view === 'statutes') {
+  const {mountStatutes}=await import('./statutes.mjs');
+  await mountStatutes($('statutes'),params);
+} else if (view !== 'home') {
   if (billView) {
     $('billHeading').textContent=({SB:'Senate Bills',HB:'House Bills'})[type] || type+' Legislation';
     for (const kind of types) $('type').add(new Option(kind,kind));
