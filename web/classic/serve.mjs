@@ -1,4 +1,4 @@
-import { tenureIndex } from './tenure.mjs';
+import { tenureIndex, memberService } from './tenure.mjs';
 import { readFileSync } from 'node:fs';
 
 const assets = new Map([
@@ -97,7 +97,7 @@ export async function serveClassic(req, res, url, reader, loadPage) {
       else {
         const member = index.members.find(m=>Number(new URL(m.url).pathname.split('/').filter(Boolean).at(-1))===id);
         if (!member) return answer(404,'Member unavailable');
-        result = await reader.service(member.url);
+        result = await memberService(reader,member.url);
       }
     } else return answer(404);
     return answer(200,JSON.stringify(result),'application/json',{'cache-control':'no-store','access-control-allow-origin':'*'});

@@ -45,7 +45,7 @@ $('numberform').onsubmit = async event => {
   } catch { $('hint').textContent = 'ILGA is unavailable. Try again.'; }
 };
 let entries = [];
-let monthsByUrl={}, tenureReady=false, sortVersion=0;
+let monthsByUrl={}, approximate={}, tenureReady=false, sortVersion=0;
 const byTenure=()=>!billView && $('sort').value==='Tenure';
 function duration(months) {
   if (!Number.isInteger(months)) return 'Unavailable';
@@ -63,7 +63,7 @@ async function applySort() {
       const data=await api('tenure',{chamber});
       if (version!==sortVersion) return;
       tenureReady=data.done;
-      monthsByUrl=data.months;
+      monthsByUrl=data.months; approximate=data.approximate;
       if (!tenureReady) {
         $('tenureStatus').textContent='Checking service dates ('+data.checked+' of '+data.total+')…';
         await new Promise(resolve=>setTimeout(resolve,2000));
@@ -76,7 +76,7 @@ async function applySort() {
     }
   }
   if (version!==sortVersion) return;
-  $('tenureStatus').textContent='Longest service first, using the periods listed by ILGA. Gaps are excluded.';
+  $('tenureStatus').textContent='Longest service first. Gaps are excluded. ≈ marks service reported only by year.';
   fill();
 }
 function rowLink(text,url,key) {
@@ -108,8 +108,8 @@ function fill() {
       row.insertCell().textContent = item.district;
       row.insertCell().textContent = item.party;
       const service=row.insertCell();
-      if (byTenure() && tenureReady) { const label=mk('span',duration(monthsByUrl[item.url])); label.className='tenure-value'; service.append(label); }
-      service.append(disclosure('Service history',()=>api('service',{chamber,id}),data=>data.periods.join(' · ')));
+      if (byTenure() && tenureReady) { const label=mk('span',(approximate[item.url]?'≈ ':'')+duration(monthsByUrl[item.url])); label.className='tenure-value'; service.append(label); }
+      service.append(disclosure('Service history',()=>api('service',{chamber,id}),data=>data.periods.join(' · ')+(data.sourceLabel?' ('+data.sourceLabel+')':'')));
     }
     fragment.append(row);
   }
