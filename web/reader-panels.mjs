@@ -6,7 +6,7 @@ function element(tag, text) {
   if (text) node.textContent = text;
   return node;
 }
-function timestamp(result) {
+export function timestamp(result) {
   const time = element('time');
   const date = new Date(result.retrievedAt);
   if (Number.isNaN(date.valueOf())) {
@@ -18,7 +18,7 @@ function timestamp(result) {
     new Intl.DateTimeFormat(undefined,{dateStyle:'medium',timeStyle:'short'}).format(date);
   return time;
 }
-function disclosure(label, load, describe) {
+export function disclosure(label, load, describe) {
   const details = element('details');
   const summary = element('summary',label);
   const result = element('div');
