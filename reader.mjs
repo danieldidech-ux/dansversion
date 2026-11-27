@@ -51,6 +51,8 @@ function parseSummary(page,url) {
   if (!subject) throw new Error('Bill title unavailable');
   const block = page.html.match(/\bid=["']sponsorDiv["'][^>]*>([\s\S]*?)<\/div>/i)?.[1];
   const sponsor = chamber => clean(block?.match(new RegExp('<a\\b[^>]*href=["\'][^"\']*/'+chamber+'/Members/Details/[^"\']+["\'][^>]*>([\\s\\S]*?)</a>','i'))?.[1]);
+  const sponsorId = chamber => block?.match(new RegExp('/'+chamber+'/Members/Details/(\\d+)(?:[/?#]|["\\\'])','i'))?.[1] || '';
+  const senateSponsorId=sponsorId('Senate'), houseSponsorId=sponsorId('House');
   const type = parameters(url).doctypeid?.toUpperCase() || '';
   const senateSponsor = sponsor('Senate'), houseSponsor = sponsor('House');
   const primarySponsor = type.startsWith('H') ? houseSponsor : senateSponsor;
@@ -75,7 +77,7 @@ function parseSummary(page,url) {
     } else if (/^(?:Do Pass|Be Adopted|Placed on Calendar|Second Reading|Third Reading|Arrive in|Passed Both|Sent to the Governor|Governor|Tabled|Session Sine Die)/i.test(text)) committeeAssigned=false;
   }
   const billStatus=governorSigned?'signed':vetoed?'vetoed':passedBoth?'passed':committeeAssigned?'committee':bothChambers?'both':'';
-  return {billStatus,bothChambers,governorSigned,vetoed,passedBoth,subject,senateSponsor,houseSponsor,primarySponsor,otherChamberSponsor,sponsorStatus,complete:sponsorStatus !== 'unavailable'};
+  return {senateSponsorId,houseSponsorId,billStatus,bothChambers,governorSigned,vetoed,passedBoth,subject,senateSponsor,houseSponsor,primarySponsor,otherChamberSponsor,sponsorStatus,complete:sponsorStatus !== 'unavailable'};
 }
 function parseMembers(page, chamber) {
   const members = new Map();
