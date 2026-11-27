@@ -37,6 +37,8 @@ async function main() {
           await page.waitForFunction(()=>{const row=[...document.querySelectorAll('#billRows tr')].find(r=>r.textContent.includes('SB0315'));return row?.querySelector('.bill-sponsors')?.textContent.includes('House:');},null,{timeout:180000});
           assert.equal(await chosen.locator('details').count(),0);
           assert.match(await chosen.innerText(),/Senate:/);
+          assert.equal(await chosen.getAttribute('class'),'bill-signed');
+          assert.equal(await chosen.evaluate(row=>getComputedStyle(row).backgroundColor),'rgb(247, 237, 187)');
           await page.waitForFunction(()=>![...document.querySelectorAll('.bill-sponsors')].some(c=>c.textContent==='Loading sponsors…'),null,{timeout:240000});
         } else {
           const detail=chosen.locator('details');
