@@ -31,7 +31,12 @@ export function disclosure(label, load, describe) {
     try {
       const data = await load();
       const text = describe(data);
-      result.replaceChildren(element('p',text),timestamp(data));
+      result.replaceChildren(element('p',text));
+      if (data.sourceUrl) {
+        const source=element('a',data.sourceLabel);
+        source.href=data.sourceUrl;
+        result.append(source);
+      } else result.append(timestamp(data));
       complete = !data.stale && data.complete !== false;
     } catch {
       result.textContent = label + ' unavailable. ';

@@ -109,7 +109,7 @@ function fill() {
       row.insertCell().textContent = item.party;
       const service=row.insertCell();
       if (byTenure() && tenureReady) { const label=mk('span',(approximate[item.url]?'≈ ':'')+duration(monthsByUrl[item.url])); label.className='tenure-value'; service.append(label); }
-      service.append(disclosure('Service history',()=>api('service',{chamber,id}),data=>data.periods.join(' · ')+(data.sourceLabel?' ('+data.sourceLabel+')':'')));
+      service.append(disclosure('Service history',()=>api('service',{chamber,id}),data=>data.periods.join(' · ')));
     }
     fragment.append(row);
   }

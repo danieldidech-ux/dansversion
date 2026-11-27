@@ -1,5 +1,7 @@
 name: Test classic reader
 on:
+  push:
+    branches: ['verify/ogilga-release']
   pull_request:
     paths: ['feed.mjs','web/classic/**','web/reader-panels.mjs','reader.mjs','tests/classic-browser.cjs','tests/statutes-browser.cjs','tests/chambers-browser.cjs','.github/workflows/classic-foundation.yml']
   workflow_dispatch:
@@ -23,10 +25,11 @@ jobs:
       - run: npm install --no-save --no-package-lock playwright@1.56.1 && npx playwright install --only-shell chromium
       - name: Verify phone and desktop against official indexes
         env:
-          PUBLISHED: ${{ inputs.published }}
+          OGILGA_PUBLIC_ORIGIN: ${{ vars.OGILGA_PUBLIC_ORIGIN }}
+          PUBLISHED: ${{ inputs.published || github.ref == 'refs/heads/verify/ogilga-release' }}
         run: |
           if [ "$PUBLISHED" = true ]; then
-            export CLASSIC_ORIGIN=https://dansversion-legislative-feed.onrender.com/classic/
+            export CLASSIC_ORIGIN="${OGILGA_PUBLIC_ORIGIN:-https://dansversion-legislative-feed.onrender.com/classic/}"
           else
             export ILGA_FEED_TOKEN="$(openssl rand -hex 32)"
             PORT=10009 node feed.mjs &

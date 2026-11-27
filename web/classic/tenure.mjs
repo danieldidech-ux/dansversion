@@ -37,7 +37,7 @@ export async function memberService(reader,url) {
     const match=new URL(url).pathname.match(/^\/(House|Senate)\/Members\/Details\/(\d+)\/?$/i);
     const record=match && appointments.get(match[1]+'/'+match[2]);
     if (!record) throw error;
-    return {periods:[record[0]+' - Present'],sourceUrl:record[1],sourceLabel:record[2],retrievedAt:'2026-11-27T14:26:00Z',stale:false};
+    return {periods:[record[0]+' - Present'],sourceUrl:record[1],sourceLabel:record[2],stale:false};
   }
 }
 const caches=new Map();
