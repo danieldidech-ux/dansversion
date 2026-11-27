@@ -1,3 +1,4 @@
+import {paintBill,enrichBills} from './bill-rows.mjs';
 import {apiBase} from './api-url.mjs';
 import { disclosure, timestamp } from './reader-panels.mjs';
 
@@ -104,9 +105,10 @@ function fill() {
     if (billView) {
       row.insertCell().append(rowLink(item.number,item.url,item.number));
       row.insertCell().append(rowLink(item.title||'Official bill record',item.url,item.number+'-title'));
-      row.insertCell().append(disclosure('Sponsors',()=>api('sponsors',{type,number:item.number.slice(type.length)}),({summary})=>
-        [summary.senateSponsor && 'Senate: '+summary.senateSponsor,summary.houseSponsor && 'House: '+summary.houseSponsor].filter(Boolean).join(' · ') ||
-        (summary.sponsorStatus==='not-applicable'?'Not applicable':'Chief sponsor unavailable')));
+      row.dataset.bill=item.number;
+      row.insertCell().className='bill-sponsors';
+      paintBill(row,item);
+
     } else {
       const id = new URL(item.url).pathname.split('/').filter(Boolean).at(-1);
       row.insertCell().append(rowLink(item.name,'?'+new URLSearchParams({view:'profile',chamber,id}),'member-'+id));
@@ -126,8 +128,9 @@ async function load() {
   try {
     const data = billView ? await api('range',{type,number:first,first,last}) : await api('members',{chamber});
     entries = billView ? data.bills : data.members;
-    message.replaceChildren(timestamp(data));
+    if (billView) message.replaceChildren(); else message.replaceChildren(timestamp(data));
     if (byTenure()) await applySort(); else fill();
+    if (billView) void enrichBills(entries,rows);
     if (place) requestAnimationFrame(()=>{
       window.scrollTo(0,place.top);
       rows.querySelector('[data-place="'+CSS.escape(place.key)+'"]')?.focus({preventScroll:true});

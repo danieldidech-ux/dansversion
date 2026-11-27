@@ -18,7 +18,7 @@ async function main() {
         const section=page.locator(bill?'#bills':'#members');
         const rows=section.locator('tbody tr');
         await rows.first().waitFor({timeout:65000});
-        assert.deepEqual(requests,(bill?['chamber','range']:['members']));
+        if(bill) assert.deepEqual(requests.filter(r=>r!=='sponsors'),['chamber','range']); else assert.deepEqual(requests,['members']);
         const n=await rows.count();
         if(bill) {
           assert.equal(n,100);
@@ -30,14 +30,21 @@ async function main() {
           await section.locator('#sort').selectOption({label:'District'});
           assert.equal(await rows.first().locator('td').nth(1).innerText(),'1');
         }
-        assert.ok(await section.locator('[role=status] time').getAttribute('datetime'));
+        if(bill) assert.equal(await section.locator('[role=status] time').count(),0); else assert.ok(await section.locator('[role=status] time').getAttribute('datetime'));
         const chosen=bill?rows.filter({hasText:'SB0315'}):rows.filter({hasText:'Didech'});
         assert.equal(await chosen.count(),1);
-        const detail=chosen.locator('details');
-        await detail.locator('summary').click();
-        await detail.locator('time').waitFor({timeout:65000});
-        assert.ok(await detail.locator('p').innerText());
-        assert.deepEqual(requests,(bill?['chamber','range','sponsors']:['members','service']));
+        if(bill) {
+          await page.waitForFunction(()=>{const row=[...document.querySelectorAll('#billRows tr')].find(r=>r.textContent.includes('SB0315'));return row?.querySelector('.bill-sponsors')?.textContent.includes('House:');},null,{timeout:180000});
+          assert.equal(await chosen.locator('details').count(),0);
+          assert.match(await chosen.innerText(),/Senate:/);
+          await page.waitForFunction(()=>![...document.querySelectorAll('.bill-sponsors')].some(c=>c.textContent==='Loading sponsors…'),null,{timeout:240000});
+        } else {
+          const detail=chosen.locator('details');
+          await detail.locator('summary').click();
+          await detail.locator('time').waitFor({timeout:65000});
+          assert.ok(await detail.locator('p').innerText());
+          assert.deepEqual(requests,['members','service']);
+        }
         const target=rows.nth(74).locator('a').nth(bill?1:0);
         await target.scrollIntoViewIfNeeded();
         const href=await target.getAttribute('href'), label=await target.innerText();

@@ -7,6 +7,7 @@ const assets = new Map([
   ['/api-url.mjs', ['api-url.mjs', 'text/javascript']],
   ['/chambers.mjs', ['chambers.mjs', 'text/javascript']],
   ['/statutes.mjs', ['statutes.mjs', 'text/javascript']],
+  ['/bill-rows.mjs', ['bill-rows.mjs', 'text/javascript']],
   ['/classic.mjs', ['classic.mjs', 'text/javascript']],
   ['/reader-panels.mjs', ['../reader-panels.mjs', 'text/javascript']]
 ].map(([path, [file, type]]) => [path, {type, body:readFileSync(new URL(file, import.meta.url))}]));
