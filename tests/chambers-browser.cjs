@@ -32,6 +32,10 @@ const base=process.env.CLASSIC_ORIGIN||'http://127.0.0.1:10009/classic/';
         if(chamber==='House')assert.match(names[0],/Ammons/);
         await page.locator('#sort').selectOption('Tenure');
         await page.locator('.tenure-value').first().waitFor({timeout:220000});
+        if (chamber==='Senate') {
+          const rezin=list.filter({hasText:'Sue Rezin'});
+          if (await rezin.count()) assert.match(await rezin.locator('.tenure-value').innerText(),/\d+ yr/);
+        }
         const values=await page.locator('.tenure-value').allTextContents();
         const months=values.map(v=>v==='Unavailable'?-1:Number(/(\d+) yr/.exec(v)?.[1]||0)*12+Number(/(\d+) mo/.exec(v)?.[1]||0));
         const missing=await list.evaluateAll(rs=>rs.filter(r=>r.querySelector('.tenure-value')?.textContent==='Unavailable').map(r=>r.querySelector('a').getAttribute('href')));

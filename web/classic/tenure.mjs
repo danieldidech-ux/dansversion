@@ -33,13 +33,15 @@ const appointments=new Map([
   ['House/3465',['July 2026','https://ilhousedems.com/2026/08/10/dixon-heitman-sworn-in-as-97th-district-state-representative/','House caucus announcement']]
 ]);
 export async function memberService(reader,url) {
-  try {return await reader.service(url);}
-  catch(error) {
-    const match=new URL(url).pathname.match(/^\/(House|Senate)\/Members\/Details\/(\d+)\/?$/i);
-    const record=match && appointments.get(match[1]+'/'+match[2]);
+  const match=new URL(url).pathname.match(/^\/(House|Senate)\/Members\/Details\/(\d+)\/?$/i);
+  const record=match && appointments.get(match[1]+'/'+match[2]);
+  try {
+    const live=await reader.service(url);
+    if (!record || serviceMonths(live.periods)!==null) return live;
+  } catch(error) {
     if (!record) throw error;
-    return {periods:[record[0]+' - Present'],sourceUrl:record[1],sourceLabel:record[2],stale:false};
   }
+  return {periods:[record[0]+' - Present'],sourceUrl:record[1],sourceLabel:record[2],stale:false};
 }
 const caches=new Map();
 export function tenureIndex(chamber, members, reader) {
