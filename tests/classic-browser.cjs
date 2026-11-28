@@ -74,6 +74,23 @@ async function main() {
         assert.deepEqual(errors,[]);
         console.log(name,bill?'SB 301–400':'House directory',n,'rows; live data, disclosure, timestamp and Back passed');
       }
+      await page.goto(base);
+      await page.locator('#home').getByRole('link',{name:'Public Acts',exact:true}).click();
+      const acts=page.locator('#acts');
+      await acts.getByRole('link',{name:'104-0001–104-0100'}).click({timeout:65000});
+      const firstAct=acts.locator('tbody tr').first();
+      await firstAct.getByRole('link',{name:'104-0001'}).waitFor({timeout:65000});
+      assert.equal(await acts.locator('tbody tr').count(),100);
+      const billLink=firstAct.getByRole('link',{name:'SB0126'});
+      const resolved=await page.request.get(new URL(await billLink.getAttribute('href'),page.url()).href,{maxRedirects:0});
+      assert.equal(resolved.status(),302);
+      assert.match(resolved.headers().location,/Legislation\/BillStatus/i);
+      await firstAct.locator('.bill-sponsors a em').waitFor({timeout:90000});
+      assert.match(await firstAct.locator('.bill-sponsors a').first().getAttribute('href'),/view=profile&chamber=Senate/);
+      assert.ok(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+      await acts.getByRole('link',{name:'Next 100'}).click();
+      await acts.getByRole('link',{name:'104-0101',exact:true}).waitFor({timeout:65000});
+      console.log(name,'Public Acts range, bill redirect, linked sponsors and next batch passed');
       await page.close();
     }
   } finally {await browser.close();}

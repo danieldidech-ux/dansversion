@@ -44,6 +44,23 @@ function parseRange(page, spec) {
       !/\bno (?:bills|legislation|records) (?:were )?(?:found|filed)\b/i.test(clean(page.html))) throw new Error('Could not verify the requested range');
   return [...found.entries()].sort((a,b)=>a[0]-b[0]).map(([,row])=>row);
 }
+function parsePublicActs(page) {
+  const acts = new Map();
+  for (const row of page.html.matchAll(/<tr\b[^>]*>([\s\S]*?)<\/tr>/gi)) {
+    const cells = [...row[1].matchAll(/<td\b[^>]*>([\s\S]*?)<\/td>/gi)];
+    const act = clean(cells[0]?.[1]).match(/^104-(\d{4,5})$/);
+    if (!act) continue;
+    const bill = clean(cells[1]?.[1]).match(/^(HB|SB)\s*0*(\d+)$/i);
+    const raw = cells[0][1].match(/\bhref=["']([^"']+)["']/i)?.[1];
+    if (!bill || !raw) throw Error('Public act entry incomplete');
+    const url = officialUrl(new URL(raw.replace(/&amp;/gi,'&'),page.officialUrl));
+    const sequence = Number(act[1]);
+    acts.set(sequence,{sequence,act:act[0],actUrl:url.href,
+      number:bill[1].toUpperCase()+String(Number(bill[2])).padStart(4,'0')});
+  }
+  if (!acts.size) throw Error('No public act index');
+  return [...acts.values()].sort((a,b)=>a.sequence-b.sequence);
+}
 function parseSummary(page,url) {
   const at = page.html.search(/class=["'][^"']*\btab-content\b/i);
   if (at < 0) throw new Error('Bill detail section unavailable');
@@ -129,6 +146,17 @@ export function createReader(load, now = Date.now) {
     pending.set(key,task); return task;
   }
   return {
+    async publicActs(first) {
+      const index = await read('acts','https://www.ilga.gov/Legislation/PublicActs',parsePublicActs);
+      const ranges = new Map();
+      for (const act of index.data) {
+        const start = 1 + 100 * Math.floor((act.sequence - 1) / 100);
+        ranges.set(start, act.sequence);
+      }
+      return {ranges:[...ranges].map(([first,last])=>({first,last})),
+        acts:first ? index.data.filter(act=>act.sequence>=first && act.sequence<first+100) : [],
+        retrievedAt:index.retrievedAt,stale:index.stale};
+    },
     async range(url,force=false) {
       const spec=rangeSpec(url);
       const index=await read('range',spec.url,page=>parseRange(page,spec),force);

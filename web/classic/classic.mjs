@@ -13,7 +13,7 @@ const limit = Number(params.get('last'));
 const last = Number.isInteger(limit) && limit>=first && limit-first<100 ? limit : first+99;
 const chamber = params.get('chamber') === 'Senate' ? 'Senate' : 'House';
 const chamberViews=['legislation','committees','rules','profile'];
-const view = ['bills','members','statutes',...chamberViews].includes(params.get('view')) ? params.get('view') : 'home';
+const view = ['bills','members','statutes','acts',...chamberViews].includes(params.get('view')) ? params.get('view') : 'home';
 const billView = view === 'bills';
 const filter = $(billView ? 'filterBills' : 'filterMembers');
 const rows = $(billView ? 'billRows' : 'memberRows');
@@ -32,7 +32,7 @@ async function api(route, query) {
   if (!response.ok) throw new Error('Official data unavailable');
   return response.json();
 }
-for (const name of ['home','bills','members','statutes']) $(name).hidden = name !== view;
+for (const name of ['home','bills','members','statutes','acts']) $(name).hidden = name !== view;
 $('chamberPage').hidden=!chamberViews.includes(view);
 $('numberform').onsubmit = async event => {
   event.preventDefault();
@@ -144,6 +144,9 @@ async function load() {
 if (chamberViews.includes(view)) {
   const {mountChamber}=await import('./chambers.mjs');
   await mountChamber($('chamberPage'),params);
+} else if (view === 'acts') {
+  const {mountActs}=await import('./public-acts.mjs');
+  await mountActs($('acts'),params);
 } else if (view === 'statutes') {
   const {mountStatutes}=await import('./statutes.mjs');
   await mountStatutes($('statutes'),params);
