@@ -7,6 +7,7 @@ const assets = new Map([
   ['/api-url.mjs', ['api-url.mjs', 'text/javascript']],
   ['/chambers.mjs', ['chambers.mjs', 'text/javascript']],
   ['/statutes.mjs', ['statutes.mjs', 'text/javascript']],
+  ['/public-acts.mjs', ['public-acts.mjs', 'text/javascript']],
   ['/bill-rows.mjs', ['bill-rows.mjs', 'text/javascript']],
   ['/classic.mjs', ['classic.mjs', 'text/javascript']],
   ['/reader-panels.mjs', ['../reader-panels.mjs', 'text/javascript']]
@@ -67,7 +68,11 @@ export async function serveClassic(req, res, url, reader, loadPage) {
   const p=url.searchParams, type=p.get('type'), chamber=p.get('chamber');
   let result;
   try {
-    if (['/api/statutes','/api/chamber'].includes(route)) {
+    if (route === '/api/acts') {
+      const first = numeric(p.get('first'),99999);
+      if (p.has('first') && (!first || first % 100 !== 1)) return answer(400,'Invalid public act range');
+      result = await reader.publicActs(first);
+    } else if (['/api/statutes','/api/chamber'].includes(route)) {
       const source = route === '/api/statutes' ? statuteSource(p) : chamberSource(p);
       if (!source) return answer(400,'Invalid statute reference');
       const official = await loadPage(source.href);
@@ -75,7 +80,7 @@ export async function serveClassic(req, res, url, reader, loadPage) {
       if (!main) return answer(502,'Official statute page unavailable');
       result = {markup:main[1].replace(/<(script|style)\b[^>]*>[\s\S]*?<\/\1>/gi,''),
         officialUrl:official.officialUrl,retrievedAt:official.retrievedAt};
-    } else if (route === '/api/range' || route === '/api/sponsors') {
+    } else if (['/api/range','/api/sponsors','/api/bill-link'].includes(route)) {
       const number = numeric(p.get('number'),9999999);
       if (!types.has(type) || !number) return answer(400,'Invalid bill');
       const first = numeric(p.get('first'),9999999) || Math.floor((number-1)/100)*100+1;
@@ -86,6 +91,7 @@ export async function serveClassic(req, res, url, reader, loadPage) {
       else {
         const bill = index.bills.find(row=> Number(row.number.slice(type.length)) === number);
         if (!bill) return answer(404,'Bill unavailable');
+        if (route === '/api/bill-link') return answer(302,'','text/plain',{location:bill.url});
         result = await reader.summary(bill.url);
       }
     } else if (['/api/members','/api/service','/api/tenure'].includes(route)) {

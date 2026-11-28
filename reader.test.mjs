@@ -113,3 +113,18 @@ test('bill colors follow dated actions, substantive assignments and terminal out
   const result=await check([['Senate','Governor Vetoed'],['Senate','Total Veto Stands'],['Senate','Public Act 104-0001']],'vetoed');
   assert.equal(result.governorSigned,false);
 });
+test('Public Acts groups real rows, preserves gaps and returns only the selected batch',async()=>{
+  const rows=[[101,'HB 1075'],[100,'SB 0126'],[1,'HB 0010']];
+  const {reader,calls}=setup(()=>rows.map(([n,bill])=>{
+    const act='104-'+String(n).padStart(4,'0');
+    return '<tr><td>'+link('/Legislation/PublicActs/View/'+act,act)+'</td><td>'+bill+'</td></tr>';
+  }).join(''));
+  const index=await reader.publicActs();
+  assert.deepEqual(index.ranges,[{first:1,last:100},{first:101,last:101}]);
+  assert.deepEqual(index.acts,[]);
+  assert.deepEqual((await reader.publicActs(1)).acts.map(a=>a.number),['HB0010','SB0126']);
+  const [act]=(await reader.publicActs(101)).acts;
+  assert.equal(act.actUrl,'https://www.ilga.gov/Legislation/PublicActs/View/104-0101');
+  assert.equal(act.number,'HB1075');
+  assert.equal(calls.length,1);
+});
