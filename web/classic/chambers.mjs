@@ -143,6 +143,62 @@ function committees(body,doc,base,chamber,id,tab) {
   }
   body.append(copyTable(table,base,{directory:!id}));
 }
+function committeeAssignments(source,base) {
+  const header=[...source.rows[0].cells].map(cell=>clean(cell.textContent).toLowerCase());
+  const codeIndex=header.indexOf('code');
+  const nameIndex=header.indexOf('committee');
+  if (codeIndex<0 || nameIndex<0) return copyTable(source,base);
+
+  const groups=new Map();
+  const chairIndex=header.findIndex(label=>label.startsWith('chair'));
+  for (const row of [...source.rows].slice(1)) {
+    const nameCell=row.cells[nameIndex], codeCell=row.cells[codeIndex];
+    if (!nameCell || !codeCell) continue;
+    const name=node('span');
+    cellContents(name,nameCell,base);
+    const code=clean(codeCell.textContent);
+    const parentCode=code.split('-')[0].trim();
+    const isChild=!!parentCode && parentCode!==code;
+    const key=parentCode || clean(name.textContent);
+    if (!groups.has(key)) groups.set(key,{parents:[],children:[]});
+    const item=node('li');
+    const line=node('div');line.className='assignment-line';
+    name.className='assignment-name';
+    line.append(name);
+    const meta=node('div');meta.className='assignment-meta';
+    if (code) meta.append(node('span',code));
+    if (chairIndex>=0 && row.cells[chairIndex]) {
+      const chair=node('span');
+      cellContents(chair,row.cells[chairIndex],base);
+      if (clean(chair.textContent)) {chair.prepend('Chair: ');meta.append(chair);}
+    }
+    for (const [index,cell] of [...row.cells].entries()) {
+      if ([nameIndex,codeIndex,chairIndex].includes(index)) continue;
+      const extra=node('span');cellContents(extra,cell,base);
+      if (clean(extra.textContent)) meta.append(extra);
+    }
+    line.append(meta);item.append(line);
+    groups.get(key)[isChild?'children':'parents'].push(item);
+  }
+  if (!groups.size) return copyTable(source,base);
+  const list=node('ul');list.className='assignment-list';
+  const ordered=[...groups.entries()].sort(([codeA,a],[codeB,b])=>{
+    const title=group=>group.parents[0]?.querySelector('.assignment-name')?.textContent;
+    return (title(a)||codeA).localeCompare(title(b)||codeB);
+  });
+  for (const [code,group] of ordered) {
+    const parent=group.parents[0] || node('li','Parent committee ('+code+')');
+    list.append(parent,...group.parents.slice(1));
+    if (!group.children.length) continue;
+    const label=node('div',group.children.length===1?'Subcommittee':'Subcommittees');
+    label.className='assignment-subheading';
+    const children=node('ul');
+    children.setAttribute('aria-label',label.textContent);
+    children.append(...group.children);
+    parent.append(label,children);
+  }
+  return list;
+}
 function profile(body,doc,base,chamber,id,primary) {
   const card=doc.querySelector('.member-photo')?.parentElement || doc.querySelector('h5')?.parentElement;
   if (!card) throw Error('No profile');
@@ -164,7 +220,11 @@ function profile(body,doc,base,chamber,id,primary) {
       details.open=primary;
       details.append(link(primary?'Show all sponsored bills':'Show primary sponsorships',href({view:'profile',chamber,id,...(primary?{}:{primary:1})})));
     }
-    details.append(source?copyTable(source,base):node('p','None listed.'));
+    if (selector==='#pane-Committees') {
+      details.id='committee-assignments';
+      details.open=location.hash==='#committee-assignments';
+      details.append(source?committeeAssignments(source,base):node('p','None listed.'));
+    } else details.append(source?copyTable(source,base):node('p','None listed.'));
     body.append(details);
   }
 }
@@ -193,6 +253,7 @@ export async function mountChamber(root,params) {
       if (view==='rules') rules(content,doc,data.officialUrl);
       if (view==='profile') profile(content,doc,data.officialUrl,chamber,id,params.get('primary')==='1');
       body.replaceChildren(content);
+      if (view==='profile' && location.hash==='#committee-assignments') body.querySelector('#committee-assignments')?.scrollIntoView();
       status.replaceChildren(timestamp(data),' · ',link('Official ILGA source',data.officialUrl));
       if (history.state?.chamberPlace) requestAnimationFrame(()=>{
         const place=history.state.chamberPlace;

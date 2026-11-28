@@ -50,6 +50,19 @@ const base=process.env.CLASSIC_ORIGIN||'http://127.0.0.1:10009/classic/';
         assert.ok(await pageBody.getByText('Committee assignments',{exact:true}).isVisible());
         console.log(device,chamber,'rules, committees, profiles, surname order and tenure passed;',months.filter(v=>v>=0).length,'of',names.length,'dated');
       }
+      await page.goto(base+'?view=profile&chamber=House&id=3347#committee-assignments');
+      const assignments=page.locator('#committee-assignments[open] .assignment-list');
+      await assignments.waitFor();
+      for (const [parent,children] of [
+        ['Revenue & Finance',['Finance Subcommittee','Income Tax Subcommittee','Sales Tax Subcommittee']],
+        ['Gaming',['Special Topics Subcommittee']],
+        ['Judiciary - Civil',['Commercial & Property Law Sub']],
+        ['Elem Sec Ed: Adm., Lic. & Charter',['Teacher Policy & Research']]
+      ]) {
+        const group=assignments.locator(':scope > li').filter({has:page.getByRole('link',{name:parent,exact:true})});
+        for (const child of children) assert.ok(await group.locator('ul').getByRole('link',{name:child,exact:true}).isVisible());
+      }
+      assert.ok(await assignments.evaluate(el=>el.scrollWidth<=el.clientWidth+1));
       await open({view:'legislation'});
       await pageBody.locator('time').waitFor();
       const ranges=pageBody.locator('.range-grid a');
