@@ -7,6 +7,8 @@ const assets = new Map([
   ['/api-url.mjs', ['api-url.mjs', 'text/javascript']],
   ['/chambers.mjs', ['chambers.mjs', 'text/javascript']],
   ['/statutes.mjs', ['statutes.mjs', 'text/javascript']],
+  ...['House','Senate'].map(chamber=>['/service-'+chamber+'.json',['service-'+chamber+'.json','application/json']]),
+  ['/service-time.mjs',['service-time.mjs','text/javascript']],
   ['/public-acts.mjs', ['public-acts.mjs', 'text/javascript']],
   ['/bill-rows.mjs', ['bill-rows.mjs', 'text/javascript']],
   ['/classic.mjs', ['classic.mjs', 'text/javascript']],
@@ -100,7 +102,7 @@ export async function serveClassic(req, res, url, reader, loadPage) {
       if (route === '/api/service' && !id) return answer(400,'Invalid member');
       const index = await reader.members(chamber);
       if (route === '/api/members') result = index;
-      else if (route === '/api/tenure') result = tenureIndex(chamber,index.members,reader);
+      else if (route === '/api/tenure') result = {...index,...tenureIndex(chamber,index.members,reader)};
       else {
         const member = index.members.find(m=>Number(new URL(m.url).pathname.split('/').filter(Boolean).at(-1))===id);
         if (!member) return answer(404,'Member unavailable');
