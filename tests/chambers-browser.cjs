@@ -31,7 +31,18 @@ const base=process.env.CLASSIC_ORIGIN||'http://127.0.0.1:10009/classic/';
         const names=await list.locator('td:first-child a').allTextContents();
         if(chamber==='House')assert.match(names[0],/Ammons/);
         await page.locator('#sort').selectOption('Tenure');
-        await page.locator('.tenure-value').first().waitFor({timeout:220000});
+        await page.locator('.tenure-value').first().waitFor({timeout:5000});
+        const ranks=await list.locator('.rank-cell').allTextContents();
+        assert.deepEqual(ranks,Array.from({length:names.length},(_,i)=>String(i+1)));
+        if (chamber==='House') {
+          const rankOf=async name=>Number(await list.filter({hasText:name}).locator('.rank-cell').textContent());
+          const didech=await rankOf('Daniel Didech');
+          assert.ok(await rankOf('Jennifer Gong-Gershowitz')<didech);
+          assert.ok(await rankOf('Patrick Windhorst')<await rankOf('Kam Buckner'));
+          await page.locator('#filterMembers').fill('Didech');
+          assert.equal(await rankOf('Daniel Didech'),didech);
+          await page.locator('#filterMembers').fill('');
+        }
         if (chamber==='Senate') {
           const rezin=list.filter({hasText:'Sue Rezin'});
           if (await rezin.count()) assert.match(await rezin.locator('.tenure-value').innerText(),/\d+ yr/);
@@ -50,6 +61,15 @@ const base=process.env.CLASSIC_ORIGIN||'http://127.0.0.1:10009/classic/';
         assert.ok(await pageBody.getByText('Committee assignments',{exact:true}).isVisible());
         console.log(device,chamber,'rules, committees, profiles, surname order and tenure passed;',months.filter(v=>v>=0).length,'of',names.length,'dated');
       }
+      const cold=await browser.newPage(config);
+      // A slow or unavailable live feed must never block the first ranking.
+      await cold.route('**/api/tenure?*',route=>route.abort());
+      await cold.goto(base+'?view=members&chamber=House&sort=tenure');
+      await cold.locator('#memberRows .rank-cell').last().waitFor({timeout:5000});
+      assert.equal(await cold.locator('#memberRows .rank-cell').last().textContent(),'118');
+      assert.ok(await cold.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+      console.log(device,'cold House ranks 1–118 visible in',Math.round(await cold.evaluate(()=>performance.now())),'ms');
+      await cold.close();
       await page.goto(base+'?view=profile&chamber=House&id=3347#committee-assignments');
       const assignments=page.locator('#committee-assignments[open] .assignment-list');
       await assignments.waitFor();

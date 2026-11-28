@@ -1,3 +1,4 @@
+import {tenureValue,oathOrder} from './service-time.mjs';
 import {paintBill,enrichBills} from './bill-rows.mjs';
 import {apiBase} from './api-url.mjs';
 import { disclosure, timestamp } from './reader-panels.mjs';
@@ -58,32 +59,61 @@ function duration(months) {
   const years=Math.floor(months/12), rest=months%12;
   return [years && years+' yr',rest && rest+' mo'].filter(Boolean).join(' ') || '<1 mo';
 }
+let snapshotTask, liveTenure, liveRoster=false;
+const tenureNote='Longest service first. Ties use known swearing-in order, then last name. ≈ marks service reported only by year.';
+function showTenure(data) {
+  const members=liveRoster && data.snapshot ? entries : data.members;
+  const changed=!tenureReady || JSON.stringify([entries,monthsByUrl,approximate])!==JSON.stringify([members,data.months,data.approximate]);
+  entries=members;
+  monthsByUrl=data.months;
+  approximate=data.approximate;
+  tenureReady=true;
+  message.replaceChildren(timestamp(data));
+  $('tenureStatus').textContent=tenureNote;
+  if (changed) {fill();restorePlace();}
+}
+async function bundledTenure() {
+  const response=await fetch('./service-'+chamber+'.json');
+  if (!response.ok) throw Error('Snapshot unavailable');
+  const {members,retrievedAt}=await response.json();
+  const months={},approximate={};
+  for (const {url,periods} of members) {
+    const value=tenureValue(periods);
+    months[url]=value.months;
+    approximate[url]=value.approximate;
+  }
+  return {members:members.map(({periods,...member})=>member),months,approximate,retrievedAt,snapshot:true,stale:true};
+}
 async function applySort() {
   const version=++sortVersion;
-  fill();
-  if (!byTenure()) { $('tenureStatus').textContent=''; return; }
-  if (!entries.length) return;
-  while (!tenureReady && version===sortVersion) {
-    $('tenureStatus').textContent='Checking service dates…';
-    try {
-      const data=await api('tenure',{chamber});
-      if (version!==sortVersion) return;
-      tenureReady=data.done;
-      monthsByUrl=data.months; approximate=data.approximate;
-      if (!tenureReady) {
-        $('tenureStatus').textContent='Checking service dates ('+data.checked+' of '+data.total+')…';
-        await new Promise(resolve=>setTimeout(resolve,2000));
-      }
-    } catch {
-      if (version!==sortVersion) return;
-      const retry=mk('button','Retry');retry.onclick=applySort;
-      $('tenureStatus').replaceChildren('Could not load tenure. ',retry);
-      return;
-    }
+  if (!byTenure()) {
+    $('tenureStatus').textContent='';
+    if (entries.length) fill(); else await load();
+    return;
   }
-  if (version!==sortVersion) return;
-  $('tenureStatus').textContent='Longest service first. Gaps are excluded. ≈ marks service reported only by year.';
-  fill();
+  if (tenureReady) fill(); else $('tenureStatus').textContent='Loading service dates…';
+  if (!tenureReady) {
+    snapshotTask ||= bundledTenure().catch(()=>null);
+    const snapshot=await snapshotTask;
+    if (version!==sortVersion) return;
+    if (snapshot) showTenure(snapshot);
+  }
+  try {
+    do {
+      liveTenure ||= api('tenure',{chamber}).catch(error=>{liveTenure=null;throw error;});
+      const data=await liveTenure;
+      if (version!==sortVersion) return;
+      liveRoster=true;
+      showTenure(data);
+      if (data.done) return;
+      liveTenure=null;
+      await new Promise(resolve=>setTimeout(resolve,1000));
+    } while (version===sortVersion);
+  } catch {
+    if (version!==sortVersion) return;
+    const retry=mk('button','Retry');retry.onclick=applySort;
+    $('tenureStatus').replaceChildren(tenureReady?'Showing saved service dates. ':'Could not load service dates. ',retry);
+  }
 }
 function rowLink(text,url,key) {
   const a = mk('a',text);
@@ -93,15 +123,28 @@ function rowLink(text,url,key) {
 }
 function fill() {
   const query = filter.value.toLowerCase().replace(/\s+/g,'');
-  const selected = entries.filter(row=>(billView ? row.number+row.title : row.name+' '+row.district+' '+row.party)
-    .toLowerCase().replace(/\s+/g,'').includes(query));
-  // ILGA supplies its directory in surname order, including compound names
-  // and suffixes. Stable sorting also preserves that order for tenure ties.
-  if (!billView && $('sort').value==='District') selected.sort((a,b)=>a.district-b.district);
-  if (byTenure() && tenureReady) selected.sort((a,b)=>(monthsByUrl[b.url]??-1)-(monthsByUrl[a.url]??-1));
+  const ranked=byTenure() && tenureReady;
+  const ordered=[...entries];
+  if (!billView && $('sort').value==='District') ordered.sort((a,b)=>a.district-b.district);
+  if (ranked) ordered.sort((a,b)=>(monthsByUrl[b.url]??-1)-(monthsByUrl[a.url]??-1) || oathOrder(a)-oathOrder(b));
+  if (!billView) {
+    const header=$('memberColumn').parentElement;
+    const rankHeader=header.querySelector('.rank-cell');
+    if (ranked && !rankHeader) {
+      const th=mk('th','Rank');th.className='rank-cell';th.scope='col';header.prepend(th);
+    } else if (!ranked) rankHeader?.remove();
+    rows.closest('table').classList.toggle('ranked',ranked);
+  }
   const fragment = document.createDocumentFragment();
-  for (const item of selected) {
+  for (const [index,item] of ordered.entries()) {
+    const searchable=billView ? item.number+item.title : item.name+' '+item.district+' '+item.party;
+    if (!searchable.toLowerCase().replace(/\s+/g,'').includes(query)) continue;
     const row = document.createElement('tr');
+    if (ranked) {
+      const cell=row.insertCell();
+      cell.className='rank-cell';
+      cell.textContent=monthsByUrl[item.url]!=null ? String(index+1) : '—';
+    }
     if (billView) {
       row.insertCell().append(rowLink(item.number,item.url,item.number));
       row.insertCell().append(rowLink(item.title||'Official bill record',item.url,item.number+'-title'));
@@ -121,20 +164,31 @@ function fill() {
     fragment.append(row);
   }
   rows.replaceChildren(fragment);
-  $(billView?'billEmpty':'memberEmpty').hidden = selected.length>0;
+  $(billView?'billEmpty':'memberEmpty').hidden = rows.rows.length>0;
+}
+let restored=false;
+function restorePlace() {
+  if (!place || restored || !rows.rows.length) return;
+  restored=true;
+  requestAnimationFrame(()=>{
+    window.scrollTo(0,place.top);
+    rows.querySelector('[data-place="'+CSS.escape(place.key)+'"]')?.focus({preventScroll:true});
+  });
 }
 async function load() {
   message.textContent='Checking ILGA…';
   try {
-    const data = billView ? await api('range',{type,number:first,first,last}) : await api('members',{chamber});
-    entries = billView ? data.bills : data.members;
-    if (billView) message.replaceChildren(); else message.replaceChildren(timestamp(data));
-    if (byTenure()) await applySort(); else fill();
-    if (billView) void enrichBills(entries,rows);
-    if (place) requestAnimationFrame(()=>{
-      window.scrollTo(0,place.top);
-      rows.querySelector('[data-place="'+CSS.escape(place.key)+'"]')?.focus({preventScroll:true});
-    });
+    if (byTenure()) {
+      await applySort();
+    } else {
+      const data = billView ? await api('range',{type,number:first,first,last}) : await api('members',{chamber});
+      if (!billView) liveRoster=true;
+      entries = billView ? data.bills : data.members;
+      if (billView) message.replaceChildren(); else message.replaceChildren(timestamp(data));
+      if (byTenure()) await applySort(); else fill();
+      if (billView) void enrichBills(entries,rows);
+    }
+    restorePlace();
   } catch {
     const retry=mk('button','Retry');
     retry.onclick=load;
