@@ -62,6 +62,13 @@ const base=process.env.CLASSIC_ORIGIN||'http://127.0.0.1:10009/classic/';
         const group=assignments.locator(':scope > li').filter({has:page.getByRole('link',{name:parent,exact:true})});
         for (const child of children) assert.ok(await group.locator('ul').getByRole('link',{name:child,exact:true}).isVisible());
       }
+      const metadata=assignments.locator('.assignment-meta').first();
+      assert.equal(await metadata.isVisible(),false);
+      assert.equal(await assignments.getByText(/^Subcommittees?$/).count(),0);
+      await page.getByLabel('Show chairs and codes').check();
+      assert.ok(await metadata.isVisible());
+      assert.ok(await assignments.locator('.assignment-meta a').first().isVisible());
+      await page.getByLabel('Show chairs and codes').uncheck();
       assert.ok(await assignments.evaluate(el=>el.scrollWidth<=el.clientWidth+1));
       await open({view:'legislation'});
       await pageBody.locator('time').waitFor();
