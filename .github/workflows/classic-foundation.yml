@@ -37,6 +37,10 @@ jobs:
             trap 'kill "$feed_pid" 2>/dev/null || true' EXIT
             for i in {1..20}; do curl -fsS http://127.0.0.1:10009/health && break; sleep 1; done
           fi
+          node web/classic/collect-service.mjs
+          for chamber in House Senate; do
+            echo "SERVICE_DATA_$chamber=$(gzip -c web/classic/service-$chamber.json | base64 -w 0)"
+          done
           node tests/classic-browser.cjs
           node tests/statutes-browser.cjs
           node tests/chambers-browser.cjs
