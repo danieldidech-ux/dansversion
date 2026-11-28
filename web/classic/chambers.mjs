@@ -190,14 +190,23 @@ function committeeAssignments(source,base) {
     const parent=group.parents[0] || node('li','Parent committee ('+code+')');
     list.append(parent,...group.parents.slice(1));
     if (!group.children.length) continue;
-    const label=node('div',group.children.length===1?'Subcommittee':'Subcommittees');
-    label.className='assignment-subheading';
     const children=node('ul');
-    children.setAttribute('aria-label',label.textContent);
+    const parentName=clean(parent.querySelector('.assignment-name')?.textContent)||code;
+    children.setAttribute('aria-label',parentName+' subcommittees');
+    children.setAttribute('role','list');
     children.append(...group.children);
-    parent.append(label,children);
+    parent.append(children);
   }
-  return list;
+  list.setAttribute('role','list');
+  const panel=node('div');
+  panel.className='assignment-panel';
+  const toggle=document.createElement('input');
+  toggle.type='checkbox';
+  toggle.id='assignment-details-toggle';
+  const label=node('label','Show chairs and codes');
+  label.htmlFor=toggle.id;
+  panel.append(toggle,label,list);
+  return panel;
 }
 function profile(body,doc,base,chamber,id,primary) {
   const card=doc.querySelector('.member-photo')?.parentElement || doc.querySelector('h5')?.parentElement;
